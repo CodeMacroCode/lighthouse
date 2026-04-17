@@ -1,0 +1,169 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { useNavigationStore } from "@/store/navigationStore";
+import { useSidebar } from "@/components/ui/sidebar";
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from "@/components/ui/navigation-menu";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { useNotificationStore } from "@/store/notificationStore";
+import { NotificationSheet } from "./NotificationDropdown";
+import { Menu, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import Image from "next/image";
+
+export function Navbar() {
+  const setActiveSection = useNavigationStore(
+    (state) => state.setActiveSection
+  );
+
+  const { setOpen, setOpenMobile, isMobile, state } = useSidebar();
+  const { notifications } = useNotificationStore();
+
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [token, setToken] = React.useState<string | null>(null);
+
+  /**
+   * ✅ Access localStorage only on client
+   */
+  React.useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    setToken(storedToken);
+  }, []);
+
+  const navigationMap: Record<string, string> = React.useMemo(
+    () => ({
+      Dashboard: "/dashboard/users/school-master",
+      Maintenance: `https://maintenance.credencetracker.com/#/dashboard?token=${encodeURIComponent(
+        token || ""
+      )}`,
+      Geofence: "/dashboard/school/geofence",
+      Notifications: "/dashboard/users/notification",
+    }),
+    [token]
+  );
+
+  const navSections = [
+    // "Master",
+    // "Dashboard",
+    // "Reports",
+    // "Support",
+    // "Maintenance",
+  ];
+
+  const handleNavClick = React.useCallback(
+    (section: string) => {
+      setMobileMenuOpen(false);
+
+      if (section === "Dashboard" || section === "Maintenance") {
+        setActiveSection(section);
+        setOpenMobile(false);
+        setOpen(false);
+      } else {
+        setActiveSection(section);
+
+        if (isMobile) {
+          setOpenMobile(true);
+        } else {
+          setOpen(true);
+        }
+      }
+    },
+    [setActiveSection, setOpen, setOpenMobile, isMobile]
+  );
+
+  return (
+    <div className="w-full h-14 md:h-16 flex items-center relative px-2 sm:px-4 bg-primary border-b border-blue-600/20">
+      
+      {/* Mobile Menu */}
+      <div className="md:hidden flex items-center z-9999">
+        <DropdownMenu open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="p-2 rounded-md hover:bg-blue-500/20 transition-colors cursor-pointer"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5 text-blue-900" />
+              ) : (
+                <Menu className="h-5 w-5 text-blue-900" />
+              )}
+            </button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent
+            align="start"
+            className="w-48 bg-primary border-blue-600/20"
+          >
+            {navSections.map((section) => (
+              <DropdownMenuItem
+                key={section}
+                className="cursor-pointer font-semibold text-blue-900 hover:bg-blue-500/20 focus:bg-blue-500/20"
+                asChild
+              >
+                <Link
+                  href={navigationMap[section] || "#"}
+                  onClick={() => handleNavClick(section)}
+                >
+                  {section}
+                </Link>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Desktop Navigation */}
+      <div className="hidden md:flex flex-1 justify-center items-center relative z-9999 px-4 lg:px-10">
+        <NavigationMenu>
+          <NavigationMenuList className="flex-wrap justify-center gap-2 lg:gap-6">
+            {navSections.map((section, index) => (
+              <React.Fragment key={section}>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className="text-xs lg:text-sm px-2 lg:px-4 py-1.5 lg:py-2 whitespace-nowrap font-semibold hover:font-bold transition-colors duration-200 focus:font-bold hover:bg-blue-500/20 rounded-md text-white hover:text-white"
+                  >
+                    <Link
+                      href={navigationMap[section] || "#"}
+                      onClick={() => handleNavClick(section)}
+                      className="flex items-center gap-2"
+                    >
+                      {section}
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+
+                {index < navSections.length - 1 && (
+                  <div
+                    className="h-8 w-px bg-white/50 mx-1 lg:mx-2 self-center"
+                    aria-hidden="true"
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </NavigationMenuList>
+        </NavigationMenu>
+      </div>
+
+      {/* Mobile spacer */}
+      <div className="flex-1 md:hidden" />
+
+      {/* Right Section */}
+      <div className="flex items-center gap-2 sm:gap-4 z-9999">
+        <NotificationSheet />
+        <ProfileDropdown />
+      </div>
+    </div>
+  );
+}

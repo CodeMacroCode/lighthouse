@@ -1,0 +1,20 @@
+import { z } from "zod";
+
+export const deviceSchema = z.object({
+  name: z.string().min(1, "Device name is required"),
+  uniqueId: z.string().min(1, "Unique ID is required"),
+  sim: z.string().min(1, "SIM number is required"),
+  schoolId: z.string().min(1, "School is required"),
+  branchId: z.string().min(1, "Branch is required"),
+  routeObjId: z.string().optional().nullable(),
+  category: z.string().min(1, "Category is required"),
+  model: z.string().min(1, "Model is required"),
+  driverObjIds: z.array(z.string()).default([]),
+  speed: z.coerce.number().optional(),
+  average: z.coerce.number().optional(),
+  odometer: z.coerce.number().min(0, "Odometer cannot be negative").optional(),
+  keyFeature: z.boolean(),
+  expirationdate: z.string().min(1, "Subscription Expiry is required"),
+});
+
+export type DeviceFormData = z.infer<typeof deviceSchema>;

@@ -1,0 +1,436 @@
+"use client";
+
+import React, { useEffect, useMemo, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Save, ExternalLink, Map as MapIcon, Globe } from "lucide-react";
+import { Branch, Geofence, Route, School } from "@/interface/modal";
+import { useRouteDropdown } from "@/hooks/useDropdown";
+import { Combobox } from "@/components/ui/combobox";
+// import { TimePicker12 } from "../time-picker-12h";
+import { useGeofenceStore } from "@/store/geofenceStore";
+import { toast } from "sonner";
+
+interface SearchResult {
+  lat: string;
+  lon: string;
+  display_name: string;
+}
+
+interface Coords {
+  lat: number;
+  lng: number;
+}
+
+interface Props {
+  locationSearchQuery: string;
+  setLocationSearchQuery: (value: string) => void;
+  searchResults: SearchResult[];
+  showSearchResults: boolean;
+  selectSearchResult: (result: SearchResult) => void;
+  currentGeofenceName: string;
+  updateGeofenceName: (value: string) => void;
+  currentRadius: number | "";
+  updateRadius: (value: number | "") => void;
+  currentCoords: Coords;
+  updateCoordinates: (lat: number, lng: number) => void;
+  openStreetView: () => void;
+  saveGeofences: () => void;
+  isLoading: boolean;
+  tempGeofence: any;
+  selectedRoutes: Route[];
+  handleRouteSelect?: (route: Route | Route[] | null) => void;
+  mode: "add" | "edit";
+  selectedSchool: School | null;
+  handleSchoolSelect: (school: School | null) => void;
+  selectedBranch: Branch | null;
+  handleBranchSelect: (branch: Branch | null) => void;
+  role: string;
+  schools: School[];
+  branches: Branch[];
+  isSatellite?: boolean;
+  toggleSatelliteView?: () => void;
+  branchId?: string;
+}
+
+
+
+const GeofenceConfigurationPanel: React.FC<Props> = ({
+  handleRouteSelect,
+  handleBranchSelect,
+  handleSchoolSelect,
+  selectedRoutes,
+  selectedSchool,
+  selectedBranch,
+  mode,
+  locationSearchQuery,
+  setLocationSearchQuery,
+  searchResults,
+  showSearchResults,
+  selectSearchResult,
+  currentGeofenceName,
+  updateGeofenceName,
+  currentRadius,
+  updateRadius,
+  currentCoords,
+  updateCoordinates,
+  openStreetView,
+  saveGeofences,
+  isLoading,
+  tempGeofence,
+  role,
+  schools,
+  branches,
+  isSatellite,
+  toggleSatelliteView,
+  branchId,
+}) => {
+  const editRowData = useGeofenceStore((state) => state.rowData);
+
+  const lastInitializedId = useRef<string | null>(null);
+  const routeInitialized = useRef<boolean>(false);
+
+  // Use branchId from prop (covers branch role with token) or from selected branch
+  const effectiveBranchId = branchId || selectedBranch?._id;
+
+  const { data: routesData = [] } = useRouteDropdown(
+    effectiveBranchId,
+    !!effectiveBranchId
+  );
+  const routes = Array.isArray(routesData) ? routesData : [];
+
+  const schoolItems = useMemo(
+    () =>
+      schools.map((school) => ({
+        label: school.schoolName?.trim() || `Admin ${school._id}`,
+        value: school._id,
+      })),
+    [schools]
+  );
+
+  const branchItems = useMemo(
+    () =>
+      branches.map((branch) => ({
+        label: branch.branchName?.trim() || `User ${branch._id}`,
+        value: branch._id,
+      })),
+    [branches]
+  );
+
+  const routeItems = useMemo(
+    () =>
+      routes.map((route) => ({
+        label:
+          (route.routeNumber || route.name)?.trim() || `Route ${route._id}`,
+        value: route._id,
+      })),
+    [routes]
+  );
+
+  // Main initialization - only depends on editRowData._id
+  useEffect(() => {
+    if (editRowData && editRowData._id !== lastInitializedId.current) {
+      // console.log("=== 🚀 INITIALIZING EDIT MODE ===");
+      // console.log("EditRowData:", editRowData);
+      // console.log(
+      //   "Schools available:",
+      //   schools.length,
+      //   schools.map((s) => ({ id: s._id, name: s.schoolName }))
+      // );
+      // console.log(
+      //   "Branches available:",
+      //   branches.length,
+      //   branches.map((b) => ({ id: b._id, name: b.branchName }))
+      // );
+
+      lastInitializedId.current = editRowData._id;
+      routeInitialized.current = false;
+
+      // Basic fields
+      if (editRowData.geofenceName) {
+        updateGeofenceName(editRowData.geofenceName);
+      }
+
+      if (editRowData.area?.radius) {
+        updateRadius(editRowData.area.radius);
+      }
+
+      if (editRowData.area?.center && Array.isArray(editRowData.area.center)) {
+        const [lat, lng] = editRowData.area.center;
+        updateCoordinates(lat, lng);
+      }
+
+
+
+      // School - only look up if role has access to the school dropdown
+      if (editRowData.schoolId && role === "superAdmin") {
+        const matchingSchool = schools.find(
+          (s) => s._id === editRowData.schoolId
+        );
+        if (matchingSchool) {
+          handleSchoolSelect(matchingSchool);
+        } else {
+          toast.error("❌ Admin NOT found!");
+        }
+      }
+
+      // Branch - only look up if role has access to the branch dropdown
+      if (editRowData.branchId && ["superAdmin", "branchGroup", "school"].includes(role)) {
+        const matchingBranch = branches.find(
+          (b) => b._id === editRowData.branchId
+        );
+        if (matchingBranch) {
+          handleBranchSelect(matchingBranch);
+        }
+      }
+    }
+  }, [editRowData?._id]); // ONLY depend on _id to avoid infinite loop
+
+  // Separate effect for route initialization
+  useEffect(() => {
+    if (
+      editRowData &&
+      editRowData._id === lastInitializedId.current &&
+      editRowData.routeObjId &&
+      routes.length > 0 &&
+      handleRouteSelect &&
+      !routeInitialized.current
+    ) {
+      // console.log("=== 🚌 ROUTE INITIALIZATION ===");
+      // console.log("Looking for route with ID:", editRowData.routeObjId);
+      // console.log(
+      //   "Routes available:",
+      //   routesData.length,
+      //   routesData.map((r) => ({ id: r._id, name: r.routeNumber || r.name }))
+      // );
+
+      const matchingRoute = routes.find(
+        (r) => r._id === editRowData.routeObjId
+      );
+
+      if (matchingRoute) {
+        handleRouteSelect(matchingRoute as unknown as Route);
+        routeInitialized.current = true;
+      } else {
+        // console.error(
+        //   "❌ Route NOT found! Available IDs:",
+        //   routesData.map((r) => r._id)
+        // );
+      }
+    }
+  }, [routesData.length, editRowData?.routeObjId, editRowData?._id]);
+
+  // Cleanup on unmount or when editRowData clears
+  useEffect(() => {
+    if (!editRowData) {
+      // console.log("=== 🧹 CLEARING EDIT MODE ===");
+      lastInitializedId.current = null;
+      routeInitialized.current = false;
+    }
+  }, [editRowData]);
+
+  // Debug current state
+
+
+  return (
+    <Card className="absolute top-14 right-4 w-auto min-w-[500px] max-w-[60vw] z-1000">
+      <CardContent className=" space-y-4">
+        <h2 className="text-lg font-semibold">Configuration</h2>
+        <div className="flex justify-around items-center">
+          {role === "superAdmin" && (
+            <div className="space-y-2">
+              <Label>
+                Admin <span className="text-red-500">*</span>
+              </Label>
+              <Combobox
+                items={schoolItems}
+                value={selectedSchool?._id}
+                onValueChange={(value) => {
+                  const school = schools.find((s) => s._id === value) || null;
+                  handleSchoolSelect(school);
+                }}
+                placeholder="Select admin"
+                searchPlaceholder="Search admin..."
+                emptyMessage="No admin found"
+                width="w-[140px]"
+              />
+            </div>
+          )}
+
+          {["superAdmin", "branchGroup", "school"].includes(role) && (
+            <div className="space-y-2">
+              <Label>
+                User <span className="text-red-500">*</span>
+              </Label>
+              <Combobox
+                items={branchItems}
+                value={selectedBranch?._id}
+                onValueChange={(value) => {
+                  const branch = branches.find((b) => b._id === value) || null;
+                  handleBranchSelect(branch);
+                }}
+                placeholder="Select user"
+                searchPlaceholder="Search user..."
+                emptyMessage="No user found"
+                width="w-[140px]"
+                disabled={role === "superAdmin" && !selectedSchool}
+              />
+            </div>
+          )}
+
+          {handleRouteSelect && (
+            <div className="space-y-2">
+              <Label>Route</Label>
+              <Combobox
+                items={routeItems}
+                multiple={mode === "add"}
+                value={selectedRoutes[0]?._id}
+                selectedValues={selectedRoutes.map((r) => r._id)}
+                onValueChange={(value) => {
+                   if (mode === "edit") {
+                     const route = routes.find((r) => r._id === value) || null;
+                     handleRouteSelect(route as unknown as Route | null);
+                   }
+                }}
+                onSelectedValuesChange={(values) => {
+                  if (mode === "add") {
+                    const selected = routes.filter(r => values.includes(r._id));
+                    handleRouteSelect(selected as unknown as Route[]);
+                  }
+                }}
+                placeholder={mode === "add" ? "Select routes" : "Select route"}
+                searchPlaceholder="Search route..."
+                emptyMessage="No route found"
+                width="w-[140px]"
+                disabled={!effectiveBranchId}
+                showBadges={true}
+                maxBadges={1}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Rest of your JSX - no changes */}
+        <div className="space-y-2 relative">
+          <Label>Search Location</Label>
+          <Input
+            type="text"
+            placeholder="Search for a location..."
+            value={locationSearchQuery}
+            onChange={(e) => setLocationSearchQuery(e.target.value)}
+            className="text-sm mt-1"
+          />
+          {showSearchResults && searchResults.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+              {searchResults.map((result, index) => (
+                <div
+                  key={index}
+                  onClick={() => selectSearchResult(result)}
+                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                >
+                  {result.display_name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>
+            Geofence Name <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            type="text"
+            placeholder="Enter geofence name"
+            value={currentGeofenceName}
+            onChange={(e) => updateGeofenceName(e.target.value)}
+            className="text-sm mt-1"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>
+            Radius (meters) <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            type="number"
+            placeholder="Enter radius in meters"
+            value={currentRadius}
+            onChange={(e) => {
+              const val = e.target.value;
+              updateRadius(val === "" ? "" : parseInt(val));
+            }}
+            className="text-sm mt-1"
+          />
+        </div>
+
+
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <Label className="text-xs">Latitude</Label>
+            <Input
+              type="number"
+              step="0.000001"
+              value={currentCoords.lat}
+              placeholder={String(currentCoords.lat)}
+              onChange={(e) =>
+                updateCoordinates(parseFloat(e.target.value), currentCoords.lng)
+              }
+              className="text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Longitude</Label>
+            <Input
+              type="number"
+              step="0.000001"
+              value={currentCoords.lng}
+              placeholder={String(currentCoords.lng)}
+              onChange={(e) =>
+                updateCoordinates(currentCoords.lat, parseFloat(e.target.value))
+              }
+              className="text-xs"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 pt-4">
+          <Button
+            variant="outline"
+            className="w-full cursor-pointer"
+            onClick={openStreetView}
+            type="button"
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Street View
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full cursor-pointer"
+            onClick={toggleSatelliteView}
+            type="button"
+          >
+            {isSatellite ? <MapIcon className="w-4 h-4 mr-2" /> : <Globe className="w-4 h-4 mr-2" />}
+            {isSatellite ? "Map View" : "Satellite"}
+          </Button>
+        </div>
+        <div className="space-y-2">
+          <Button
+            className="w-full cursor-pointer text-white"
+            onClick={saveGeofences}
+            disabled={isLoading || !tempGeofence}
+            type="button"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {isLoading ? "Saving..." : "Save Geofence"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default GeofenceConfigurationPanel;
