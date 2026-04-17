@@ -19,7 +19,7 @@ export default function IncidentPage() {
     const queryClient = useQueryClient();
     const { decodedToken: user } = useAuthStore();
     const userRole = user?.role?.toLowerCase();
-    const canAddOrEdit = userRole === "parent" || userRole === "branch";
+    const canAddOrEdit = userRole === "parent" || userRole === "branch" || userRole === "superadmin";
 
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,

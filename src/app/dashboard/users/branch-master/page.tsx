@@ -107,26 +107,7 @@ const PasswordCell = ({ password }: { password?: string }) => {
   );
 };
 
-// Master options for dropdown
-const masterOptions = [
-  { value: "route", label: "Route" },
-  { value: "geofence", label: "Geofence" },
-  { value: "driver", label: "Driver" },
-];
 
-// Report options for dropdown
-const reportOptions = [
-  { value: "status", label: "Status Report" },
-  { value: "history", label: "History Report" },
-  { value: "stoppageSummary", label: "Stoppage Summary Report" },
-  { value: "stop", label: "Stop Report" },
-  { value: "travel", label: "Travel Summary Report" },
-  { value: "trip", label: "Trip Report" },
-  { value: "idle", label: "Idle Report" },
-  { value: "alert", label: "Alert Report" },
-  { value: "routeReport", label: "Route Report" },
-  { value: "ePoliceReport", label: "ePolice Report" },
-];
 
 // Helper function to decode JWT token
 const getDecodedToken = (token: string): DecodedToken | null => {
@@ -188,10 +169,6 @@ const BranchEditDialog = ({
   );
   const [showPassword, setShowPassword] = useState(false);
 
-  // Permissions state for edit form
-  const [selectedMasterPermissions, setSelectedMasterPermissions] = useState<string[]>([]);
-  const [selectedReportPermissions, setSelectedReportPermissions] = useState<string[]>([]);
-
   useEffect(() => {
     setFormData(data);
     setExpirationDate(
@@ -199,28 +176,6 @@ const BranchEditDialog = ({
         ? new Date(data.subscriptionExpirationDate)
         : null
     );
-
-    // Initialize permissions from data.access
-    if (data.access) {
-      const masterPerms: string[] = [];
-      const reportPerms: string[] = [];
-
-      if (data.access.master) {
-        Object.entries(data.access.master).forEach(([key, value]) => {
-          if (value === true) masterPerms.push(key);
-        });
-      }
-      if (data.access.reports) {
-        Object.entries(data.access.reports).forEach(([key, value]) => {
-          if (value === true) reportPerms.push(key);
-        });
-      }
-      setSelectedMasterPermissions(masterPerms);
-      setSelectedReportPermissions(reportPerms);
-    } else {
-      setSelectedMasterPermissions([]);
-      setSelectedReportPermissions([]);
-    }
   }, [data]);
 
   const handleSave = () => {
@@ -229,37 +184,12 @@ const BranchEditDialog = ({
       subscriptionExpirationDate: expirationDate
         ? expirationDate.toISOString().split("T")[0]
         : null,
-      access: {
-        master: {
-          route: selectedMasterPermissions.includes("route"),
-          geofence: selectedMasterPermissions.includes("geofence"),
-          driver: selectedMasterPermissions.includes("driver"),
-        },
-        reports: {
-          status: selectedReportPermissions.includes("status"),
-          history: selectedReportPermissions.includes("history"),
-          stoppageSummary: selectedReportPermissions.includes("stoppageSummary"),
-          stop: selectedReportPermissions.includes("stop"),
-          travel: selectedReportPermissions.includes("travel"),
-          trip: selectedReportPermissions.includes("trip"),
-          idle: selectedReportPermissions.includes("idle"),
-          alert: selectedReportPermissions.includes("alert"),
-          routeReport: selectedReportPermissions.includes("routeReport"),
-          ePoliceReport: selectedReportPermissions.includes("ePoliceReport"),
-        },
-      },
     };
     onSave(updatedData);
   };
 
   const handleFieldChange = (key: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [key]: value }));
-  };
-
-  const handleDateFocus = () => {
-    if (!isVerified) {
-      onVerificationRequired("subscriptionExpirationDate");
-    }
   };
 
   return (
@@ -307,6 +237,16 @@ const BranchEditDialog = ({
                 id="edit-mobileNo"
                 value={formData.mobileNo || ""}
                 onChange={(e) => handleFieldChange("mobileNo", e.target.value)}
+              />
+            </div>
+
+            {/* Safety Head Name */}
+            <div className="grid gap-2">
+              <Label htmlFor="edit-safetyHeadName">Safety Head Name</Label>
+              <Input
+                id="edit-safetyHeadName"
+                value={formData.safetyHeadName || ""}
+                onChange={(e) => handleFieldChange("safetyHeadName", e.target.value)}
               />
             </div>
 
@@ -360,17 +300,6 @@ const BranchEditDialog = ({
 
             {/* Expiration Date */}
             {(isSuperAdmin || isSchoolRole || isBranchGroup) && (
-              // <div className="grid gap-2">
-              //   <Label htmlFor="edit-expirationDate">Expiration Date</Label>
-              //   <DatePicker
-              //     setDate={expirationDate}
-              //     onChange={setExpirationDate}
-              //     onFocus={handleDateFocus}
-              //     placeholderText="Select expiration date"
-              //     className="w-full"
-              //     disabled={!isVerified}
-              //   />
-              // </div>
               <ExpirationDatePicker
                 date={expirationDate}
                 onDateChange={(date) => {
@@ -380,86 +309,7 @@ const BranchEditDialog = ({
                 }}
                 placeholder="Select expiration date"
                 minDate={new Date()}
-              // disabled={!isVerified}
               />
-            )}
-
-            {/* Full Access Checkbox
-            {(isSuperAdmin || isSchoolRole || isBranchGroup) && (
-              <div className="flex items-center gap-3 mt-2">
-                <input
-                  type="checkbox"
-                  id="edit-fullAccess"
-                  checked={formData.fullAccess || false}
-                  onChange={(e) =>
-                    handleFieldChange("fullAccess", e.target.checked)
-                  }
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="edit-fullAccess">Full Access</Label>
-              </div>
-            )} */}
-
-            {/* Permissions Section */}
-            {(isSuperAdmin || isSchoolRole || isBranchGroup) && (
-              <div className="col-span-full border rounded-lg p-4 mt-2">
-                <div className="flex items-center justify-between mb-4">
-                  <Label className="text-base font-semibold">Access</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedMasterPermissions(masterOptions.map(o => o.value));
-                      setSelectedReportPermissions(reportOptions.map(o => o.value));
-                    }}
-                  >
-                    Select All
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Master Permissions Dropdown */}
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Master</p>
-                    <Combobox
-                      items={masterOptions}
-                      multiple={true}
-                      selectedValues={selectedMasterPermissions}
-                      onSelectedValuesChange={setSelectedMasterPermissions}
-                      className="cursor-pointer"
-                      placeholder="Select master permissions..."
-                      searchPlaceholder="Search permissions..."
-                      emptyMessage="No permissions found"
-                      width="w-full"
-                      showSelectAll={true}
-                      selectAllLabel="Select All"
-                      showBadges={true}
-                      maxBadges={2}
-                    />
-                  </div>
-
-                  {/* Reports Permissions Dropdown */}
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Reports</p>
-                    <Combobox
-                      items={reportOptions}
-                      multiple={true}
-                      selectedValues={selectedReportPermissions}
-                      onSelectedValuesChange={setSelectedReportPermissions}
-                      className="cursor-pointer"
-                      placeholder="Select report permissions..."
-                      searchPlaceholder="Search reports..."
-                      emptyMessage="No reports found"
-                      width="w-full"
-                      showSelectAll={true}
-                      selectAllLabel="Select All"
-                      showBadges={true}
-                      maxBadges={2}
-                    />
-                  </div>
-                </div>
-              </div>
             )}
           </div>
         </div>
@@ -535,14 +385,7 @@ export default function BranchMaster() {
     }
   };
 
-  // Permissions state for add user form
-  const [selectedMasterPermissions, setSelectedMasterPermissions] = useState<string[]>([]);
-  const [selectedReportPermissions, setSelectedReportPermissions] = useState<string[]>([]);
 
-  const resetPermissions = () => {
-    setSelectedMasterPermissions([]);
-    setSelectedReportPermissions([]);
-  };
 
   // FIXED: Combine all user info into a single state to avoid synchronization issues
   const [userInfo, setUserInfo] = useState<{
@@ -923,7 +766,6 @@ export default function BranchMaster() {
         setSchoolSearch("");
       }
       setSelectedDate(undefined);
-      resetPermissions();
 
       // alert("Branch added successfully.");
       toast.success("Branch added successfully.");
@@ -1080,6 +922,7 @@ export default function BranchMaster() {
 
     const data = {
       branchName: form.branchName.value,
+      safetyHeadName: form.safetyHeadName.value,
       schoolId: selectedSchool,
       mobileNo: form.branchMobile.value,
       username: form.username.value,
@@ -1090,25 +933,6 @@ export default function BranchMaster() {
         isSuperAdmin || isSchoolRole || isBranchGroup
           ? form.fullAccess?.checked
           : false,
-      access: {
-        master: {
-          route: selectedMasterPermissions.includes("route"),
-          geofence: selectedMasterPermissions.includes("geofence"),
-          driver: selectedMasterPermissions.includes("driver"),
-        },
-        reports: {
-          status: selectedReportPermissions.includes("status"),
-          history: selectedReportPermissions.includes("history"),
-          stoppageSummary: selectedReportPermissions.includes("stoppageSummary"),
-          stop: selectedReportPermissions.includes("stop"),
-          travel: selectedReportPermissions.includes("travel"),
-          trip: selectedReportPermissions.includes("trip"),
-          idle: selectedReportPermissions.includes("idle"),
-          alert: selectedReportPermissions.includes("alert"),
-          routeReport: selectedReportPermissions.includes("routeReport"),
-          ePoliceReport: selectedReportPermissions.includes("ePoliceReport"),
-        },
-      },
     };
 
     try {
@@ -1146,7 +970,7 @@ export default function BranchMaster() {
   const columns = useMemo<ColumnDef<branch, CellContent>[]>(
     () => [
       {
-        header: "User Name",
+        header: "School",
         accessorFn: (row: any) => ({
           type: "custom",
           render: () => (
@@ -1182,11 +1006,20 @@ export default function BranchMaster() {
         meta: { flex: 1, minWidth: 200, maxWidth: 320 },
         enableHiding: true,
       },
+      {
+        header: "Safety Head",
+        accessorFn: (row: any) => ({
+          type: "text",
+          value: row.safetyHeadName ?? "N/A",
+        }),
+        meta: { flex: 1, minWidth: 200, maxWidth: 300 },
+        enableHiding: true,
+      },
 
       ...(isSuperAdmin
         ? [
           {
-            header: "Admin Name",
+            header: "Regional Head",
             accessorFn: (row: any) => ({
               type: "text",
               value: row.schoolId?.schoolName ?? "",
@@ -1333,7 +1166,7 @@ export default function BranchMaster() {
         <section className="flex space-x-4">
           <SearchComponent
             data={filterResults}
-            displayKey={["user", "username", "email", "mobile"]}
+            displayKey={["branchName", "safetyHeadName", "username", "email", "mobileNo"]}
             onResults={handleSearchResults}
             className="w-[250px] mb-4"
           />
@@ -1392,6 +1225,16 @@ export default function BranchMaster() {
                           id="branchName"
                           name="branchName"
                           placeholder="Enter user name"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="safetyHeadName">Safety Head Name*</Label>
+                        <Input
+                          id="safetyHeadName"
+                          name="safetyHeadName"
+                          placeholder="Enter safety head name"
                           required
                         />
                       </div>
@@ -1495,14 +1338,7 @@ export default function BranchMaster() {
 
                       {/* DatePicker for Expiration Date */}
                       <div className="grid gap-2">
-                        {/* <Label htmlFor="expirationDate">Expiration Date</Label>
-                      <DatePicker
-                        selected={selectedDate}
-                        onChange={setSelectedDate}
-                        placeholderText="Select expiration date"
-                        className="w-full"
-                      /> */}
-                      <Label htmlFor="expirationDate">Expiration Date *</Label>
+                        <Label htmlFor="expirationDate">Expiration Date *</Label>
                         <ExpirationDatePicker
                           date={selectedDate}
                           onDateChange={setSelectedDate}
@@ -1510,81 +1346,6 @@ export default function BranchMaster() {
                           minDate={new Date()}
                         />
                       </div>
-
-                      {/* Full Access checkbox - only for superadmin, school, and branchGroup roles
-                    {(isSuperAdmin || isSchoolRole || isBranchGroup) && (
-                      <div className="px-3 py-2 border-t border-gray-200 bg-blue-50 flex justify-between items-center text-xs text-gray-600">
-                        <input
-                          type="checkbox"
-                          id="fullAccess"
-                          name="fullAccess"
-                          className="h-5 w-5"
-                        />
-                        <Label htmlFor="fullAccess">Full Access</Label>
-                      </div>
-                    )} */}
-
-                      {/* Permissions Section */}
-                      {(isSuperAdmin || isSchoolRole || isBranchGroup) && (
-                        <div className="col-span-full border rounded-lg p-4 mt-2">
-                          <div className="flex items-center justify-between mb-4">
-                            <Label className="text-base font-semibold">Access</Label>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedMasterPermissions(masterOptions.map(o => o.value));
-                                setSelectedReportPermissions(reportOptions.map(o => o.value));
-                              }}
-                            >
-                              Select All
-                            </Button>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Master Permissions Dropdown */}
-                            <div>
-                              <p className="text-sm font-medium text-gray-700 mb-2">Master</p>
-                              <Combobox
-                                items={masterOptions}
-                                multiple={true}
-                                selectedValues={selectedMasterPermissions}
-                                onSelectedValuesChange={setSelectedMasterPermissions}
-                                className="cursor-pointer"
-                                placeholder="Select master permissions..."
-                                searchPlaceholder="Search permissions..."
-                                emptyMessage="No permissions found"
-                                width="w-full"
-                                showSelectAll={true}
-                                selectAllLabel="Select All"
-                                showBadges={true}
-                                maxBadges={2}
-                              />
-                            </div>
-
-                            {/* Reports Permissions Dropdown */}
-                            <div>
-                              <p className="text-sm font-medium text-gray-700 mb-2">Reports</p>
-                              <Combobox
-                                items={reportOptions}
-                                multiple={true}
-                                selectedValues={selectedReportPermissions}
-                                onSelectedValuesChange={setSelectedReportPermissions}
-                                className="cursor-pointer"
-                                placeholder="Select report permissions..."
-                                searchPlaceholder="Search reports..."
-                                emptyMessage="No reports found"
-                                width="w-full"
-                                showSelectAll={true}
-                                selectAllLabel="Select All"
-                                showBadges={true}
-                                maxBadges={2}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     <DialogFooter>

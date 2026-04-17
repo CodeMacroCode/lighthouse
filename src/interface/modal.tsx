@@ -20,6 +20,7 @@ export interface Branch {
     schoolName: string;
   };
   mobileNo: string;
+  safetyHeadName?: string;
   username: string;
   fullAccess: boolean;
   password: string;
