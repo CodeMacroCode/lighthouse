@@ -5,8 +5,9 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { incidentService } from "@/services/api/incidentService";
+import { api } from "@/services/apiService";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ const SUB_CATEGORIES = [
   "CCTV", "BGV", "Health & Hygiene", "Bullying", "Theft", "Other:"
 ];
 const STATUS_OPTIONS = ["Open", "Close"];
+// Static regions removed in favor of dynamic Branch Groups
 const REGIONS = [
   "Mumbai", "Pune", "Gudgaon", "Bangalore", "Nagpur", "Hyderabad", "Vadodara", "Other"
 ];
@@ -52,6 +54,23 @@ export default function NewIncidentPage() {
   const queryClient = useQueryClient();
   const { decodedToken: user } = useAuthStore();
   const userRole = user?.role?.toLowerCase();
+
+  // Fetch Branch Groups
+  const { data: branchGroups } = useQuery({
+    queryKey: ["branchGroups"],
+    queryFn: () => api.get<any[]>("/branchGroup"),
+  });
+
+  const branchGroupOptions = React.useMemo(() => {
+    if (!branchGroups) return [];
+    const options = branchGroups.map((bg) => ({
+      label: bg.branchGroupName,
+      value: bg.branchGroupName,
+    }));
+    // Add "Other" option
+    options.push({ label: "Other", value: "Other" });
+    return options;
+  }, [branchGroups]);
 
   const incidentSchema = React.useMemo(() => z.object({
     email: z.string().min(1, "Email is required").email("Invalid email address"),
@@ -182,7 +201,7 @@ export default function NewIncidentPage() {
                   <div className="h-2 w-2 rounded-full bg-blue-600" />
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">Reporter Information</h3>
                 </div>
-                
+
                 <div className="grid gap-6 md:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -205,7 +224,7 @@ export default function NewIncidentPage() {
                       <FormItem className="flex flex-col">
                         <FormLabel>Region</FormLabel>
                         <Combobox
-                          items={REGIONS.map(r => ({ label: r, value: r }))}
+                          items={branchGroupOptions}
                           value={field.value}
                           onValueChange={field.onChange}
                           placeholder="Select region"
@@ -515,7 +534,7 @@ export default function NewIncidentPage() {
                     <div className="h-2 w-2 rounded-full bg-purple-600" />
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">SuperAdmin Configuration</h3>
                   </div>
-                  
+
                   <div className="grid gap-6 md:grid-cols-2">
                     <FormField
                       control={form.control}
@@ -551,8 +570,8 @@ export default function NewIncidentPage() {
                 <Button variant="outline" type="button" asChild className="px-8 cursor-pointer">
                   <Link href="/dashboard/incident">Cancel</Link>
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="px-10 bg-[#0c235c] hover:bg-[#0c235c]/90 text-white font-semibold cursor-pointer"
                   disabled={mutation.isPending}
                 >

@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { incidentService } from "@/services/api/incidentService";
+import { api } from "@/services/apiService";
 import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw, Plus } from "lucide-react";
@@ -37,6 +38,19 @@ export default function IncidentPage() {
         }),
     });
 
+    const { data: branchGroups } = useQuery({
+        queryKey: ["branchGroups"],
+        queryFn: () => api.get<any[]>("/branchGroup"),
+    });
+
+    const branchGroupOptions = useMemo(() => {
+        if (!branchGroups) return [];
+        return branchGroups.map((bg) => ({
+            label: bg.branchGroupName,
+            value: bg.branchGroupName,
+        }));
+    }, [branchGroups]);
+
     const handleEdit = (incident: Incident) => {
         setSelectedIncident(incident);
         setIsEditDialogOpen(true);
@@ -70,6 +84,7 @@ export default function IncidentPage() {
             status: formData.status,
             remarks: formData.remarks,
             pendingAction: formData.pendingAction,
+            region: formData.region,
         };
         updateMutation.mutate(payload);
     };
@@ -80,6 +95,13 @@ export default function IncidentPage() {
             label: "Status",
             type: "select",
             options: ["Open", "Closed"],
+            required: true,
+        },
+        {
+            key: "region",
+            label: "Branch Group",
+            type: "select",
+            options: branchGroupOptions,
             required: true,
         },
         {
