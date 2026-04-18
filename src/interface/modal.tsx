@@ -730,3 +730,43 @@ export interface IncidentResponse {
   limit: number;
   data: Incident[];
 }
+export interface AuditParameter {
+  _id: string;
+  name: string;
+  score: number;
+  isCritical: boolean;
+  remark: string;
+}
+
+export interface AuditSection {
+  _id: string;
+  auditId: string;
+  sectionName: string;
+  isCriticalFailed: boolean;
+  parameters: AuditParameter[];
+  sectionScore: number;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface Audit {
+  _id: string;
+  schoolId: string;
+  branchId: string;
+  createdBy: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  sections: AuditSection[];
+  schoolName: string;
+  branchName: string;
+}
+
+export interface AuditResponse {
+  success: boolean;
+  total: number;
+  page: number;
+  limit: number;
+  data: Audit[];
+}

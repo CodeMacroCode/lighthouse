@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useNavigationStore } from "@/store/navigationStore";
+import { getDecodedToken } from "@/lib/jwt";
 import { useSidebar } from "@/components/ui/sidebar";
 import {
   NavigationMenu,
@@ -41,17 +42,24 @@ export function Navbar() {
     setToken(storedToken);
   }, []);
 
-  const navigationMap: Record<string, string> = React.useMemo(
-    () => ({
-      Dashboard: "/dashboard/users/school-master",
+  const navigationMap: Record<string, string> = React.useMemo(() => {
+    const role = getDecodedToken(token || "")?.role;
+    return {
+      Dashboard:
+        role === "branchGroup"
+          ? "/dashboard/users/user-access"
+          : role === "parent"
+          ? "/dashboard/incident"
+          : role === "branch"
+          ? "/dashboard/users/branch-master"
+          : "/dashboard/users/school-master",
       Maintenance: `https://maintenance.credencetracker.com/#/dashboard?token=${encodeURIComponent(
         token || ""
       )}`,
       Geofence: "/dashboard/school/geofence",
       Notifications: "/dashboard/users/notification",
-    }),
-    [token]
-  );
+    };
+  }, [token]);
 
   const navSections = [
     // "Master",

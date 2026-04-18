@@ -48,6 +48,7 @@ import { loginUser } from "@/services/userService";
 import { useAuthStore } from "@/store/authStore";
 import { useAccessStore } from "@/store/accessStore";
 import { useRouter } from "next/navigation";
+import { getDecodedToken } from "@/lib/jwt";
 
 interface BranchGroupAccess {
   _id: string;
@@ -473,7 +474,16 @@ export default function UserAccessPage() {
           setAccess(data.access);
         }
         toast.success(`Logged in as ${username}`);
-        window.location.replace("/dashboard/users/school-master");
+        const loginAsRole = getDecodedToken(data.token)?.role;
+        if (loginAsRole === "branchGroup") {
+          window.location.replace("/dashboard/users/user-access");
+        } else if (loginAsRole === "parent") {
+          window.location.replace("/dashboard/incident");
+        } else if (loginAsRole === "branch") {
+          window.location.replace("/dashboard/users/branch-master");
+        } else {
+          window.location.replace("/dashboard/users/school-master");
+        }
       } else {
         toast.error("Login failed: Invalid server response");
       }

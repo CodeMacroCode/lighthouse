@@ -9,5 +9,7 @@ export const auditService = {
     return api.post("/audit/section/save", data);
   },
 
-  
+  getAudits: async (params: { page: number; limit: number }) => {
+    return api.get("/audit", params);
+  },
 };

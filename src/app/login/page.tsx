@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useAccessStore } from "@/store/accessStore";
+import { getDecodedToken } from "@/lib/jwt";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,7 +73,16 @@ export default function LoginPage() {
     }
 
     if (isAuthenticated) {
-      router.replace("/dashboard/users/school-master");
+      const role = getDecodedToken(localStorage.getItem("token") || "")?.role;
+      if (role === "branchGroup") {
+        router.replace("/dashboard/users/user-access");
+      } else if (role === "parent") {
+        router.replace("/dashboard/incident");
+      } else if (role === "branch") {
+        router.replace("/dashboard/users/branch-master");
+      } else {
+        router.replace("/dashboard/users/school-master");
+      }
     }
   }, [isAuthenticated, router]);
 
@@ -91,7 +101,16 @@ export default function LoginPage() {
           setAccess(data.access);
         }
 
-        router.push("/dashboard/users/school-master");
+        const role = getDecodedToken(data.token)?.role;
+        if (role === "branchGroup") {
+          router.push("/dashboard/users/user-access");
+        } else if (role === "parent") {
+          router.push("/dashboard/incident");
+        } else if (role === "branch") {
+          router.push("/dashboard/users/branch-master");
+        } else {
+          router.push("/dashboard/users/school-master");
+        }
       } else {
         form.setError("root", {
           message: "Invalid response from server.",

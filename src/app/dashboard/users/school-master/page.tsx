@@ -40,6 +40,13 @@ import { loginUser } from "@/services/userService";
 import { useAuthStore } from "@/store/authStore";
 import { useAccessStore } from "@/store/accessStore";
 import { useRouter } from "next/navigation";
+import { auditService } from "@/services/api/auditService";
+import { getAuditColumns } from "@/components/columns/columns";
+import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { ViewAuditDetails } from "@/components/audit/ViewAuditDetails";
+import { PaginationState } from "@tanstack/react-table";
+import { Audit } from "@/interface/modal";
+import { History, RefreshCcw, ScrollText } from "lucide-react";
 
 declare module "@tanstack/react-table" {
   interface ColumnMeta<TData, TValue> {
@@ -83,8 +90,19 @@ const PasswordCell = ({ password }: { password?: string }) => {
 export default function SchoolMaster() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { login: authLogin } = useAuthStore();
+  const { login: authLogin, decodedToken: user } = useAuthStore();
   const { setAccess } = useAccessStore();
+
+  const isSchoolRole = user?.role === "school";
+
+  // Audit state
+  const [paginationAudit, setPaginationAudit] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [isAuditViewOpen, setIsAuditViewOpen] = useState(false);
+  const [selectedAuditForView, setSelectedAuditForView] = useState<Audit | null>(null);
+
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [filteredData, setFilteredData] = useState<School[]>([]);
   const [filterResults, setFilterResults] = useState<School[]>([]);
@@ -113,7 +131,7 @@ export default function SchoolMaster() {
           setAccess(data.access);
         }
         toast.success(`Logged in as ${username}`);
-        window.location.replace("/dashboard/users/school-master");
+        window.location.replace("/dashboard/users/user-access");
       } else {
         toast.error("Login failed: Invalid server response");
       }
@@ -139,7 +157,23 @@ export default function SchoolMaster() {
       const res = await api.get<School[]>("/school");
       return res;
     },
+    enabled: !isSchoolRole,
   });
+
+  // Audit Audit logic
+  const { data: auditListData, isLoading: isAuditListLoading, refetch: refetchAudits } = useQuery({
+    queryKey: ["audits", paginationAudit.pageIndex, paginationAudit.pageSize],
+    queryFn: () => auditService.getAudits({
+      page: paginationAudit.pageIndex + 1,
+      limit: paginationAudit.pageSize,
+    }),
+    enabled: isSchoolRole,
+  });
+
+  const auditColumns = React.useMemo(() => getAuditColumns((audit) => {
+    setSelectedAuditForView(audit);
+    setIsAuditViewOpen(true);
+  }), []);
 
   useEffect(() => {
     if (schools && schools.length > 0) {
@@ -471,283 +505,340 @@ export default function SchoolMaster() {
 
   return (
     <main className="h-full overflow-hidden flex flex-col">
-      <ResponseLoader isLoading={isLoading} />
+      <ResponseLoader isLoading={isLoading || isAuditListLoading} />
 
-      <header className="flex items-center justify-between mb-4">
-        <section className="flex space-x-4">
-          <SearchComponent
-            data={filterResults}
-            displayKey={["schoolName", "username", "email", "mobileNo"]}
-            onResults={handleSearchResults}
-            className="w-[300px] mb-4"
-          />
-          <div>
-            <DateRangeFilter
-              onDateRangeChange={handleDateFilter}
-              title="Search by Registration Date"
+      {isSchoolRole ? (
+        <div className="flex flex-col h-full animate-in fade-in duration-500 p-4">
+          <header className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-100 p-2 rounded-lg">
+                <ScrollText className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-[#0c235c]">Audit History</h1>
+                <p className="text-xs text-gray-500 font-medium">
+                  {auditListData?.total || 0} inspections found
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchAudits()}
+              className="rounded-xl gap-2 bg-white hover:bg-gray-50 border-gray-200 text-gray-600 font-bold h-10 px-4"
+            >
+              <RefreshCcw
+                className={`h-4 w-4 ${isAuditListLoading ? "animate-spin" : ""}`}
+              />
+              Sync Records
+            </Button>
+          </header>
+
+          <section className="flex-1 min-h-0 bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 mb-4">
+            <CustomTableServerSidePagination
+              data={auditListData?.data || []}
+              columns={auditColumns}
+              pagination={paginationAudit}
+              totalCount={auditListData?.total || 0}
+              loading={isAuditListLoading}
+              onPaginationChange={setPaginationAudit}
+              pageSizeOptions={[10, 20, 50]}
+              showSerialNumber={true}
+              maxHeight="calc(100vh - 240px)"
             />
-          </div>
+          </section>
 
-          <ColumnVisibilitySelector
-            columns={table.getAllColumns()}
-            buttonVariant="outline"
-            buttonSize="default"
+          <ViewAuditDetails
+            isOpen={isAuditViewOpen}
+            onClose={() => setIsAuditViewOpen(false)}
+            audit={selectedAuditForView}
           />
-        </section>
+        </div>
+      ) : (
+        <>
+          <header className="flex items-center justify-between mb-4">
+            <section className="flex space-x-4">
+              <SearchComponent
+                data={filterResults}
+                displayKey={["schoolName", "username", "email", "mobileNo"]}
+                onResults={handleSearchResults}
+                className="w-[300px] mb-4"
+              />
+              <div>
+                <DateRangeFilter
+                  onDateRangeChange={handleDateFilter}
+                  title="Search by Registration Date"
+                />
+              </div>
 
-        <section className="flex gap-2">
-          <AdminImportModal
-            onImport={handleBulkImport}
-            isLoading={addSchoolMutation.isPending}
-          />
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="default" className="text-white">Add</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <DialogHeader>
-                  <DialogTitle>Add CXO</DialogTitle>
-                </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="grid gap-2">
-                    <Label htmlFor="schoolName">CXO</Label>
-                    <Input
-                      id="schoolName"
-                      name="schoolName"
-                      placeholder="Enter regional head name"
-                      required
-                    />
-                  </div>
+              <ColumnVisibilitySelector
+                columns={table.getAllColumns()}
+                buttonVariant="outline"
+                buttonSize="default"
+              />
+            </section>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="Enter email address"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="mobileNo">Mobile No</Label>
-                    <Input
-                      id="mobileNo"
-                      name="mobileNo"
-                      type="tel"
-                      placeholder="Enter admin mobile number"
-                      pattern="[0-9]{10}"
-                      maxLength={10}
-                      autoComplete="tel"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      name="username"
-                      type="text"
-                      placeholder="Enter username"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Password *</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showAddPassword ? "text" : "password"}
-                        placeholder="Enter password"
-                        className="pr-10"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowAddPassword(!showAddPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                      >
-                        {showAddPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-
-
-
-                </div>
-
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button ref={closeButtonRef} variant="outline">
-                      Cancel
-                    </Button>
-                  </DialogClose>
-                  <Button type="submit" className="text-white" disabled={addSchoolMutation.isPending}>
-                    {addSchoolMutation.isPending ? "Saving..." : "Save Admin"}
+            <section className="flex gap-2">
+              <AdminImportModal
+                onImport={handleBulkImport}
+                isLoading={addSchoolMutation.isPending}
+              />
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="default" className="text-white">
+                    Add
                   </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </section>
-      </header>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px]">
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <DialogHeader>
+                      <DialogTitle>Add CXO</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid gap-2">
+                        <Label htmlFor="schoolName">CXO</Label>
+                        <Input
+                          id="schoolName"
+                          name="schoolName"
+                          placeholder="Enter regional head name"
+                          required
+                        />
+                      </div>
 
-      <section className="mb-4">
-        <CustomTable
-          data={filteredData || []}
-          columns={columns}
-          columnVisibility={columnVisibility}
-          onColumnVisibilityChange={setColumnVisibility}
-          pageSizeArray={[20, 50, "All"]}
-          maxHeight="calc(100vh - 240px)"
-          minHeight={200}
-          showSerialNumber={true}
-          noDataMessage="No admin found"
-          isLoading={isLoading}
-        />
-      </section>
+                      <div className="grid gap-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          placeholder="Enter email address"
+                          required
+                        />
+                      </div>
 
-      <section>
-        {/* <div>
-          {deleteTarget && (
-            <Alert<School>
-              title="Are you absolutely sure?"
-              description={`This will permanently delete ${deleteTarget?.schoolName} and all associated data.`}
-              actionButton={(target) => {
-                deleteSchoolMutation.mutate(target._id);
-                setDeleteTarget(null);
-              }}
-              target={deleteTarget}
-              setTarget={setDeleteTarget}
-              butttonText="Delete"
-            />
-          )}
-        </div> */}
-      </section>
+                      <div className="grid gap-2">
+                        <Label htmlFor="mobileNo">Mobile No</Label>
+                        <Input
+                          id="mobileNo"
+                          name="mobileNo"
+                          type="tel"
+                          placeholder="Enter admin mobile number"
+                          pattern="[0-9]{10}"
+                          maxLength={10}
+                          autoComplete="tel"
+                          required
+                        />
+                      </div>
 
-      <section>
-        {editTarget && (
-          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-            <DialogContent className="sm:max-w-[600px]">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const form = e.currentTarget;
-                  const updatedData = {
-                    schoolName: (form.elements.namedItem("editSchoolName") as HTMLInputElement)?.value,
-                    mobileNo: (form.elements.namedItem("editMobileNo") as HTMLInputElement)?.value,
-                    username: (form.elements.namedItem("editUsername") as HTMLInputElement)?.value,
-                    password: (form.elements.namedItem("editPassword") as HTMLInputElement)?.value,
-                  };
+                      <div className="grid gap-2">
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                          id="username"
+                          name="username"
+                          type="text"
+                          placeholder="Enter username"
+                          required
+                        />
+                      </div>
 
-                  updateSchoolMutation.mutate({
-                    schoolId: editTarget._id,
-                    data: updatedData,
-                  });
-                }}
-                className="space-y-4"
-              >
-                <DialogHeader>
-                  <DialogTitle>Edit Admin</DialogTitle>
-                </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="grid gap-2">
-                    <Label htmlFor="editSchoolName">Admin *</Label>
-                    <Input
-                      id="editSchoolName"
-                      name="editSchoolName"
-                      defaultValue={editTarget.schoolName}
-                      placeholder="Enter admin name"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="editMobileNo">Mobile No *</Label>
-                    <Input
-                      id="editMobileNo"
-                      name="editMobileNo"
-                      type="tel"
-                      defaultValue={editTarget.mobileNo}
-                      placeholder="Enter mobile number"
-                      pattern="[0-9]{10}"
-                      maxLength={10}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="editUsername">Username *</Label>
-                    <Input
-                      id="editUsername"
-                      name="editUsername"
-                      defaultValue={editTarget.username}
-                      placeholder="Enter username"
-                      required
-                    />
-                  </div>
-
-                   <div className="grid gap-2">
-                    <Label htmlFor="editPassword">Password *</Label>
-                    <div className="relative">
-                      <Input
-                        id="editPassword"
-                        name="editPassword"
-                        type={showEditPassword ? "text" : "password"}
-                        defaultValue={editTarget.password}
-                        placeholder="Enter password"
-                        className="pr-10"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowEditPassword(!showEditPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                      >
-                        {showEditPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
+                      <div className="grid gap-2">
+                        <Label htmlFor="password">Password *</Label>
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            name="password"
+                            type={showAddPassword ? "text" : "password"}
+                            placeholder="Enter password"
+                            className="pr-10"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowAddPassword(!showAddPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          >
+                            {showAddPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button ref={closeButtonRef} variant="outline">
+                          Cancel
+                        </Button>
+                      </DialogClose>
+                      <Button
+                        type="submit"
+                        className="text-white"
+                        disabled={addSchoolMutation.isPending}
+                      >
+                        {addSchoolMutation.isPending ? "Saving..." : "Save Admin"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </section>
+          </header>
 
+          <section className="mb-4">
+            <CustomTable
+              data={filteredData || []}
+              columns={columns}
+              columnVisibility={columnVisibility}
+              onColumnVisibilityChange={setColumnVisibility}
+              pageSizeArray={[20, 50, "All"]}
+              maxHeight="calc(100vh - 240px)"
+              minHeight={200}
+              showSerialNumber={true}
+              noDataMessage="No admin found"
+              isLoading={isLoading}
+            />
+          </section>
 
+          <section>
+            {editTarget && (
+              <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogContent className="sm:max-w-[600px]">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const form = e.currentTarget;
+                      const updatedData = {
+                        schoolName: (
+                          form.elements.namedItem(
+                            "editSchoolName"
+                          ) as HTMLInputElement
+                        )?.value,
+                        mobileNo: (
+                          form.elements.namedItem(
+                            "editMobileNo"
+                          ) as HTMLInputElement
+                        )?.value,
+                        username: (
+                          form.elements.namedItem(
+                            "editUsername"
+                          ) as HTMLInputElement
+                        )?.value,
+                        password: (
+                          form.elements.namedItem(
+                            "editPassword"
+                          ) as HTMLInputElement
+                        )?.value,
+                      };
 
-                </div>
-
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setEditDialogOpen(false);
-                      setEditTarget(null);
+                      updateSchoolMutation.mutate({
+                        schoolId: editTarget._id,
+                        data: updatedData,
+                      });
                     }}
+                    className="space-y-4"
                   >
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="text-white" disabled={updateSchoolMutation.isPending}>
-                    {updateSchoolMutation.isPending ? "Saving..." : "Save Changes"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-      </section>
+                    <DialogHeader>
+                      <DialogTitle>Edit Admin</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid gap-2">
+                        <Label htmlFor="editSchoolName">Admin *</Label>
+                        <Input
+                          id="editSchoolName"
+                          name="editSchoolName"
+                          defaultValue={editTarget.schoolName}
+                          placeholder="Enter admin name"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="editMobileNo">Mobile No *</Label>
+                        <Input
+                          id="editMobileNo"
+                          name="editMobileNo"
+                          type="tel"
+                          defaultValue={editTarget.mobileNo}
+                          placeholder="Enter mobile number"
+                          pattern="[0-9]{10}"
+                          maxLength={10}
+                          required
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="editUsername">Username *</Label>
+                        <Input
+                          id="editUsername"
+                          name="editUsername"
+                          defaultValue={editTarget.username}
+                          placeholder="Enter username"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="editPassword">Password *</Label>
+                        <div className="relative">
+                          <Input
+                            id="editPassword"
+                            name="editPassword"
+                            type={showEditPassword ? "text" : "password"}
+                            defaultValue={editTarget.password}
+                            placeholder="Enter password"
+                            className="pr-10"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowEditPassword(!showEditPassword)
+                            }
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          >
+                            {showEditPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setEditDialogOpen(false);
+                          setEditTarget(null);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="text-white"
+                        disabled={updateSchoolMutation.isPending}
+                      >
+                        {updateSchoolMutation.isPending
+                          ? "Saving..."
+                          : "Save Changes"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </section>
+        </>
+      )}
+    </main>
+  );
 
       {/* <section>
         <FloatingMenu
@@ -773,6 +864,4 @@ export default function SchoolMaster() {
           }}
         />
       </section> */}
-    </main>
-  );
 }

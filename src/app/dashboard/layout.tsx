@@ -36,7 +36,11 @@ export default function DashboardLayout({
 
   const store = useDeviceStore();
   const pathname = usePathname();
-  const isDashboard = pathname === "/dashboard/users/school-master";
+  const isDashboard =
+    pathname === "/dashboard/users/school-master" ||
+    pathname === "/dashboard/users/branch-master" ||
+    pathname === "/dashboard/users/user-access" ||
+    pathname === "/dashboard/incident";
   const hasConnected = useRef(false);
 
   useEffect(() => {

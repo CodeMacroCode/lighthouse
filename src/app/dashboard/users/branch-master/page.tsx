@@ -1209,164 +1209,166 @@ export default function BranchMaster() {
           {(isSuperAdmin || isSchoolRole || isBranchGroup) && (
             <>
               <BranchImportModal onImport={handleImport} isLoading={isImporting} />
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="default" className="text-white">Add School</Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <DialogHeader>
-                      <DialogTitle>Add School</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="grid gap-2">
-                        <Label htmlFor="branchName">School Name *</Label>
-                        <Input
-                          id="branchName"
-                          name="branchName"
-                          placeholder="Enter school name"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="safetyHeadName">Safety Head Name*</Label>
-                        <Input
-                          id="safetyHeadName"
-                          name="safetyHeadName"
-                          placeholder="Enter safety head name"
-                          required
-                        />
-                      </div>
-
-                      {/* Show School field only for superadmin */}
-                      {isSuperAdmin && (
+              {isSuperAdmin && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="default" className="text-white">Add School</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <DialogHeader>
+                        <DialogTitle>Add School</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="grid gap-2">
-                          <Label htmlFor="schoolId">Admin *</Label>
-                          <Combobox
-                            items={schoolOptions}
-                            value={school}
-                            onValueChange={setSchool}
-                            placeholder="Select admin..."
-                            searchPlaceholder="Search admin..."
-                            emptyMessage="No admin found."
-                            width="w-full"
-                          />
-                        </div>
-                      )}
-
-                      {/* Show school info for non-superadmin roles */}
-                      {(isSchoolRole || isBranchGroup) && userSchoolName && (
-                        <div className="grid gap-2">
-                          <Label htmlFor="schoolInfo">Region</Label>
+                          <Label htmlFor="branchName">School Name *</Label>
                           <Input
-                            id="schoolInfo"
-                            value={userSchoolName}
-                            disabled
-                            className="bg-gray-100"
-                            placeholder="Your assigned admin"
-                          />
-                          <input
-                            type="hidden"
-                            name="schoolId"
-                            value={userSchoolId || ""}
-                          />
-                          <p className="text-xs text-gray-500">
-                            Admin is automatically assigned to your account
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          placeholder="Enter email address"
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="branchMobile">Mobile No</Label>
-                        <Input
-                          id="branchMobile"
-                          name="branchMobile"
-                          type="tel"
-                          placeholder="Enter user mobile number"
-                          pattern="[0-9]{10}"
-                          maxLength={10}
-                          autoComplete="tel"
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="username">Username *</Label>
-                        <Input
-                          id="username"
-                          name="username"
-                          type="text"
-                          placeholder="Enter username"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="password">Password *</Label>
-                        <div className="relative">
-                          <Input
-                            id="password"
-                            name="password"
-                            type={showAddPassword ? "text" : "password"}
-                            placeholder="Enter password"
-                            className="pr-10"
+                            id="branchName"
+                            name="branchName"
+                            placeholder="Enter school name"
                             required
                           />
-                          <button
-                            type="button"
-                            onClick={() => setShowAddPassword(!showAddPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                          >
-                            {showAddPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </button>
                         </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="safetyHeadName">Safety Head Name*</Label>
+                          <Input
+                            id="safetyHeadName"
+                            name="safetyHeadName"
+                            placeholder="Enter safety head name"
+                            required
+                          />
+                        </div>
+
+                        {/* Show School field only for superadmin */}
+                        {isSuperAdmin && (
+                          <div className="grid gap-2">
+                            <Label htmlFor="schoolId">Admin *</Label>
+                            <Combobox
+                              items={schoolOptions}
+                              value={school}
+                              onValueChange={setSchool}
+                              placeholder="Select admin..."
+                              searchPlaceholder="Search admin..."
+                              emptyMessage="No admin found."
+                              width="w-full"
+                            />
+                          </div>
+                        )}
+
+                        {/* Show school info for non-superadmin roles */}
+                        {(isSchoolRole || isBranchGroup) && userSchoolName && (
+                          <div className="grid gap-2">
+                            <Label htmlFor="schoolInfo">Region</Label>
+                            <Input
+                              id="schoolInfo"
+                              value={userSchoolName}
+                              disabled
+                              className="bg-gray-100"
+                              placeholder="Your assigned admin"
+                            />
+                            <input
+                              type="hidden"
+                              name="schoolId"
+                              value={userSchoolId || ""}
+                            />
+                            <p className="text-xs text-gray-500">
+                              Admin is automatically assigned to your account
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="Enter email address"
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="branchMobile">Mobile No</Label>
+                          <Input
+                            id="branchMobile"
+                            name="branchMobile"
+                            type="tel"
+                            placeholder="Enter user mobile number"
+                            pattern="[0-9]{10}"
+                            maxLength={10}
+                            autoComplete="tel"
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="username">Username *</Label>
+                          <Input
+                            id="username"
+                            name="username"
+                            type="text"
+                            placeholder="Enter username"
+                            required
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="password">Password *</Label>
+                          <div className="relative">
+                            <Input
+                              id="password"
+                              name="password"
+                              type={showAddPassword ? "text" : "password"}
+                              placeholder="Enter password"
+                              className="pr-10"
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowAddPassword(!showAddPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            >
+                              {showAddPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* DatePicker for Expiration Date
+                        <div className="grid gap-2">
+                          <Label htmlFor="expirationDate">Expiration Date *</Label>
+                          <ExpirationDatePicker
+                            date={selectedDate}
+                            onDateChange={setSelectedDate}
+                            placeholder="Select expiration date"
+                            minDate={new Date()}
+                          />
+                        </div> */}
                       </div>
 
-                      {/* DatePicker for Expiration Date
-                      <div className="grid gap-2">
-                        <Label htmlFor="expirationDate">Expiration Date *</Label>
-                        <ExpirationDatePicker
-                          date={selectedDate}
-                          onDateChange={setSelectedDate}
-                          placeholder="Select expiration date"
-                          minDate={new Date()}
-                        />
-                      </div> */}
-                    </div>
-
-                    <DialogFooter>
-                      <DialogClose asChild>
-                        <Button ref={closeButtonRef} variant="outline">
-                          Cancel
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button ref={closeButtonRef} variant="outline">
+                            Cancel
+                          </Button>
+                        </DialogClose>
+                        <Button
+                          type="submit"
+                          className="text-white"
+                          disabled={addbranchMutation.isPending}
+                        >
+                          {addbranchMutation.isPending
+                            ? "Saving..."
+                            : "Save user"}
                         </Button>
-                      </DialogClose>
-                      <Button
-                        type="submit"
-                        className="text-white"
-                        disabled={addbranchMutation.isPending}
-                      >
-                        {addbranchMutation.isPending
-                          ? "Saving..."
-                          : "Save user"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              )}
             </>
           )}
         </section>
@@ -1374,7 +1376,7 @@ export default function BranchMaster() {
 
       <section className="mb-4">
         <CustomTable
-          data={filteredData || []}
+          data={branches || []}
           columns={columns}
           columnVisibility={columnVisibility}
           onColumnVisibilityChange={setColumnVisibility}

@@ -64,6 +64,7 @@ const iconMap: Record<string, React.ElementType> = {
   "Approved Request": CheckCircle,
   "Denied Request": XCircle,
   "Admin Master": School,
+  "Regional Head": Users,
   "Safety Head": School,
   "Parents Master": Users,
   "Driver Approve": UserCheck,
@@ -156,7 +157,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               { title: "Regional Head", url: "/dashboard/users/user-access" },
               { title: "Safety Head", url: "/dashboard/users/branch-master" },
               { title: "Coordinator", url: "/dashboard/users/coordinator" },
-              { title: "Incident", url: "/dashboard/incident" }
+              { title: "Incident", url: "/dashboard/incident" },
+              { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
               // {
               //   title: "Student Details",
               //   url: "/dashboard/school/student-details",
@@ -185,13 +187,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               // },
               // { title: "Ticket Types", url: "/dashboard/support/ticket-types" },
             ];
-          } else if (role === "school" || role === "branchGroup") {
+          } else if (role === "school") {
             return [
               // { title: "Device", url: "/dashboard/users/add-device" },
+              { title: "Regional Head", url: "/dashboard/users/user-access" },
               {
                 title: "Safety Head",
                 url: "/dashboard/users/branch-master",
               },
+              { title: "Coordinator", url: "/dashboard/users/coordinator" },
               { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
               // {
@@ -225,10 +229,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             ];
           } else if (role === "branch") {
             return [
-              {
-                title: "Safety Head",
-                url: "/dashboard/users/branch-master",
-              },
+              // {
+              //   title: "Safety Head",
+              //   url: "/dashboard/users/branch-master",
+              // },
+              { title: "Coordinator", url: "/dashboard/users/coordinator" },
               // { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
               // { title: "Device", url: "/dashboard/users/add-device" },

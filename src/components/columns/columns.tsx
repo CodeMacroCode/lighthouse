@@ -26,6 +26,7 @@ import {
   Supervisor,
   TripReport,
   Incident,
+  Audit,
 } from "@/interface/modal";
 import { FaPlus, FaMinus } from "react-icons/fa";
 import { CellContent } from "@/components/ui/CustomTable";
@@ -2154,3 +2155,63 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void): Colum
 ];
 
 
+
+export const getAuditColumns = (
+  onView?: (row: Audit) => void
+): ColumnDef<Audit>[] => [
+    {
+      header: "School Name",
+      accessorKey: "schoolName",
+      cell: ({ row }) => <span className="font-medium">{row.original.schoolName || "N/A"}</span>,
+    },
+    {
+      header: "Branch Name",
+      accessorKey: "branchName",
+      cell: ({ row }) => <span className="text-gray-600">{row.original.branchName || "N/A"}</span>,
+    },
+    {
+      header: "Status",
+      accessorKey: "status",
+      cell: ({ row }) => {
+        const status = row.original.status?.toLowerCase();
+        const colors: Record<string, string> = {
+          draft: "bg-gray-100 text-gray-700",
+          completed: "bg-green-100 text-green-700",
+          "in-progress": "bg-blue-100 text-blue-700",
+        };
+        return (
+          <span className={ `px-2 py-1 rounded-full text-xs font-semibold ${colors[status] || "bg-gray-100 text-gray-700"}` }>
+            {status?.toUpperCase() || "N/A"}
+          </span>
+        );
+      },
+    },
+    {
+      header: "Created At",
+      accessorKey: "createdAt",
+      cell: ({ row }) => (
+        <span>
+          {new Date(row.original.createdAt).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
+      ),
+    },
+    {
+      header: "Action",
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-blue-600 border-blue-100 hover:bg-blue-50 h-8"
+            onClick={() => onView?.(row.original)}
+          >
+            View
+          </Button>
+        </div>
+      ),
+    },
+  ];
