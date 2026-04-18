@@ -196,7 +196,7 @@ const BranchEditDialog = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Edit Branch</DialogTitle>
+          <DialogTitle>Edit School Info</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -298,7 +298,7 @@ const BranchEditDialog = ({
               </div>
             </div>
 
-            {/* Expiration Date */}
+            {/* Expiration Date
             {(isSuperAdmin || isSchoolRole || isBranchGroup) && (
               <ExpirationDatePicker
                 date={expirationDate}
@@ -310,7 +310,7 @@ const BranchEditDialog = ({
                 placeholder="Select expiration date"
                 minDate={new Date()}
               />
-            )}
+            )} */}
           </div>
         </div>
 
@@ -705,7 +705,7 @@ export default function BranchMaster() {
     { key: "email", header: "Email" },
     { key: "username", header: "Username" },
     // { key: "password", header: "Password" },
-    { key: "subscriptionExpirationDate", header: "Expiration Date" },
+    // { key: "subscriptionExpirationDate", header: "Expiration Date" },
     { key: "createdAt", header: "Registration Date" },
     ...(isSuperAdmin || isSchoolRole || isBranchGroup
       ? [
@@ -1065,34 +1065,34 @@ export default function BranchMaster() {
           type: "text",
           value: formatDate(row.createdAt) ?? "",
         }),
-        meta: { flex: 1, minWidth: 150, maxWidth: 300 },
+        meta: { flex: 1, minWidth: 250, maxWidth: 300 },
         enableHiding: true,
       },
 
-      {
-        header: "Expiration Date",
-        accessorFn: (row: any) => ({
-          type: "text",
-          value: row.subscriptionExpirationDate
-            ? formatDate(row.subscriptionExpirationDate)
-            : "---",
-        }),
-        meta: { flex: 1, minWidth: 150, maxWidth: 300 },
-        enableHiding: true,
-      },
+      // {
+      //   header: "Expiration Date",
+      //   accessorFn: (row: any) => ({
+      //     type: "text",
+      //     value: row.subscriptionExpirationDate
+      //       ? formatDate(row.subscriptionExpirationDate)
+      //       : "---",
+      //   }),
+      //   meta: { flex: 1, minWidth: 150, maxWidth: 300 },
+      //   enableHiding: true,
+      // },
 
       ...(isSuperAdmin
         ? [
-          {
-            header: "Notifications",
-            // ✅ Use cell for custom components
-            accessorFn: (row: branch) => (
-              <BranchNotificationCell branchId={row._id} />
-            ),
-            meta: { flex: 1.5, minWidth: 230 },
-            enableSorting: false,
-            enableHiding: true,
-          },
+          // {
+          //   header: "Notifications",
+          //   // ✅ Use cell for custom components
+          //   accessorFn: (row: branch) => (
+          //     <BranchNotificationCell branchId={row._id} />
+          //   ),
+          //   meta: { flex: 1.5, minWidth: 230 },
+          //   enableSorting: false,
+          //   enableHiding: true,
+          // },
           {
             header: "Action",
             accessorFn: (row: any) => ({
@@ -1211,20 +1211,20 @@ export default function BranchMaster() {
               <BranchImportModal onImport={handleImport} isLoading={isImporting} />
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="default" className="text-white">Add User</Button>
+                  <Button variant="default" className="text-white">Add School</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px]">
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <DialogHeader>
-                      <DialogTitle>Add User</DialogTitle>
+                      <DialogTitle>Add School</DialogTitle>
                     </DialogHeader>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="grid gap-2">
-                        <Label htmlFor="branchName">Name *</Label>
+                        <Label htmlFor="branchName">School Name *</Label>
                         <Input
                           id="branchName"
                           name="branchName"
-                          placeholder="Enter user name"
+                          placeholder="Enter school name"
                           required
                         />
                       </div>
@@ -1258,7 +1258,7 @@ export default function BranchMaster() {
                       {/* Show school info for non-superadmin roles */}
                       {(isSchoolRole || isBranchGroup) && userSchoolName && (
                         <div className="grid gap-2">
-                          <Label htmlFor="schoolInfo">Admin</Label>
+                          <Label htmlFor="schoolInfo">Region</Label>
                           <Input
                             id="schoolInfo"
                             value={userSchoolName}
@@ -1336,7 +1336,7 @@ export default function BranchMaster() {
                         </div>
                       </div>
 
-                      {/* DatePicker for Expiration Date */}
+                      {/* DatePicker for Expiration Date
                       <div className="grid gap-2">
                         <Label htmlFor="expirationDate">Expiration Date *</Label>
                         <ExpirationDatePicker
@@ -1345,7 +1345,7 @@ export default function BranchMaster() {
                           placeholder="Select expiration date"
                           minDate={new Date()}
                         />
-                      </div>
+                      </div> */}
                     </div>
 
                     <DialogFooter>

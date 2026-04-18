@@ -65,7 +65,7 @@ export default function DashboardLayout({
   }, []);
   return (
     <TooltipProvider delayDuration={0}>
-      <SidebarProvider defaultOpen={true} open={true} onOpenChange={() => { }}>
+      <SidebarProvider defaultOpen={true}>
         {SHOW_SIDEBAR_SECTIONS.includes(activeSection) && <AppSidebar />}
         <SidebarInset className="overflow-auto md:overflow-auto flex flex-col h-screen">
           <header className="sticky top-0 z-20 flex h-14 md:h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear overflow-hidden bg-background border-b">

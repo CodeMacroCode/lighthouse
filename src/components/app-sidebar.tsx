@@ -192,7 +192,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 title: "Safety Head",
                 url: "/dashboard/users/branch-master",
               },
-              { title: "Incident", url: "/dashboard/incident" }
+              { title: "Incident", url: "/dashboard/incident" },
+              { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
               // {
               //   title: "Driver",
               //   url: "/dashboard/users/driver-approve",
@@ -222,13 +223,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             return [
               { title: "Incident", url: "/dashboard/incident" }
             ];
-          } else {
+          } else if (role === "branch") {
             return [
               {
                 title: "Safety Head",
                 url: "/dashboard/users/branch-master",
               },
-              { title: "Incident", url: "/dashboard/incident" }
+              // { title: "Incident", url: "/dashboard/incident" },
+              { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
               // { title: "Device", url: "/dashboard/users/add-device" },
               // {
               //   title: "Driver",
@@ -383,7 +385,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {isPending && <RouteLoader />}
 
       <Sidebar
-        collapsible="none"
+        collapsible="icon"
         {...props}
         className="border-r border-blue-600/20 transition-all duration-300 ease-in-out bg-primary h-screen"
       >

@@ -1070,13 +1070,8 @@ export const getParentsColumns = (
     },
     { header: "Mobile No.", accessorKey: "mobileNo" },
     {
-      id: "school",
-      header: "Admin",
-      accessorFn: (row: Parent) => row.schoolId?.schoolName ?? "—",
-    },
-    {
       id: "branch",
-      header: "User",
+      header: "School",
       accessorFn: (row: Parent) => row.branchId?.branchName ?? "—",
     },
     {

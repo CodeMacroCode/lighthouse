@@ -29,6 +29,7 @@ export default function IncidentPage() {
 
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+    const [selectedEditRegion, setSelectedEditRegion] = useState<string>("");
 
     const { data, isLoading, refetch } = useQuery({
         queryKey: ["incidents", pagination.pageIndex, pagination.pageSize],
@@ -48,11 +49,22 @@ export default function IncidentPage() {
         return branchGroups.map((bg) => ({
             label: bg.branchGroupName,
             value: bg.branchGroupName,
+            branches: bg.AssignedBranch || [],
         }));
     }, [branchGroups]);
 
+    const safetyHeadOptions = useMemo(() => {
+        const region = branchGroupOptions.find(o => o.value === selectedEditRegion);
+        if (!region || !region.branches) return [];
+        return region.branches.map((b: any) => ({
+            label: b.branchName,
+            value: b._id,
+        }));
+    }, [selectedEditRegion, branchGroupOptions]);
+
     const handleEdit = (incident: Incident) => {
         setSelectedIncident(incident);
+        setSelectedEditRegion(incident.region || "");
         setIsEditDialogOpen(true);
     };
 
@@ -79,14 +91,24 @@ export default function IncidentPage() {
     });
 
     const handleUpdateSave = (formData: any) => {
-        // Extract only the fields we want to update as requested by the user
+        // Extract names from options to ensure they are sent to the API
+        const selectedSchool = safetyHeadOptions.find(o => o.value === formData.branchId);
+        
         const payload = {
             status: formData.status,
             remarks: formData.remarks,
             pendingAction: formData.pendingAction,
             region: formData.region,
+            branchId: formData.branchId,
+            branchName: selectedSchool?.label || selectedIncident?.branchName,
         };
         updateMutation.mutate(payload);
+    };
+
+    const handleFieldChange = (key: string, value: any) => {
+        if (key === "region") {
+            setSelectedEditRegion(value);
+        }
     };
 
     const editFields: FieldConfig[] = [
@@ -99,10 +121,19 @@ export default function IncidentPage() {
         },
         {
             key: "region",
-            label: "Branch Group",
+            label: "Region",
             type: "select",
             options: branchGroupOptions,
             required: true,
+        },
+        {
+            key: "branchId",
+            label: "Safety Head (School)",
+            type: "select",
+            options: safetyHeadOptions,
+            required: true,
+            placeholder: selectedEditRegion ? "Select school" : "Select region first",
+            disabled: !selectedEditRegion,
         },
         {
             key: "remarks",
@@ -163,6 +194,7 @@ export default function IncidentPage() {
                 data={selectedIncident}
                 fields={editFields}
                 onSave={handleUpdateSave}
+                onFieldChange={handleFieldChange}
                 title="Update Incident Status"
                 description="Update the status, remarks, and pending actions for this incident."
             />

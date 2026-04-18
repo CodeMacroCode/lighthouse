@@ -184,8 +184,8 @@ const TableBranchDropdown: React.FC<{
       >
         <span className="text-gray-700 truncate">
           {assignedBranches.length > 0
-            ? `${assignedBranches.length} users`
-            : "Assign Users"}
+            ? `${assignedBranches.length} School`
+            : "Assign School"}
         </span>
         <ChevronDown
           className={`h-4 w-4 text-gray-500 transition-transform flex-shrink-0 ml-2 ${isOpen ? "rotate-180" : ""
@@ -208,7 +208,7 @@ const TableBranchDropdown: React.FC<{
             {/* Header */}
             <div className="px-3 py-2 border-b border-gray-200 bg-blue-50 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
-                Assign Users
+                Assign Schools
               </span>
 
               <button
@@ -344,7 +344,7 @@ const BranchDropdown: React.FC<{
               ) : null;
             })
           ) : (
-            <span className="text-gray-500">Select Users</span>
+            <span className="text-gray-500">Select School</span>
           )}
           {selectedBranches.length > 3 && (
             <span className="inline-flex items-center bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full">
@@ -364,7 +364,7 @@ const BranchDropdown: React.FC<{
           <div className="px-3 py-2 border-b border-gray-200 bg-blue-50">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
-                Users
+                Schools
               </span>
               <button
                 type="button"
@@ -406,7 +406,7 @@ const BranchDropdown: React.FC<{
               ))
             ) : (
               <div className="px-3 py-3 text-center text-sm text-gray-500">
-                No matching users
+                No matching School
               </div>
             )}
           </div>
@@ -828,7 +828,7 @@ export default function UserAccessPage() {
         meta: { flex: 1, minWidth: 200, maxWidth: 300 },
       },
       {
-        header: "User Name",
+        header: "UserName",
         accessorFn: (row: BranchGroupAccess) => ({
           type: "text",
           value: row.username || "N/A",
@@ -900,7 +900,7 @@ export default function UserAccessPage() {
         meta: { flex: 1, minWidth: 150, maxWidth: 200 },
       },
       {
-        header: "Admin",
+        header: "CXO",
         accessorFn: (row: BranchGroupAccess) => ({
           type: "text",
           value: row.schoolId?.schoolName || "N/A",
@@ -920,7 +920,7 @@ export default function UserAccessPage() {
               ? new Date(row.createdAt).toLocaleDateString("en-GB")
               : "N/A",
         }),
-        meta: { flex: 1, minWidth: 180, maxWidth: 220 },
+        meta: { flex: 1, minWidth: 250, maxWidth: 300 },
       },
       {
         header: "Assigned School",
@@ -1126,7 +1126,7 @@ export default function UserAccessPage() {
                   placeholder="Enter regional head name"
                   required
                 />
-                <Label htmlFor="username">User Name</Label>
+                <Label htmlFor="username">UserName</Label>
                 <Input
                   id="username"
                   name="username"
@@ -1226,10 +1226,10 @@ export default function UserAccessPage() {
           {editTarget && (
             <form onSubmit={handleEditUser} className="space-y-4">
               <DialogHeader>
-                <DialogTitle>Edit User Group</DialogTitle>
+                <DialogTitle>Edit Region Info</DialogTitle>
               </DialogHeader>
               <div className="grid gap-3">
-                <Label htmlFor="edit-username">User Name</Label>
+                <Label htmlFor="edit-username">UserName</Label>
                 <Input
                   id="edit-username"
                   name="username"
@@ -1237,7 +1237,7 @@ export default function UserAccessPage() {
                   required
                 />
 
-                <Label htmlFor="edit-branchGroupName">User Group Name</Label>
+                <Label htmlFor="edit-branchGroupName">Region</Label>
                 <Input
                   id="edit-branchGroupName"
                   name="branchGroupName"
@@ -1285,7 +1285,7 @@ export default function UserAccessPage() {
                   required
                 />
 
-                <Label htmlFor="edit-schoolId">Admin</Label>
+                <Label htmlFor="edit-schoolId">CXO</Label>
                 <Combobox
                   items={schoolOptions}
                   value={editSelectedSchool || undefined}
@@ -1295,7 +1295,7 @@ export default function UserAccessPage() {
                   emptyMessage="No Admin found"
                 />
 
-                <Label htmlFor="edit-assignedBranches">Assigned Users</Label>
+                <Label htmlFor="edit-assignedBranches">Assigned School</Label>
                 <BranchDropdown
                   selectedBranches={editSelectedBranches}
                   branchOptions={filteredEditBranches}
@@ -1304,7 +1304,7 @@ export default function UserAccessPage() {
                 />
                 {editSelectedBranches.length > 0 && (
                   <div className="text-sm text-gray-600">
-                    Selected: {editSelectedBranches.length} users
+                    Selected: {editSelectedBranches.length} School
                   </div>
                 )}
 
@@ -1318,7 +1318,7 @@ export default function UserAccessPage() {
                   Cancel
                 </Button>
                 <Button type="submit" className="text-white" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? "Updating..." : "Update Group"}
+                  {updateMutation.isPending ? "Updating..." : "Update"}
                 </Button>
               </DialogFooter>
             </form>

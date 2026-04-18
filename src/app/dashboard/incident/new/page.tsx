@@ -61,17 +61,6 @@ export default function NewIncidentPage() {
     queryFn: () => api.get<any[]>("/branchGroup"),
   });
 
-  const branchGroupOptions = React.useMemo(() => {
-    if (!branchGroups) return [];
-    const options = branchGroups.map((bg) => ({
-      label: bg.branchGroupName,
-      value: bg.branchGroupName,
-    }));
-    // Add "Other" option
-    options.push({ label: "Other", value: "Other" });
-    return options;
-  }, [branchGroups]);
-
   const incidentSchema = React.useMemo(() => z.object({
     email: z.string().min(1, "Email is required").email("Invalid email address"),
     region: z.string().min(1, "Region is required"),
@@ -90,7 +79,8 @@ export default function NewIncidentPage() {
     escalatedTo: z.string().optional(),
     remarks: z.string().optional(),
     schoolId: z.string().optional(),
-    branchId: z.string().optional(),
+    branchId: z.string().min(1, "Safety Head (School) is required"),
+    branchName: z.string().optional(),
   }).superRefine((data, ctx) => {
     if (data.region === "Other" && (!data.otherRegion || data.otherRegion.trim() === "")) {
       ctx.addIssue({
@@ -119,7 +109,6 @@ export default function NewIncidentPage() {
     resolver: zodResolver(incidentSchema),
     defaultValues: {
       email: "",
-
       region: "",
       otherRegion: "",
       category: "Incident",
@@ -136,8 +125,33 @@ export default function NewIncidentPage() {
       escalatedTo: "",
       remarks: "",
       schoolId: user?.schoolId || "",
+      branchId: user?.branchId || "",
     },
   });
+
+  const branchGroupOptions = React.useMemo(() => {
+    if (!branchGroups) return [];
+    const options = branchGroups.map((bg) => ({
+      label: bg.branchGroupName,
+      value: bg.branchGroupName,
+      branches: bg.AssignedBranch || [],
+      schoolId: bg.schoolId?._id || bg.schoolId, // The top-level ID
+    }));
+    // Add "Other" option
+    options.push({ label: "Other", value: "Other", branches: [], schoolId: "" });
+    return options;
+  }, [branchGroups]);
+
+  const selectedRegion = form.watch("region");
+  const safetyHeadOptions = React.useMemo(() => {
+    const region = branchGroupOptions.find(o => o.value === selectedRegion);
+    if (!region || !region.branches) return [];
+    return region.branches.map((b: any) => ({
+      label: b.branchName,
+      value: b._id,
+      safetyHeadName: b.safetyHeadName, // We can store this if needed
+    }));
+  }, [selectedRegion, branchGroupOptions]);
 
   const mutation = useMutation({
     mutationFn: (data: any) => incidentService.addIncident(data),
@@ -217,7 +231,7 @@ export default function NewIncidentPage() {
                     )}
                   />
 
-                  <FormField
+                   <FormField
                     control={form.control}
                     name="region"
                     render={({ field }) => (
@@ -226,7 +240,18 @@ export default function NewIncidentPage() {
                         <Combobox
                           items={branchGroupOptions}
                           value={field.value}
-                          onValueChange={field.onChange}
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            // Reset branchId when region changes
+                            form.setValue("branchId", "");
+                            form.setValue("branchName" as any, "");
+                            
+                            // Optional: update schoolId (top level) if we have it
+                            const region = branchGroupOptions.find(o => o.value === val);
+                            if (region && region.schoolId) {
+                              form.setValue("schoolId", region.schoolId);
+                            }
+                          }}
                           placeholder="Select region"
                           width="w-full"
                         />
@@ -251,7 +276,7 @@ export default function NewIncidentPage() {
                     />
                   )}
 
-                  <FormField
+                   <FormField
                     control={form.control}
                     name="reportedBy"
                     render={({ field }) => (
@@ -263,6 +288,32 @@ export default function NewIncidentPage() {
                           onValueChange={field.onChange}
                           placeholder="Select reporter type"
                           width="w-full"
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="branchId"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Safety Head (School)</FormLabel>
+                        <Combobox
+                          items={safetyHeadOptions}
+                          value={field.value}
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            // Also set branchName for the payload
+                            const selected = safetyHeadOptions.find(o => o.value === val);
+                            if (selected) {
+                              form.setValue("branchName" as any, selected.label);
+                            }
+                          }}
+                          placeholder={selectedRegion ? "Select school" : "Select region first"}
+                          width="w-full"
+                          disabled={!selectedRegion || safetyHeadOptions.length === 0}
                         />
                         <FormMessage />
                       </FormItem>
@@ -527,7 +578,7 @@ export default function NewIncidentPage() {
                 />
               </div>
 
-              {/* Admin IDs (derived from user context) */}
+              {/* Admin IDs (derived from user context)
               {userRole === "superadmin" && (
                 <div className="space-y-6 pt-4 border-t">
                   <div className="flex items-center gap-2 pb-2">
@@ -564,7 +615,7 @@ export default function NewIncidentPage() {
                     />
                   </div>
                 </div>
-              )}
+              )} */}
 
               <div className="pt-6 flex justify-end gap-3 border-t">
                 <Button variant="outline" type="button" asChild className="px-8 cursor-pointer">
