@@ -733,6 +733,7 @@ export interface IncidentResponse {
 export interface AuditParameter {
   _id: string;
   name: string;
+  key?: string;
   score: number;
   isCritical: boolean;
   remark: string;

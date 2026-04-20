@@ -12,4 +12,8 @@ export const auditService = {
   getAudits: async (params: { page: number; limit: number }) => {
     return api.get("/audit", params);
   },
+
+  finalizeAudit: async (auditId: string) => {
+    return api.post(`/audit/finalize/${auditId}`);
+  },
 };

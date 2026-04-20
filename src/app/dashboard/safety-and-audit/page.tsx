@@ -29,93 +29,94 @@ import { ViewAuditDetails } from "@/components/audit/ViewAuditDetails";
 
 interface ParameterState {
     name: string;
+    key?: string;
     score: number | null;
     isCritical: boolean;
     remark: string;
 }
 
 const SECTION_A_PARAMETERS = [
-    { name: "School Child Protection and Zero Tolerance Policy available and displayed at prominent location", isCritical: false },
-    { name: "Mandatory safety committees are formed", isCritical: false },
-    { name: "Mandatory Safety & Transport Committee meetings conducted as per prescribed frequency (minutes available)", isCritical: true },
-    { name: "Emergency Response Team is formed and roles defined", isCritical: false },
-    { name: "Annual safety audit conducted", isCritical: false },
-    { name: "Legal Register available, updated & reviewed periodically", isCritical: true },
+    { name: "School Child Protection and Zero Tolerance Policy available and displayed at prominent location", isCritical: false, key: "child_protection_policy" },
+    { name: "Mandatory safety committees are formed", isCritical: false, key: "safety_committees_formed" },
+    { name: "Mandatory Safety & Transport Committee meetings conducted as per prescribed frequency (minutes available)", isCritical: true, key: "safety_committee_meetings" },
+    { name: "Emergency Response Team is formed and roles defined", isCritical: false, key: "emergency_response_team" },
+    { name: "Annual safety audit conducted", isCritical: false, key: "annual_safety_audit" },
+    { name: "Legal Register available, updated & reviewed periodically", isCritical: true, key: "legal_register" },
 ];
 
 const SECTION_B_PARAMETERS = [
-    { name: "Valid Fire NOC available", isCritical: true },
-    { name: "Fire extinguishers available & tagged", isCritical: true },
-    { name: "Fire alarm / detection system functional", isCritical: true },
-    { name: "Emergency exits clearly marked & unlocked", isCritical: true },
-    { name: "Evacuation plan displayed on each floor", isCritical: false },
-    { name: "Fire drills conducted (min twice/year)", isCritical: false },
-    { name: "Uninterrupted power supply for Fire Pumps available", isCritical: true },
+    { name: "Valid Fire NOC available", isCritical: true, key: "fire_noc" },
+    { name: "Fire extinguishers available & tagged", isCritical: true, key: "fire_extinguishers" },
+    { name: "Fire alarm / detection system functional", isCritical: true, key: "fire_alarm_system" },
+    { name: "Emergency exits clearly marked & unlocked", isCritical: true, key: "emergency_exits" },
+    { name: "Evacuation plan displayed on each floor", isCritical: false, key: "evacuation_plan" },
+    { name: "Fire drills conducted (min twice/year)", isCritical: false, key: "fire_drills" },
+    { name: "Uninterrupted power supply for Fire Pumps available", isCritical: true, key: "fire_pump_power" },
 ];
 
 const SECTION_C_PARAMETERS = [
-    { name: "Structural safety certificate", isCritical: false },
-    { name: "Staircases with handrails & anti-skid", isCritical: false },
-    { name: "Boundary wall secure & intact", isCritical: false },
-    { name: "Rooftop access restricted", isCritical: true },
-    { name: "No exposed electrical wiring", isCritical: true },
-    { name: "ELCB / MCB installed & tested", isCritical: true },
-    { name: "Earthing pits marked, accessible & annual resistance test conducted with records", isCritical: true },
-    { name: "All infrastructure safety checklists updated & maintained", isCritical: false },
+    { name: "Structural safety certificate", isCritical: false, key: "structural_safety_cert" },
+    { name: "Staircases with handrails & anti-skid", isCritical: false, key: "staircase_safety" },
+    { name: "Boundary wall secure & intact", isCritical: false, key: "boundary_wall" },
+    { name: "Rooftop access restricted", isCritical: true, key: "rooftop_access" },
+    { name: "No exposed electrical wiring", isCritical: true, key: "no_exposed_wiring" },
+    { name: "ELCB / MCB installed & tested", isCritical: true, key: "elcb_mcb" },
+    { name: "Earthing pits marked, accessible & annual resistance test conducted with records", isCritical: true, key: "earthing_test" },
+    { name: "All infrastructure safety checklists updated & maintained", isCritical: false, key: "infra_checklists" },
 ];
 
 const SECTION_D_PARAMETERS = [
-    { name: "Electrical panels locked & labeled", isCritical: false },
-    { name: "Generator / DG AMC and stack emission record (if applicable) maintained", isCritical: false },
-    { name: "PPEs are available and used in Laboratories by students", isCritical: false },
-    { name: "Gas cylinders secured & leak‑tested", isCritical: true },
-    { name: "Chemical stored and secured as per compatibility given in MSDS", isCritical: false },
+    { name: "Electrical panels locked & labeled", isCritical: false, key: "electrical_panels_locked" },
+    { name: "Generator / DG AMC and stack emission record (if applicable) maintained", isCritical: false, key: "dg_set_amc" },
+    { name: "PPEs are available and used in Laboratories by students", isCritical: false, key: "lab_ppe_usage" },
+    { name: "Gas cylinders secured & leak‑tested", isCritical: true, key: "gas_cylinder_safety" },
+    { name: "Chemical stored and secured as per compatibility given in MSDS", isCritical: false, key: "chemical_storage_safety" },
 ];
 
 const SECTION_E_PARAMETERS = [
-    { name: "POSCO compliance & staff sensitization", isCritical: true },
-    { name: "Background verification completed for all staff (teaching/non-teaching/contract/third party)", isCritical: true },
-    { name: "Anti‑bullying policy & reporting available", isCritical: false },
-    { name: "CCTV monitoring & data retention", isCritical: false },
-    { name: "Risk assessment conducted prior to events, excursions, field trips (records available)", isCritical: true },
+    { name: "POSCO compliance & staff sensitization", isCritical: true, key: "posco_compliance" },
+    { name: "Background verification completed for all staff (teaching/non-teaching/contract/third party)", isCritical: true, key: "background_verification" },
+    { name: "Anti‑bullying policy & reporting available", isCritical: false, key: "anti_bullying_policy" },
+    { name: "CCTV monitoring & data retention", isCritical: false, key: "cctv_monitoring" },
+    { name: "Risk assessment conducted prior to events, excursions, field trips (records available)", isCritical: true, key: "risk_assessment" },
 ];
 
 const SECTION_F_PARAMETERS = [
-    { name: "Single controlled entry / exit points", isCritical: true },
-    { name: "Visitor are verified and visitors log is maintained", isCritical: true },
-    { name: "Security guards trained as per training calendar", isCritical: false },
-    { name: "Staff ID cards enforced", isCritical: false },
-    { name: "Perimeter lighting is available", isCritical: false },
-    { name: "Uninterrupted power supply for CCTV system available", isCritical: true },
+    { name: "Single controlled entry / exit points", isCritical: true, key: "single_entry_exit" },
+    { name: "Visitor are verified and visitors log is maintained", isCritical: true, key: "visitor_log" },
+    { name: "Security guards trained as per training calendar", isCritical: false, key: "security_guard_training" },
+    { name: "Staff ID cards enforced", isCritical: false, key: "staff_id_cards" },
+    { name: "Perimeter lighting is available", isCritical: false, key: "perimeter_lighting" },
+    { name: "Uninterrupted power supply for CCTV system available", isCritical: true, key: "cctv_power_backup" },
 ];
 
 const SECTION_G_PARAMETERS = [
-    { name: "First aid boxes are available and checked monthly", isCritical: true },
-    { name: "Nurse and trained first aiders available", isCritical: true },
-    { name: "Emergency contacts displayed", isCritical: false },
-    { name: "Tie-up with nearby hospital done", isCritical: true },
-    { name: "Student medical records maintained", isCritical: false },
-    { name: "Annual health check-up conducted for students", isCritical: false },
-    { name: "Drinking water testing conducted as per frequency & reports maintained", isCritical: true },
-    { name: "Bio-medical waste bins available, identified & disposed as per norms with records", isCritical: true },
-    { name: "E-waste disposed as per norms and records maintained", isCritical: true },
+    { name: "First aid boxes are available and checked monthly", isCritical: true, key: "first_aid" },
+    { name: "Nurse and trained first aiders available", isCritical: true, key: "nurse_available" },
+    { name: "Emergency contacts displayed", isCritical: false, key: "emergency_contacts_display" },
+    { name: "Tie-up with nearby hospital done", isCritical: true, key: "hospital_tieup" },
+    { name: "Student medical records maintained", isCritical: false, key: "student_medical_records" },
+    { name: "Annual health check-up conducted for students", isCritical: false, key: "annual_health_checkup" },
+    { name: "Drinking water testing conducted as per frequency & reports maintained", isCritical: true, key: "water_testing" },
+    { name: "Bio-medical waste bins available, identified & disposed as per norms with records", isCritical: true, key: "bio_medical_waste" },
+    { name: "E-waste disposed as per norms and records maintained", isCritical: true, key: "e_waste" },
 ];
 
-// const SECTION_H_PARAMETERS = [
-//   { name: "Vehicle fitness & permits valid", isCritical: true },
-//   { name: "Driver police verification", isCritical: true },
-//   { name: "Driver medical fitness & eye test records available", isCritical: true },
-//   { name: "Female attendant Police Verification ", isCritical: false },
-//   { name: "Speed governors and GPS installed", isCritical: true },
-//   { name: "Bus safety drills conducted (once a year)", isCritical: false },
-//   { name: "Minimum 30‑day CCTV backup available for school buses", isCritical: true },
-// ];
+const SECTION_H_PARAMETERS = [
+  { name: "Vehicle fitness & permits valid", isCritical: true, key: "vehicle_fitness" },
+  { name: "Driver police verification", isCritical: true, key: "driver_police_verification" },
+  { name: "Driver medical fitness & eye test records available", isCritical: true, key: "driver_medical" },
+  { name: "Female attendant Police Verification ", isCritical: false, key: "female_attendant_verification" },
+  { name: "Speed governors and GPS installed", isCritical: true, key: "gps_tracking" },
+  { name: "Bus safety drills conducted (once a year)", isCritical: false, key: "bus_safety_drills" },
+  { name: "Minimum 30‑day CCTV backup available for school buses", isCritical: true, key: "bus_cctv_backup" },
+];
 
 const SECTION_I_PARAMETERS = [
-    { name: "Cleaning schedules maintained & supervisor sign‑off available", isCritical: false },
-    { name: "Pest control conducted at defined frequency", isCritical: false },
-    { name: "Safe storage of cleaning chemicals", isCritical: true },
-    { name: "Valid FSSAI license available (where kitchen / canteen exists)", isCritical: true },
+    { name: "Cleaning schedules maintained & supervisor sign-off available", isCritical: false, key: "cleaning_schedules" },
+    { name: "Pest control conducted at defined frequency", isCritical: false, key: "pest_control" },
+    { name: "Safe storage of cleaning chemicals", isCritical: false, key: "cleaning_chemical_storage" },
+    { name: "Valid FSSAI license available (where kitchen / canteen exists)", isCritical: true, key: "fssai_license" },
 ];
 
 const SECTIONS_CONFIG: Record<string, { title: string, weight: string, icon: React.ElementType, params: any[], isOptional?: boolean }> = {
@@ -126,7 +127,7 @@ const SECTIONS_CONFIG: Record<string, { title: string, weight: string, icon: Rea
     "E": { title: "Student Safeguarding & Child Protection", weight: "20%", icon: UserCheck, params: SECTION_E_PARAMETERS },
     "F": { title: "Access Control & Security", weight: "10%", icon: ShieldCheck, params: SECTION_F_PARAMETERS },
     "G": { title: "Health, First Aid & Medical Emergency", weight: "10%", icon: Heart, params: SECTION_G_PARAMETERS },
-    //   "H": { title: "Transport Safety", weight: "15%", icon: Truck, params: SECTION_H_PARAMETERS, isOptional: true },
+    // "H": { title: "Transport Safety", weight: "15%", icon: Truck, params: SECTION_H_PARAMETERS, isOptional: true },
     "I": { title: "Hygiene, Housekeeping & Food Safety", weight: "5%", icon: Soup, params: SECTION_I_PARAMETERS },
 };
 
@@ -151,6 +152,7 @@ export default function SafetyAndAuditPage() {
     const canSelectLocation = isSuperAdmin || isBranchGroup;
 
     const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+    const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
     const [activeSection, setActiveSection] = useState<string>("A");
 
     // Fetch audits history
@@ -163,10 +165,13 @@ export default function SafetyAndAuditPage() {
         enabled: view === "history",
     });
 
-    const auditColumns = React.useMemo(() => getAuditColumns((audit) => {
-        setSelectedAuditForView(audit);
-        setIsViewOpen(true);
-    }), []);
+    const auditColumns = React.useMemo(() => getAuditColumns(
+        (audit) => {
+            setSelectedAuditForView(audit);
+            setIsViewOpen(true);
+        },
+        (audit) => handleEditAudit(audit)
+    ), []);
 
     const { tableElement: auditTable } = CustomTableServerSidePagination({
         data: auditListData?.data || [],
@@ -175,7 +180,7 @@ export default function SafetyAndAuditPage() {
         totalCount: auditListData?.total || 0,
         loading: isAuditListLoading,
         onPaginationChange: setPagination,
-        pageSizeOptions: [10, 20, 50],
+        pageSizeOptions: [10, 20, 50, "All"],
         showSerialNumber: true,
         maxHeight: "calc(100vh - 350px)",
     });
@@ -183,13 +188,17 @@ export default function SafetyAndAuditPage() {
     // Fetch schools for superAdmin
     const { data: schools, isLoading: isSchoolsLoading } = useSchoolDropdown(isSuperAdmin);
 
-    // Fetch branches for branchGroup
-    const { data: branches, isLoading: isBranchesLoading } = useBranchDropdown(user?.schoolId, isBranchGroup);
+    // Fetch branches: 
+    // - For branchGroup: fetch based on their fixed schoolId
+    // - For superAdmin: fetch based on the selectedSchoolId
+    const branchFetchEnabled = isBranchGroup || (isSuperAdmin && !!selectedSchoolId);
+    const branchSchoolId = isBranchGroup ? user?.schoolId : selectedSchoolId;
+    
+    const { data: branches, isLoading: isBranchesLoading } = useBranchDropdown(branchSchoolId, branchFetchEnabled);
 
     // Consolidate items based on role
-    const locationItems = isSuperAdmin
-        ? schools?.map((s: any) => ({ label: s.schoolName || s.name, value: s._id })) || []
-        : branches?.map((b: any) => ({ label: b.branchName || b.name, value: b._id })) || [];
+    const schoolItems = schools?.map((s: any) => ({ label: s.schoolName || s.name, value: s._id })) || [];
+    const branchItems = branches?.map((b: any) => ({ label: b.branchName || b.name, value: b._id })) || [];
 
     const isLocationLoading = isSuperAdmin ? isSchoolsLoading : isBranchesLoading;
 
@@ -199,6 +208,7 @@ export default function SafetyAndAuditPage() {
         Object.keys(SECTIONS_CONFIG).forEach(key => {
             initialState[key] = SECTIONS_CONFIG[key].params.map(p => ({
                 name: p.name,
+                key: p.key, // Explicitly assign the key
                 score: null,
                 isCritical: p.isCritical,
                 remark: "",
@@ -216,11 +226,14 @@ export default function SafetyAndAuditPage() {
         mutationFn: () => {
             const payload: any = {};
             if (isSuperAdmin) {
-                payload.schoolId = selectedBranchId;
+                payload.schoolId = selectedSchoolId;
+                payload.branchId = selectedBranchId;
             } else if (isBranchGroup) {
+                payload.schoolId = user?.schoolId;
                 payload.branchId = selectedBranchId;
             } else {
-                payload.branchId = user?.schoolId;
+                // If branch level user, they probably only have their own branchId
+                payload.branchId = user?.schoolId; 
             }
             return auditService.createAudit(payload);
         },
@@ -243,15 +256,9 @@ export default function SafetyAndAuditPage() {
             setActiveSection(nextSection);
             toast.info(`Next up: Section ${nextSection} - ${SECTIONS_CONFIG[nextSection].title}`);
         } else {
-            toast.success("Full audit inspection completed!", {
-                style: { background: "#10b981", color: "#fff" }
+            toast.success("All sections saved!", {
+                icon: <ClipboardCheck className="h-5 w-5 text-emerald-500" />
             });
-
-            // Return to main page after a brief delay
-            setTimeout(() => {
-                clearAuditData();
-                setActiveSection("A");
-            }, 1000);
         }
     };
 
@@ -260,12 +267,76 @@ export default function SafetyAndAuditPage() {
         mutationFn: (payload: any) => auditService.sectionSave(payload),
         onSuccess: () => {
             toast.success(`Section ${activeSection} saved successfully!`);
-            handleNextSection(activeSection);
         },
         onError: (error: any) => {
             toast.error(error?.response?.data?.message || "Failed to save section. Please try again.");
         },
     });
+
+    const finalizeAuditMutation = useMutation({
+        mutationFn: (id: string) => auditService.finalizeAudit(id),
+        onSuccess: () => {
+            toast.success("Audit finalized successfully!", {
+                description: "Inspection report has been generated.",
+                style: { background: "#0c235c", color: "#fff" }
+            });
+            setTimeout(() => {
+                clearAuditData();
+                setActiveSection("A");
+            }, 1500);
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || "Failed to finalize audit.");
+        }
+    });
+
+    const handleEditAudit = (audit: Audit) => {
+        setAuditData({
+            schoolId: audit.schoolId,
+            createdBy: audit.branchId || audit.createdBy,
+            _id: audit._id
+        });
+
+        const newSectionsData: Record<string, ParameterState[]> = {};
+        
+        // Initialize with core templates first to ensure all required fields are present
+        Object.keys(SECTIONS_CONFIG).forEach(key => {
+            newSectionsData[key] = SECTIONS_CONFIG[key].params.map(p => ({
+                name: p.name,
+                key: p.key,
+                score: null,
+                isCritical: p.isCritical,
+                remark: "",
+            }));
+        });
+
+        // Overlay existing section data from the audit object
+        if (audit.sections && audit.sections.length > 0) {
+            audit.sections.forEach(section => {
+                const sectionKey = Object.keys(SECTIONS_CONFIG).find(
+                    key => SECTIONS_CONFIG[key].title === section.sectionName
+                );
+                
+                if (sectionKey) {
+                    const localParams = SECTIONS_CONFIG[sectionKey].params;
+                    
+                    // Map existing parameters, restoring keys from local config if missing
+                    newSectionsData[sectionKey] = section.parameters.map((p, index) => ({
+                        name: p.name,
+                        key: localParams[index]?.key || p.key, // Restore key from config
+                        score: p.score,
+                        isCritical: p.isCritical,
+                        remark: p.remark || "",
+                    }));
+                }
+            });
+        }
+
+        setAllSectionsData(newSectionsData);
+        setView("conduct");
+        setActiveSection("A");
+        toast.info(`Resuming draft audit for ${audit.branchName || audit.schoolName}`);
+    };
 
     const handleParameterChange = (index: number, field: keyof ParameterState, value: any) => {
         setAllSectionsData(prev => ({
@@ -289,6 +360,8 @@ export default function SafetyAndAuditPage() {
             return;
         }
 
+        const isLastSection = activeSection === SECTION_KEYS[SECTION_KEYS.length - 1];
+
         const payload = {
             auditId: auditId,
             branchId: createdBy,
@@ -297,7 +370,15 @@ export default function SafetyAndAuditPage() {
             parameters: formData,
         };
 
-        saveSectionMutation.mutate(payload);
+        saveSectionMutation.mutate(payload, {
+            onSuccess: () => {
+                if (isLastSection && auditId) {
+                    finalizeAuditMutation.mutate(auditId);
+                } else {
+                    handleNextSection(activeSection);
+                }
+            }
+        });
     };
 
     const handleCancelAudit = () => {
@@ -355,28 +436,63 @@ export default function SafetyAndAuditPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex flex-col items-center pb-10 pt-4 px-8 space-y-6">
-                                {canSelectLocation && (
+                                {isSuperAdmin ? (
+                                    <>
+                                        <div className="w-full space-y-2.5">
+                                            <Label htmlFor="school-select" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">
+                                                Select Region
+                                            </Label>
+                                            <Combobox
+                                                items={schoolItems}
+                                                value={selectedSchoolId}
+                                                onValueChange={(val) => {
+                                                    setSelectedSchoolId(val || "");
+                                                    setSelectedBranchId(""); // Reset branch when school changes
+                                                }}
+                                                placeholder="Select region..."
+                                                searchPlaceholder="Search regions..."
+                                                emptyMessage={isSchoolsLoading ? "Synchronizing..." : "No regions found."}
+                                                className="w-full border-gray-100 shadow-sm rounded-xl h-12"
+                                            />
+                                        </div>
+                                        <div className="w-full space-y-2.5">
+                                            <Label htmlFor="branch-select" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">
+                                                Select School
+                                            </Label>
+                                            <Combobox
+                                                items={branchItems}
+                                                value={selectedBranchId}
+                                                onValueChange={(val) => setSelectedBranchId(val || "")}
+                                                placeholder="Select school..."
+                                                searchPlaceholder="Search schools..."
+                                                emptyMessage={!selectedSchoolId ? "Select a region first" : (isBranchesLoading ? "Syncing..." : "No schools found.")}
+                                                disabled={!selectedSchoolId || isBranchesLoading}
+                                                className="w-full border-gray-100 shadow-sm rounded-xl h-12"
+                                            />
+                                        </div>
+                                    </>
+                                ) : isBranchGroup ? (
                                     <div className="w-full space-y-2.5">
-                                        <Label htmlFor="location-select" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">
-                                            Inspection Target
+                                        <Label htmlFor="branch-select" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">
+                                            Inspection Target (Branch)
                                         </Label>
                                         <Combobox
-                                            items={locationItems}
+                                            items={branchItems}
                                             value={selectedBranchId}
                                             onValueChange={(val) => setSelectedBranchId(val || "")}
-                                            placeholder={`Select ${isSuperAdmin ? "school" : "branch"}...`}
-                                            searchPlaceholder={`Search locations...`}
-                                            emptyMessage={isLocationLoading ? "Synchronizing..." : "No targets found."}
+                                            placeholder="Select branch..."
+                                            searchPlaceholder="Search branches..."
+                                            emptyMessage={isBranchesLoading ? "Synchronizing..." : "No branches found."}
                                             className="w-full border-gray-100 shadow-sm rounded-xl h-12"
                                         />
                                     </div>
-                                )}
+                                ) : null}
 
                                 <Button
                                     size="lg"
                                     className="w-full bg-[#0c235c] hover:bg-[#0c235c]/90 text-white font-black py-7 rounded-2xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
                                     onClick={() => createAuditMutation.mutate()}
-                                    disabled={createAuditMutation.isPending || (canSelectLocation && !selectedBranchId)}
+                                    disabled={createAuditMutation.isPending || (isSuperAdmin && (!selectedSchoolId || !selectedBranchId)) || (isBranchGroup && !selectedBranchId)}
                                 >
                                     {createAuditMutation.isPending ? (
                                         <>
@@ -581,17 +697,17 @@ export default function SafetyAndAuditPage() {
                         <Button
                             size="lg"
                             className="flex-1 sm:flex-none rounded-4xl px-8 md:px-16 bg-[#0c235c] hover:bg-[#0c235c]/90 text-white font-black h-12 md:h-14 shadow-2xl hover:scale-105 active:scale-95 transition-all text-xs md:text-sm tracking-widest"
-                            disabled={saveSectionMutation.isPending}
+                            disabled={saveSectionMutation.isPending || finalizeAuditMutation.isPending}
                             onClick={handleSectionSubmit}
                         >
-                            {saveSectionMutation.isPending ? (
+                            {saveSectionMutation.isPending || finalizeAuditMutation.isPending ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 md:h-5 md:w-5 animate-spin" />
-                                    RECORDING...
+                                    {finalizeAuditMutation.isPending ? "FINALIZING..." : "RECORDING..."}
                                 </>
                             ) : (
                                 <span className="flex items-center gap-2">
-                                    SAVE SECTION
+                                    {activeSection === SECTION_KEYS[SECTION_KEYS.length - 1] ? "SAVE & FINALIZE" : "SAVE SECTION"}
                                     <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
                                 </span>
                             )}

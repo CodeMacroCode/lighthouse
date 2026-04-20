@@ -546,13 +546,13 @@ export function CustomTableServerSidePagination<
                 value={isAllSelected ? "All" : pagination.pageSize.toString()}
                 onValueChange={changePageSize}
               >
-                <SelectTrigger className="h-8 w-[60px] sm:w-[70px] cursor-pointer text-xs sm:text-sm">
-                  <SelectValue placeholder={pagination.pageSize.toString()} />
+                <SelectTrigger className="h-8 w-fit min-w-[70px] cursor-pointer text-xs sm:text-sm px-2">
+                  <SelectValue placeholder={isAllSelected ? `All (${totalCount})` : pagination.pageSize.toString()} />
                 </SelectTrigger>
                 <SelectContent side="top">
                   {pageSizeOptions.map((pageSize) => (
                     <SelectItem key={pageSize} value={pageSize.toString()} className="cursor-pointer">
-                      {pageSize}
+                      {pageSize === "All" ? (totalCount > 0 ? `All (${totalCount})` : "All") : pageSize}
                     </SelectItem>
                   ))}
                 </SelectContent>

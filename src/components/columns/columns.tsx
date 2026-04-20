@@ -2157,7 +2157,8 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void): Colum
 
 
 export const getAuditColumns = (
-  onView?: (row: Audit) => void
+  onView?: (row: Audit) => void,
+  onEdit?: (row: Audit) => void
 ): ColumnDef<Audit>[] => [
     {
       header: "School Name",
@@ -2202,7 +2203,17 @@ export const getAuditColumns = (
     {
       header: "Action",
       cell: ({ row }) => (
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-2">
+          {row.original.status?.toLowerCase() === "draft" && (
+             <Button
+                variant="outline"
+                size="sm"
+                className="text-amber-600 border-amber-100 hover:bg-amber-50 h-8"
+                onClick={() => onEdit?.(row.original)}
+              >
+                Edit
+              </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
