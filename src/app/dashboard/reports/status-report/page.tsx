@@ -6,7 +6,7 @@ import {
   FilterValues,
 } from "@/components/report-filters/Report-Filter";
 import { VisibilityState } from "@tanstack/react-table";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import ResponseLoader from "@/components/ResponseLoader";
 import { getStatusReportColumns } from "@/components/columns/columns";
 import { useQueryClient } from "@tanstack/react-query";
@@ -269,7 +269,7 @@ const StatusReportPage: React.FC = () => {
   };
 
   // Table configuration
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: tableData,
     columns,
     pagination,

@@ -12,7 +12,7 @@ import {
   FilterValues,
 } from "@/components/report-filters/Report-Filter";
 import { VisibilityState } from "@tanstack/react-table";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import ResponseLoader from "@/components/ResponseLoader";
 import { useQueryClient } from "@tanstack/react-query";
 import DownloadProgress from "@/components/DownloadProgress";
@@ -306,7 +306,7 @@ const DistanceReportPage: React.FC = () => {
   }, [distanceReport, cashedDeviceId]);
 
   // Table configuration
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: finalDistanceReport ?? [],
     columns,
     pagination,

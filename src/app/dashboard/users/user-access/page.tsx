@@ -476,7 +476,7 @@ export default function UserAccessPage() {
         toast.success(`Logged in as ${username}`);
         const loginAsRole = getDecodedToken(data.token)?.role;
         if (loginAsRole === "branchGroup") {
-          window.location.replace("/dashboard/users/user-access");
+          window.location.replace("/dashboard/users/branch-master");
         } else if (loginAsRole === "parent") {
           window.location.replace("/dashboard/incident");
         } else if (loginAsRole === "branch") {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState, useMemo } from "react";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import SearchComponent from "@/components/ui/SearchOnlydata";
 import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import { FloatingMenu } from "@/components/floatingMenu";
@@ -279,7 +279,7 @@ export default function PickupDropMaster() {
     [pickupDropResponse]
   );
 
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: filteredData,
     columns,
     pagination,

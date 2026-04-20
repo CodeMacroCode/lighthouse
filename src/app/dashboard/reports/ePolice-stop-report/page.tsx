@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { VisibilityState } from "@tanstack/react-table";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import ResponseLoader from "@/components/ResponseLoader";
 import DownloadProgress from "@/components/DownloadProgress";
 import {
@@ -249,7 +249,7 @@ const EPoliceStopReportPage: React.FC = () => {
     }
   };
 
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: tableData,
     columns,
     pagination,

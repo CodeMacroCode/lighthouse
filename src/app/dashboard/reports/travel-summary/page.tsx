@@ -12,7 +12,7 @@ import {
   PaginationState,
   SortingState,
 } from "@tanstack/react-table";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import ResponseLoader from "@/components/ResponseLoader";
 import { useReport } from "@/hooks/reports/useReport";
 import { FaPlay, FaPlus, FaMinus } from "react-icons/fa";
@@ -1269,7 +1269,7 @@ const TravelSummaryReportPage: React.FC = () => {
   }, [expandedDataArray])
 
   // Table configuration
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: expandedDataArray,
     columns,
     pagination,

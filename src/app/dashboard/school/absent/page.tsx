@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import { DynamicEditDialog, FieldConfig } from "@/components/ui/EditModal";
 import SearchComponent from "@/components/ui/SearchOnlydata";
 import { Button } from "@/components/ui/button";
@@ -566,7 +566,7 @@ export default function AbsentMaster() {
   );
 
   // Server-side pagination table instance
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: absentResponse?.absentData || [],
     columns,
     pagination,

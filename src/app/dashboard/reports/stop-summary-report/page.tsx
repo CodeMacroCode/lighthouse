@@ -8,7 +8,7 @@ import {
     VisibilityState,
     ColumnDef
 } from "@tanstack/react-table";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import ResponseLoader from "@/components/ResponseLoader";
 import { useStopSummaryReport } from "@/hooks/reports/useStopSummaryReport";
 import { FaPlus, FaMinus } from "react-icons/fa";
@@ -690,7 +690,7 @@ const StopSummaryReportPage: React.FC = () => {
     }
 
 
-    const { tableElement } = CustomTableServerSidePagination({
+    const { tableElement } = useCustomTable({
         data: expandedDataArray(),
         columns,
         pagination,

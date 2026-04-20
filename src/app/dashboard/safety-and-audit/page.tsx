@@ -21,7 +21,7 @@ import { useSchoolDropdown, useBranchDropdown } from "@/hooks/useDropdown";
 import { Combobox } from "@/components/ui/combobox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import { getAuditColumns } from "@/components/columns/columns";
 import { PaginationState } from "@tanstack/react-table";
 import { Audit } from "@/interface/modal";
@@ -137,7 +137,8 @@ export default function SafetyAndAuditPage() {
     const { decodedToken: user } = useAuthStore();
     const { auditId, createdBy, schoolId: storedSchoolId, setAuditData, clearAuditData } = useAuditStore();
 
-    const [view, setView] = useState<"conduct" | "history">("conduct");
+    const isSchool = user?.role === "school";
+    const [view, setView] = useState<"conduct" | "history">(isSchool ? "history" : "conduct");
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,
         pageSize: 10,
@@ -172,7 +173,7 @@ export default function SafetyAndAuditPage() {
         (audit) => handleEditAudit(audit)
     ), []);
 
-    const { tableElement: auditTable } = CustomTableServerSidePagination({
+    const { tableElement: auditTable } = useCustomTable({
         data: auditListData?.data || [],
         columns: auditColumns,
         pagination,
@@ -397,16 +398,18 @@ export default function SafetyAndAuditPage() {
                         <p className="text-muted-foreground text-sm font-medium">Compliance monitoring & safety inspections</p>
                     </div>
                     <div className="flex bg-gray-100/80 p-1.5 rounded-2xl backdrop-blur-sm border border-gray-200/50">
-                        <Button
-                            variant={view === "conduct" ? "default" : "ghost"}
-                            className={view === "conduct" 
-                                ? "bg-[#0c235c] text-white rounded-xl shadow-md hover:bg-[#0c235c]/90 transition-all px-6" 
-                                : "rounded-xl text-gray-500 hover:text-[#0c235c] hover:bg-white/50 px-6"}
-                            onClick={() => setView("conduct")}
-                        >
-                            <ClipboardCheck className="mr-2 h-4 w-4" />
-                            Conduct Audit
-                        </Button>
+                        {!isSchool && (
+                            <Button
+                                variant={view === "conduct" ? "default" : "ghost"}
+                                className={view === "conduct" 
+                                    ? "bg-[#0c235c] text-white rounded-xl shadow-md hover:bg-[#0c235c]/90 transition-all px-6" 
+                                    : "rounded-xl text-gray-500 hover:text-[#0c235c] hover:bg-white/50 px-6"}
+                                onClick={() => setView("conduct")}
+                            >
+                                <ClipboardCheck className="mr-2 h-4 w-4" />
+                                Conduct Audit
+                            </Button>
+                        )}
                         <Button
                             variant={view === "history" ? "default" : "ghost"}
                             className={view === "history" 

@@ -12,7 +12,7 @@ import {
   PaginationState,
   SortingState,
 } from "@tanstack/react-table";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import ResponseLoader from "@/components/ResponseLoader";
 import { useReport } from "@/hooks/reports/useReport";
 import { FaPlay, FaPlus, FaMinus, FaMapMarkedAlt } from "react-icons/fa";
@@ -754,7 +754,7 @@ const AlertsAndEventsReportPage: React.FC = () => {
   }, [shouldFetch, hasGenerated, queryClient]);
 
   // Table configuration
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: expandedDataArray,
     columns,
     pagination,

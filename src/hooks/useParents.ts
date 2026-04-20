@@ -97,6 +97,7 @@ export const useParent = (
     createParent: createParentMutation.mutate,
     createParentAsync: createParentMutation.mutateAsync,
     updateParent: updateParentMutation.mutate,
+    updateParentAsync: updateParentMutation.mutateAsync,
     deleteParent: deleteParentMutation.mutate,
 
     isCreateLoading: createParentMutation.isPending,

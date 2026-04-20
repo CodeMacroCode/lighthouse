@@ -21,7 +21,7 @@ import { ColumnVisibilitySelector } from "@/components/column-visibility-selecto
 import { useLeaveRequests } from "@/hooks/useLeaveRequests";
 import { LeaveRequest } from "@/interface/modal";
 import SearchComponent from "@/components/ui/SearchOnlydata";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 
 declare module "@tanstack/react-table" {
   export interface ColumnMeta<TData, TValue> {
@@ -272,7 +272,7 @@ export default function LeaveRequestMaster() {
     },
   ];
 
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: leaveRequestData?.leaveRequests || [],
     columns,
     pagination,

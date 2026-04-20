@@ -13,7 +13,7 @@ import {
 import { X, Trash2, FilterX, Download } from "lucide-react";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import type { Branch, Geofence, Route, School } from "@/interface/modal";
 import { useGeofence } from "@/hooks/useGeofence";
 import { getGeofenceCoumns } from "@/components/columns/columns";
@@ -378,7 +378,7 @@ export default function GeofenceClient() {
     }
   };
 
-  const { tableElement, selectedRows, table } = CustomTableServerSidePagination(
+  const { tableElement, selectedRows, table } = useCustomTable(
     {
       data: geofence || [],
       columns,

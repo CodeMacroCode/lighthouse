@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { useDevices } from "@/hooks/useDevice";
 import { Device } from "@/interface/modal";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import ResponseLoader from "@/components/ResponseLoader";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/apiService";
@@ -236,8 +236,8 @@ export default function ReadDevice() {
     /* NEEED TO PASSS IN THE QUERY PARAMETERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR */
   }
 
-  // Replace your existing CustomTableServerSidePagination usage with:
-  const { table, tableElement } = CustomTableServerSidePagination({
+  // Replace your existing useCustomTable usage with:
+  const { table, tableElement } = useCustomTable({
     data: devicesData?.devices || [],
     columns,
     pagination,

@@ -42,7 +42,7 @@ import { useAccessStore } from "@/store/accessStore";
 import { useRouter } from "next/navigation";
 import { auditService } from "@/services/api/auditService";
 import { getAuditColumns } from "@/components/columns/columns";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import { ViewAuditDetails } from "@/components/audit/ViewAuditDetails";
 import { PaginationState } from "@tanstack/react-table";
 import { Audit } from "@/interface/modal";
@@ -174,6 +174,18 @@ export default function SchoolMaster() {
     setSelectedAuditForView(audit);
     setIsAuditViewOpen(true);
   }), []);
+
+  const { tableElement: auditTable } = useCustomTable({
+    data: auditListData?.data || [],
+    columns: auditColumns,
+    pagination: paginationAudit,
+    totalCount: auditListData?.total || 0,
+    loading: isAuditListLoading,
+    onPaginationChange: setPaginationAudit,
+    pageSizeOptions: [10, 20, 50],
+    showSerialNumber: true,
+    maxHeight: "calc(100vh - 240px)",
+  });
 
   useEffect(() => {
     if (schools && schools.length > 0) {
@@ -535,17 +547,7 @@ export default function SchoolMaster() {
           </header>
 
           <section className="flex-1 min-h-0 bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 mb-4">
-            <CustomTableServerSidePagination
-              data={auditListData?.data || []}
-              columns={auditColumns}
-              pagination={paginationAudit}
-              totalCount={auditListData?.total || 0}
-              loading={isAuditListLoading}
-              onPaginationChange={setPaginationAudit}
-              pageSizeOptions={[10, 20, 50]}
-              showSerialNumber={true}
-              maxHeight="calc(100vh - 240px)"
-            />
+            {auditTable}
           </section>
 
           <ViewAuditDetails

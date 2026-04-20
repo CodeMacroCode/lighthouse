@@ -2,7 +2,7 @@
 
 import AddStudentForm from "@/components/add-student/add-student";
 import { getStudentColumns } from "@/components/columns/columns";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import {
   useBranchDropdown,
   useSchoolDropdown,
@@ -426,7 +426,7 @@ export default function StudentDetails() {
   }, [handleEdit, handleDelete, role, approveStudent, isApproveLoading]);
 
   // ---------------- Table ----------------
-  const { table, tableElement, selectedRows } = CustomTableServerSidePagination(
+  const { table, tableElement, selectedRows } = useCustomTable(
     {
       data: students || [],
       columns,

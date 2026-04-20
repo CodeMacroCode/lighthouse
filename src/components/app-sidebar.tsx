@@ -152,44 +152,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         case "Master":
           if (role === "superAdmin") {
             return [
-              // { title: "Device", url: "/dashboard/users/add-device" },
               { title: "CXO / Leaders", url: "/dashboard/users/school-master" },
               { title: "Regional Head", url: "/dashboard/users/user-access" },
               { title: "Safety Head", url: "/dashboard/users/branch-master" },
               { title: "Coordinator", url: "/dashboard/users/coordinator" },
               { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
-              // {
-              //   title: "Student Details",
-              //   url: "/dashboard/school/student-details",
-              // },
-              // {
-              //   title: "Parents Master",
-              //   url: "/dashboard/users/parents-master",
-              // },
-              // { title: "Routes", url: "/dashboard/master/route" },
-              // {
-              //   title: "Geofence",
-              //   url: "/dashboard/school/geofence",
-              // },
-              // {
-              //   title: "Driver",
-              //   url: "/dashboard/users/driver-approve",
-              // },
-              // { title: "Notification", url: "/dashboard/users/notification" },
-              // { title: "Model", url: "/dashboard/master/model" },
-              // { title: "Category", url: "/dashboard/master/category" },
-              // { title: "Subscription Config", url: "/dashboard/master/subscription-config" },
-              // { title: "Custom Subscription Config", url: "/dashboard/master/custom-subscription-config" },
-              // {
-              //   title: "Billing",
-              //   url: "/dashboard/billing",
-              // },
-              // { title: "Ticket Types", url: "/dashboard/support/ticket-types" },
             ];
           } else if (role === "school") {
             return [
-              // { title: "Device", url: "/dashboard/users/add-device" },
               { title: "Regional Head", url: "/dashboard/users/user-access" },
               {
                 title: "Safety Head",
@@ -198,124 +169,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               { title: "Coordinator", url: "/dashboard/users/coordinator" },
               { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
-              // {
-              //   title: "Driver",
-              //   url: "/dashboard/users/driver-approve",
-              // },
-              // {
-              //   // title: "Student Details",
-              //   url: "/dashboard/school/student-details",
-              // },
-              // {
-              //   title: "Parents Master",
-              //   url: "/dashboard/users/parents-master",
-              // },
-              // {
-              //   title: "Routes",
-              //   url: "/dashboard/master/route",
-              // },
-              // {
-              //   title: "Geofence",
-              //   url: "/dashboard/school/geofence",
-              // },
-              // {
-              //   title: "Billing",
-              //   url: "/dashboard/billing",
-              // }
             ];
+          } else if (role === "branchGroup") {
+            return [
+              { title: "Safety Head", url: "/dashboard/users/branch-master" },
+              { title: "Coordinator", url: "/dashboard/users/coordinator" },
+              { title: "Incident", url: "/dashboard/incident" },
+              { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
+            ]
           } else if (role === "parent") {
             return [
               { title: "Incident", url: "/dashboard/incident" }
             ];
           } else if (role === "branch") {
             return [
-              // {
-              //   title: "Safety Head",
-              //   url: "/dashboard/users/branch-master",
-              // },
               { title: "Coordinator", url: "/dashboard/users/coordinator" },
-              // { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
-              // { title: "Device", url: "/dashboard/users/add-device" },
-              // {
-              //   title: "Driver",
-              //   url: "/dashboard/users/driver-approve",
-              // },
-              // {
-              //   // title: "Student Details",
-              //   url: "/dashboard/school/student-details",
-              // },
-              // {
-              //   title: "Parents Master",
-              //   url: "/dashboard/users/parents-master",
-              // },
-              // {
-              //   title: "Routes",
-              //   url: "/dashboard/master/route",
-              // },
-              // {
-              //   title: "Geofence",
-              //   url: "/dashboard/school/geofence",
-              // },
-              // {
-              //   title: "Billing",
-              //   url: "/dashboard/billing",
-              // }
             ];
           }
-        // case "Admin":
-        //   return [
-        //     { title: "Pickup And Drop", url: "/dashboard/school/pickup-drop" },
-        //     { title: "Leave Request", url: "/dashboard/school/leave-request" },
-        //   ];
-        // case "Users":
-        //   return [
-        //     {
-        //       title: "Driver Approve",
-        //       url: "/dashboard/users/driver-approve",
-        //     },
-        //     // {
-        //     //   title: "Supervisor Approve",
-        //     //   url: "/dashboard/users/supervisor-approve",
-        //     // },
-        //   ];
-        // case "Reports":
-        //   return [
-        //     { title: "Status Report", url: "/dashboard/reports/status-report" },
-        //     {
-        //       title: "Distance Report",
-        //       url: "/dashboard/reports/distance-report",
-        //     },
-        //     {
-        //       title: "History Report",
-        //       url: "/dashboard/reports/history-report",
-        //     },
-        //     { title: "ePolice Stop Report", url: "/dashboard/reports/ePolice-stop-report" },
-        //     { title: "Stop Report", url: "/dashboard/reports/stop-report" },
-        //     { title: "Stoppage Summary", url: "/dashboard/reports/stop-summary-report" },
-        //     {
-        //       title: "Travel Summary",
-        //       url: "/dashboard/reports/travel-summary",
-        //     },
-        //     { title: "Trip Report", url: "/dashboard/reports/trip-report" },
-        //     { title: "Idle Report", url: "/dashboard/reports/idle-report" },
-        //     { title: "Alerts/Events", url: "/dashboard/reports/events" },
-        //     {
-        //       title: "Geofence Report",
-        //       url: "/dashboard/reports/geofence-report",
-        //     },
-        //     {
-        //       title: "Route Report",
-        //       url: "/dashboard/reports/route-report",
-        //     },
-        //   ];
-        // case "Support":
-        //   return [
-        //     { title: "Chat Box", url: "/dashboard/support/contact-us" },
-        //     { title: "Raise Ticket", url: "/dashboard/support/raise-ticket" },
-        //     // { title: "Answer Ticket", url: "/dashboard/support/answer-ticket" },
-        //     { title: "FAQ", url: "/dashboard/support/faq" },
-        //   ];
         default:
           return [];
       }

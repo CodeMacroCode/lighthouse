@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getDeviceColumns } from "@/components/columns/columns";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import { useAddDeviceNew } from "@/hooks/device/useAddDevice(new)";
 import { SortingState, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -386,7 +386,7 @@ const DevicesPage = () => {
   }, [handleEdit, handleDelete, role]);
 
   // ---------------- Table ----------------
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: devices || [],
     columns,
     pagination,

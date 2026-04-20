@@ -374,7 +374,7 @@ export default function BranchMaster() {
           setAccess(data.access);
         }
         toast.success(`Logged in as ${username}`);
-        window.location.replace("/dashboard/users/school-master");
+        window.location.replace("/dashboard/users/coordinator");
       } else {
         toast.error("Login failed: Invalid server response");
       }

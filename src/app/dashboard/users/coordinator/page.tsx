@@ -1,7 +1,7 @@
 "use client";
 
 import { getParentsColumns } from "@/components/columns/columns";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useParent } from "@/hooks/useParents";
 import { SortingState, PaginationState } from "@tanstack/react-table";
@@ -154,14 +154,13 @@ export default function ParentsMaster() {
     deleteParent,
     createParentAsync,
     updateParent,
+    updateParentAsync,
     isCreateLoading,
     isUpdateLoading,
     isDeleteLoading,
   } = useParent(pagination, sorting, filters);
 
-  useEffect(() => {
-    if (!isLoadingParents) setShowAddParent(false);
-  }, [isLoadingParents]);
+  // Removed automatic closing of modal based on isLoadingParents to allow manual control.
 
   const closeModal = useCallback(() => {
     setShowAddParent(false);
@@ -211,19 +210,19 @@ export default function ParentsMaster() {
     }) => {
       try {
         if (selectedParent) {
-          updateParent({
+          await updateParentAsync({
             id: selectedParent._id,
             payload: data,
           });
         } else {
-          createParentAsync(data);
+          await createParentAsync(data);
         }
         closeModal();
       } catch (error) {
         console.error("Form submission error:", error);
       }
     },
-    [selectedParent, updateParent, createParentAsync, closeModal]
+    [selectedParent, updateParentAsync, createParentAsync, closeModal]
   );
 
   const columns = useMemo(
@@ -231,7 +230,7 @@ export default function ParentsMaster() {
     [handleEdit, handleDelete]
   );
 
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: parents || [],
     columns,
     pagination,

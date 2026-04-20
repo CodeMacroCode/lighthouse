@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { incidentService } from "@/services/api/incidentService";
 import { api } from "@/services/apiService";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw, Plus } from "lucide-react";
 import { PaginationState } from "@tanstack/react-table";
@@ -149,7 +149,7 @@ export default function IncidentPage() {
         }
     ];
 
-    const { tableElement } = CustomTableServerSidePagination({
+    const { tableElement } = useCustomTable({
         data: data?.data || [],
         columns,
         pagination,

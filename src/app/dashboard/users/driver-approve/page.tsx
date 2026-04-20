@@ -8,7 +8,7 @@ import { SortingState, PaginationState } from "@tanstack/react-table";
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CustomTableServerSidePagination } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import { SearchBar } from "@/components/search-bar/SearchBarPagination";
 import { Button } from "@/components/ui/button";
 import { FilterX } from "lucide-react";
@@ -271,7 +271,7 @@ export default function Driver() {
     }, [handleDelete, handleEdit, isApproveLoading]);
 
     // ---------------- Table ----------------
-    const { table, tableElement } = CustomTableServerSidePagination({
+    const { table, tableElement } = useCustomTable({
         data: driver || [],
         columns,
         pagination,

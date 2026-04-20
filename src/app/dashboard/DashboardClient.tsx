@@ -4,7 +4,7 @@ import { ColumnVisibilitySelector } from "@/components/column-visibility-selecto
 import VehicleMap from "@/components/dashboard/VehicleMap";
 import ResponseLoader from "@/components/ResponseLoader";
 import {
-  CustomTableServerSidePagination,
+  useCustomTable,
 } from "@/components/ui/customTable(serverSidePagination)";
 import { Input } from "@/components/ui/input";
 import { useLiveDeviceData } from "@/hooks/livetrack/useLiveDeviceData";
@@ -555,7 +555,7 @@ export default function DashboardClient() {
   }, [counts]);
 
   // Server side pagination table instance
-  const { table, tableElement } = CustomTableServerSidePagination({
+  const { table, tableElement } = useCustomTable({
     data: (devices || []) as any,
     columns,
     pagination,

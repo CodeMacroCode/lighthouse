@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useBillingHistory } from "@/hooks/useBillingHistory";
 import { getBillingHistoryColumns } from "./columns";
-import { CustomTableServerSidePagination, PaginationState } from "@/components/ui/customTable(serverSidePagination)";
+import { useCustomTable, PaginationState } from "@/components/ui/customTable(serverSidePagination)";
 import { Input } from "@/components/ui/input";
 import { FiSearch } from "react-icons/fi";
 import InvoiceDetails from "./InvoiceDetails";
@@ -25,7 +25,7 @@ export default function BillingClient() {
 
     const columns = getBillingHistoryColumns();
 
-    const { tableElement } = CustomTableServerSidePagination({
+    const { tableElement } = useCustomTable({
         data: data || [],
         columns: columns,
         pagination: pagination,
