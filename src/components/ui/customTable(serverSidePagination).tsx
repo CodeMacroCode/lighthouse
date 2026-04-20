@@ -91,6 +91,8 @@ export interface DataTableProps<T> {
   overscan?: number;
 }
 
+export const CustomTableServerSidePagination = useCustomTable;
+
 export function useCustomTable<
   T extends Record<string, unknown>
 >({

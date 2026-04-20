@@ -2137,28 +2137,23 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
     id: "actions",
     header: "Actions",
     cell: ({ row }) => {
+      const status = row.original.status;
       return (
         <div className="flex justify-center gap-2">
-          {/* {onEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 cursor-pointer"
-              onClick={() => onEdit(row.original)}
-            >
-              Update
-            </Button>
-          )} */}
-          {row.original.status === "Open" ? (
+          {status === "Open" ? (
             <Button
               variant="outline"
               size="sm"
               className="h-8 text-xs bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 cursor-pointer"
-              onClick={() => onUpdateStatus(row.original)}
+              onClick={() => onUpdateStatus?.(row.original)}
             >
               Update Status
             </Button>
-          ) : "no action needed"}
+          ) : (
+            <span className="text-xs text-muted-foreground self-center">
+              No action needed
+            </span>
+          )}
         </div>
       );
     },
