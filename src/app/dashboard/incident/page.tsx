@@ -15,12 +15,14 @@ import { DynamicEditDialog, FieldConfig } from "@/components/ui/EditModal";
 import { toast } from "sonner";
 import { Incident } from "@/interface/modal";
 import { useAuthStore } from "@/store/authStore";
+import { useBranchDropdown } from "@/hooks/useDropdown";
 
 export default function IncidentPage() {
     const queryClient = useQueryClient();
     const { decodedToken: user } = useAuthStore();
     const userRole = user?.role?.toLowerCase();
-    const canAddOrEdit = userRole === "parent" || userRole === "branch" || userRole === "superadmin";
+    const canReport = ["parent", "branch", "superadmin", "branchgroup", "school"].includes(userRole || "");
+    const canEdit = ["branch", "superadmin", "branchgroup", "school"].includes(userRole || "");
 
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,
@@ -45,6 +47,15 @@ export default function IncidentPage() {
         queryFn: () => api.get<any[]>("/branchGroup"),
     });
 
+    const isBranchGroup = userRole === "branchgroup";
+
+    // Directly trigger Branch/Safety Head API for branchgroup role
+    const { data: apiBranches } = useBranchDropdown(
+        undefined, 
+        isBranchGroup, 
+        true
+    );
+
     const branchGroupOptions = useMemo(() => {
         if (!branchGroups) return [];
         return branchGroups.map((bg) => ({
@@ -55,13 +66,19 @@ export default function IncidentPage() {
     }, [branchGroups]);
 
     const safetyHeadOptions = useMemo(() => {
+        if (isBranchGroup && apiBranches) {
+            return apiBranches.map((b: any) => ({
+                label: b.branchName || b.name,
+                value: b._id,
+            }));
+        }
         const region = branchGroupOptions.find(o => o.value === selectedEditRegion);
         if (!region || !region.branches) return [];
         return region.branches.map((b: any) => ({
             label: b.branchName,
             value: b._id,
         }));
-    }, [selectedEditRegion, branchGroupOptions]);
+    }, [selectedEditRegion, branchGroupOptions, isBranchGroup, apiBranches]);
 
     const handleEdit = (incident: Incident) => {
         setSelectedIncident(incident);
@@ -74,10 +91,19 @@ export default function IncidentPage() {
         setIsStatusDialogOpen(true);
     };
 
-    const columns = useMemo(() => getIncidentColumns(
-        canAddOrEdit ? handleEdit : undefined,
-        handleUpdateStatus
-    ), [canAddOrEdit]);
+    const columns = useMemo(() => {
+        const baseColumns = getIncidentColumns(
+            canEdit ? handleEdit : undefined,
+            canEdit ? handleUpdateStatus : undefined
+        );
+        
+        // Remove Action column for parents
+        if (userRole === "parent") {
+            return baseColumns.filter(col => col.id !== "actions");
+        }
+        
+        return baseColumns;
+    }, [canEdit, userRole]);
 
     const handlePaginationChange = (updater: any) => {
         setPagination(prev => {
@@ -143,6 +169,7 @@ export default function IncidentPage() {
         }
     };
 
+
     const editFields: FieldConfig[] = [
         {
             key: "status",
@@ -156,7 +183,8 @@ export default function IncidentPage() {
             label: "Region",
             type: "select",
             options: branchGroupOptions,
-            required: true,
+            required: !isBranchGroup,
+            hidden: isBranchGroup,
         },
         {
             key: "branchId",
@@ -164,8 +192,8 @@ export default function IncidentPage() {
             type: "select",
             options: safetyHeadOptions,
             required: true,
-            placeholder: selectedEditRegion ? "Select school" : "Select region first",
-            disabled: !selectedEditRegion,
+            placeholder: (selectedEditRegion || isBranchGroup) ? "Select school" : "Select region first",
+            disabled: !isBranchGroup && !selectedEditRegion,
         },
         {
             key: "remarks",
@@ -240,7 +268,7 @@ export default function IncidentPage() {
                         <RefreshCcw className="h-4 w-4" />
                         Refresh
                     </Button>
-                    {canAddOrEdit && (
+                    {canReport && (
                         <Link href="/dashboard/incident/new">
                             <Button size="sm" className="gap-2 bg-[#0c235c] hover:bg-[#0c235c]/90 cursor-pointer">
                                 <Plus className="h-4 w-4" />

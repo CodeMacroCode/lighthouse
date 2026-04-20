@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +30,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useBranchDropdown } from "@/hooks/useDropdown";
 
 const CATEGORIES = ["Incident", "Near Miss", "Hazard & Risk"];
 const REPORTED_BY_OPTIONS = ["RSO", "Shield Executive", "School Team"];
@@ -60,10 +61,17 @@ export default function NewIncidentPage() {
     queryKey: ["branchGroups"],
     queryFn: () => api.get<any[]>("/branchGroup"),
   });
+  
+  // Directly trigger Branch/Safety Head API for branchGroup role
+  const { data: apiBranches } = useBranchDropdown(
+    undefined, 
+    userRole === "branchgroup", 
+    true
+  );
 
   const incidentSchema = React.useMemo(() => z.object({
     email: z.string().min(1, "Email is required").email("Invalid email address"),
-    region: z.string().min(1, "Region is required"),
+    region: (userRole === "parent" || userRole === "branchgroup") ? z.string().optional() : z.string().min(1, "Region is required"),
     otherRegion: z.string().optional(),
     category: z.string().min(1, "Category is required"),
     reportedBy: z.string().min(1, "Reported by is required"),
@@ -79,7 +87,7 @@ export default function NewIncidentPage() {
     escalatedTo: z.string().optional(),
     remarks: z.string().optional(),
     schoolId: z.string().optional(),
-    branchId: z.string().min(1, "Safety Head (School) is required"),
+    branchId: userRole === "parent" ? z.string().optional() : z.string().min(1, "Safety Head (School) is required"),
     branchName: z.string().optional(),
   }).superRefine((data, ctx) => {
     if (data.region === "Other" && (!data.otherRegion || data.otherRegion.trim() === "")) {
@@ -142,8 +150,30 @@ export default function NewIncidentPage() {
     return options;
   }, [branchGroups]);
 
+  // For branchGroup: auto-set region from their own branch group so Safety Head dropdown works
+  useEffect(() => {
+    if (userRole === "branchgroup" && branchGroups && branchGroups.length > 0) {
+      // Try to find group where user's branchId is a member, or matches the group's own ID
+      const ownGroup = branchGroups.find((bg: any) =>
+        (bg._id === user?.branchId) || 
+        bg.AssignedBranch?.some((b: any) => b._id === user?.branchId)
+      ) || branchGroups[0]; // Fallback to first group if no specific match
+      
+      if (ownGroup) {
+        form.setValue("region", ownGroup.branchGroupName);
+      }
+    }
+  }, [userRole, branchGroups, form, user?.branchId]);
+
   const selectedRegion = form.watch("region");
   const safetyHeadOptions = React.useMemo(() => {
+    if (userRole === "branchgroup" && apiBranches) {
+      return apiBranches.map((b: any) => ({
+        label: b.branchName || b.name,
+        value: b._id,
+        safetyHeadName: b.safetyHeadName,
+      }));
+    }
     const region = branchGroupOptions.find(o => o.value === selectedRegion);
     if (!region || !region.branches) return [];
     return region.branches.map((b: any) => ({
@@ -151,7 +181,7 @@ export default function NewIncidentPage() {
       value: b._id,
       safetyHeadName: b.safetyHeadName, // We can store this if needed
     }));
-  }, [selectedRegion, branchGroupOptions]);
+  }, [selectedRegion, branchGroupOptions, userRole, apiBranches]);
 
   const mutation = useMutation({
     mutationFn: (data: any) => incidentService.addIncident(data),
@@ -231,52 +261,56 @@ export default function NewIncidentPage() {
                     )}
                   />
 
-                   <FormField
-                    control={form.control}
-                    name="region"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Region</FormLabel>
-                        <Combobox
-                          items={branchGroupOptions}
-                          value={field.value}
-                          onValueChange={(val) => {
-                            field.onChange(val);
-                            // Reset branchId when region changes
-                            form.setValue("branchId", "");
-                            form.setValue("branchName" as any, "");
-                            
-                            // Optional: update schoolId (top level) if we have it
-                            const region = branchGroupOptions.find(o => o.value === val);
-                            if (region && region.schoolId) {
-                              form.setValue("schoolId", region.schoolId);
-                            }
-                          }}
-                          placeholder="Select region"
-                          width="w-full"
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {userRole && ["superadmin", "school"].includes(userRole) && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="region"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Region</FormLabel>
+                            <Combobox
+                              items={branchGroupOptions}
+                              value={field.value}
+                              onValueChange={(val) => {
+                                field.onChange(val);
+                                // Reset branchId when region changes
+                                form.setValue("branchId", "");
+                                form.setValue("branchName" as any, "");
 
-                  {form.watch("region") === "Other" && (
-                    <FormField
-                      control={form.control}
-                      name="otherRegion"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel>Specify Other Region</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Type region name..." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                                // Optional: update schoolId (top level) if we have it
+                                const region = branchGroupOptions.find(o => o.value === val);
+                                if (region && region.schoolId) {
+                                  form.setValue("schoolId", region.schoolId);
+                                }
+                              }}
+                              placeholder="Select region"
+                              width="w-full"
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {form.watch("region") === "Other" && (
+                        <FormField
+                          control={form.control}
+                          name="otherRegion"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Specify Other Region</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Type region name..." {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       )}
-                    />
+                    </>
                   )}
 
-                   <FormField
+                  <FormField
                     control={form.control}
                     name="reportedBy"
                     render={({ field }) => (
@@ -294,31 +328,33 @@ export default function NewIncidentPage() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="branchId"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Safety Head (School)</FormLabel>
-                        <Combobox
-                          items={safetyHeadOptions}
-                          value={field.value}
-                          onValueChange={(val) => {
-                            field.onChange(val);
-                            // Also set branchName for the payload
-                            const selected = safetyHeadOptions.find(o => o.value === val);
-                            if (selected) {
-                              form.setValue("branchName" as any, selected.label);
-                            }
-                          }}
-                          placeholder={selectedRegion ? "Select school" : "Select region first"}
-                          width="w-full"
-                          disabled={!selectedRegion || safetyHeadOptions.length === 0}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {userRole && ["superadmin", "school", "branchgroup"].includes(userRole) && (
+                    <FormField
+                      control={form.control}
+                      name="branchId"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Safety Head (School)</FormLabel>
+                          <Combobox
+                            items={safetyHeadOptions}
+                            value={field.value}
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              // Also set branchName for the payload
+                              const selected = safetyHeadOptions.find(o => o.value === val);
+                              if (selected) {
+                                form.setValue("branchName" as any, selected.label);
+                              }
+                            }}
+                            placeholder={(selectedRegion || userRole === "branchgroup") ? "Select school" : "Select region first"}
+                            width="w-full"
+                            disabled={userRole !== "branchgroup" && (!selectedRegion || safetyHeadOptions.length === 0)}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </div>
 
