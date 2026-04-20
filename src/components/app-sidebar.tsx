@@ -43,6 +43,8 @@ import {
   MessageCircle,
   Group,
   Ticket,
+  Shield,
+  ShieldAlert,
 } from "lucide-react";
 import { GiGps, GiReceiveMoney } from "react-icons/gi";
 import Image from "next/image";
@@ -94,7 +96,7 @@ const iconMap: Record<string, React.ElementType> = {
   Billing: LiaMoneyBillAlt,
   Driver: MdDriveEta,
   "Ticket Types": Ticket,
-  "Incident": AlertCircle,
+  "Incident": ShieldAlert,
 };
 
 // Access permission mapping for Master section
@@ -184,6 +186,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           } else if (role === "branch") {
             return [
               { title: "Coordinator", url: "/dashboard/users/coordinator" },
+              { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
             ];
           }
