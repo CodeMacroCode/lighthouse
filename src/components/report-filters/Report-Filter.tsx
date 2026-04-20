@@ -8,7 +8,7 @@ import React, {
   useRef,
 } from "react";
 import Cookies from "js-cookie";
-import { jwtDecode } from "jwt-decode";
+import { getDecodedToken, DecodedToken } from "@/lib/jwt";
 import { Combobox } from "@/components/ui/combobox";
 import {
   useSchoolDropdown,
@@ -119,12 +119,7 @@ interface ReportFilterProps {
   onSingleDateChange?: (date: Date | undefined) => void;
 }
 
-type DecodedToken = {
-  role: string;
-  schoolId?: string;
-  id?: string;
-  branchId?: string;
-};
+
 
 const defaultConfig: ReportFilterConfig = {
   showSchool: true,
@@ -294,12 +289,11 @@ export const ReportFilter: React.FC<ReportFilterProps> = ({
   // ---------------- Decode Token ----------------
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
-    try {
-      const decoded = jwtDecode<DecodedToken>(token);
-      setDecodedToken(decoded);
-    } catch (err) {
-      console.error("Token decode failed", err);
+    if (token) {
+      const decoded = getDecodedToken(token);
+      if (decoded) {
+        setDecodedToken(decoded);
+      }
     }
   }, []);
 

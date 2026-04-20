@@ -16,8 +16,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import type { Branch, Geofence, Route, School } from "@/interface/modal";
 import { useGeofence } from "@/hooks/useGeofence";
-import { getGeofenceCoumns } from "@/components/columns/columns";
-import { jwtDecode } from "jwt-decode";
+import { getDecodedToken, DecodedToken } from "@/lib/jwt";
 import { Combobox } from "@/components/ui/combobox";
 import { SearchBar } from "@/components/search-bar/SearchBarPagination";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -33,12 +32,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-type DecodedToken = {
-  role: string;
-  schoolId?: string;
-  id?: string;
-};
 
 type Filters = {
   search?: string;
@@ -81,19 +74,21 @@ export default function GeofenceClient() {
   // const [rowData, setRowData] = useState<Geofence>({ } as Geofence);
   const setEditData = useGeofenceStore((state) => state.setRowData);
 
-  const [decodedToken, setDecodedToken] = useState<DecodedToken>({ role: "" });
+  const [decodedToken, setDecodedToken] = useState<DecodedToken>({
+    role: "",
+    id: "",
+    username: "",
+  });
 
   const role = decodedToken.role || "";
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      const decoded = jwtDecode<DecodedToken>(token);
-      setDecodedToken(decoded);
-    } catch (err) {
-      console.error("Failed to decode token", err);
+    if (token) {
+      const decoded = getDecodedToken(token);
+      if (decoded) {
+        setDecodedToken(decoded);
+      }
     }
   }, []);
 

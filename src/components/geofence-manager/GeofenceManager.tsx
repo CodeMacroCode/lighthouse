@@ -18,8 +18,7 @@ import "./style.css";
 // import { useInfiniteRouteData } from "@/hooks/useInfiniteRouteData";
 import { useBranchDropdown, useSchoolDropdown } from "@/hooks/useDropdown";
 import { useGeofence } from "@/hooks/useGeofence";
-import Cookies from "js-cookie";
-import { jwtDecode } from "jwt-decode";
+import { getDecodedToken, DecodedToken } from "@/lib/jwt";
 import { reverseGeocodeMapTiler } from "@/hooks/useReverseGeocoding";
 import { geofenceSchema } from "@/schemas/geofence.schema";
 
@@ -50,12 +49,6 @@ interface GeofenceData {
   branchId?: string;
   routeObjId?: string | string[];
 }
-
-type DecodedToken = {
-  role: string;
-  schoolId?: string;
-  id?: string;
-};
 
 interface GeofenceManagerProps {
   mode?: "add" | "edit";
@@ -108,7 +101,11 @@ const GeofenceManager: React.FC<GeofenceManagerProps> = ({
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
   // Role-based state
-  const [decodedToken, setDecodedToken] = useState<DecodedToken>({ role: "" });
+  const [decodedToken, setDecodedToken] = useState<DecodedToken>({
+    role: "",
+    id: "",
+    username: "",
+  });
   const role = decodedToken.role || "";
 
   const queryClient = useQueryClient();
@@ -116,13 +113,11 @@ const GeofenceManager: React.FC<GeofenceManagerProps> = ({
   // Decode token on mount
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      const decoded = jwtDecode<DecodedToken>(token);
-      setDecodedToken(decoded);
-    } catch (err) {
-      console.error("Failed to decode token", err);
+    if (token) {
+      const decoded = getDecodedToken(token);
+      if (decoded) {
+        setDecodedToken(decoded);
+      }
     }
   }, []);
 

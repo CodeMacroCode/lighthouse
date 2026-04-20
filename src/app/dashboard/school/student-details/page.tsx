@@ -11,7 +11,7 @@ import {
 import { useStudent } from "@/hooks/useStudent";
 import { Student } from "@/interface/modal";
 import { SortingState, PaginationState } from "@tanstack/react-table";
-import { jwtDecode } from "jwt-decode";
+import { getDecodedToken, DecodedToken } from "@/lib/jwt";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Cookies from "js-cookie";
 import { Button } from "@/components/ui/button";
@@ -31,18 +31,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type DecodedToken = {
-  role: string;
-  schoolId?: string;
-  id?: string;
-  branchId?: string;
-};
-
 type Filters = {
   search?: string;
   schoolId?: string;
   branchId?: string;
   routeObjId?: string;
+  statusOfRegister?: string;
 };
 
 export default function StudentDetails() {
@@ -100,19 +94,21 @@ export default function StudentDetails() {
   );
 
   // ---------------- Auth ----------------
-  const [decodedToken, setDecodedToken] = useState<DecodedToken>({ role: "" });
+  const [decodedToken, setDecodedToken] = useState<DecodedToken>({
+    role: "",
+    id: "",
+    username: "",
+  });
   const role = decodedToken.role || "";
 
   // ---------------- Decode Token ----------------
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      const decoded = jwtDecode<DecodedToken>(token);
-      setDecodedToken(decoded);
-    } catch (err) {
-      console.error("Token decode failed", err);
+    if (token) {
+      const decoded = getDecodedToken(token);
+      if (decoded) {
+        setDecodedToken(decoded);
+      }
     }
   }, []);
 

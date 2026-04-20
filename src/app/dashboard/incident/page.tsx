@@ -26,8 +26,9 @@ export default function IncidentPage() {
         pageIndex: 0,
         pageSize: 10,
     });
-
+  
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
     const [selectedEditRegion, setSelectedEditRegion] = useState<string>("");
 
@@ -68,7 +69,15 @@ export default function IncidentPage() {
         setIsEditDialogOpen(true);
     };
 
-    const columns = useMemo(() => getIncidentColumns(canAddOrEdit ? handleEdit : undefined), [canAddOrEdit]);
+    const handleUpdateStatus = (incident: Incident) => {
+        setSelectedIncident(incident);
+        setIsStatusDialogOpen(true);
+    };
+
+    const columns = useMemo(() => getIncidentColumns(
+        canAddOrEdit ? handleEdit : undefined,
+        handleUpdateStatus
+    ), [canAddOrEdit]);
 
     const handlePaginationChange = (updater: any) => {
         setPagination(prev => {
@@ -90,6 +99,19 @@ export default function IncidentPage() {
         }
     });
 
+    const updateStatusMutation = useMutation({
+        mutationFn: (payload: any) => incidentService.updateIncidentStatus(selectedIncident?._id as string, payload),
+        onSuccess: () => {
+            toast.success("Incident status updated successfully");
+            queryClient.invalidateQueries({ queryKey: ["incidents"] });
+            setIsStatusDialogOpen(false);
+            setSelectedIncident(null);
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || "Failed to update incident status");
+        }
+    });
+
     const handleUpdateSave = (formData: any) => {
         // Extract names from options to ensure they are sent to the API
         const selectedSchool = safetyHeadOptions.find(o => o.value === formData.branchId);
@@ -103,6 +125,16 @@ export default function IncidentPage() {
             branchName: selectedSchool?.label || selectedIncident?.branchName,
         };
         updateMutation.mutate(payload);
+    };
+
+    const handleUpdateStatusSave = (formData: any) => {
+        const payload = {
+            status: formData.status,
+            remarks: formData.remarks,
+            escalationStatus: formData.escalationStatus,
+            escalatedTo: formData.escalatedTo,
+        };
+        updateStatusMutation.mutate(payload);
     };
 
     const handleFieldChange = (key: string, value: any) => {
@@ -149,6 +181,38 @@ export default function IncidentPage() {
         }
     ];
 
+    const statusUpdateFields: FieldConfig[] = [
+        {
+            key: "status",
+            label: "Status",
+            type: "select",
+            options: ["Open", "In-Progress", "Resolved", "Closed"],
+            required: true,
+        },
+        {
+            key: "remarks",
+            label: "Remarks",
+            type: "textarea",
+            placeholder: "Enter resolution remarks...",
+            required: true,
+        },
+        {
+            key: "escalationStatus",
+            label: "Escalation Status",
+            type: "select",
+            options: ["Yes", "No"],
+            required: true,
+        },
+        {
+            key: "escalatedTo",
+            label: "Escalated To",
+            type: "select",
+            options: ["Operations HO", "Regional Head", "Safety Committee", "Other"],
+            placeholder: "Select who it was escalated to",
+            required: false,
+        }
+    ];
+
     const { tableElement } = useCustomTable({
         data: data?.data || [],
         columns,
@@ -164,7 +228,7 @@ export default function IncidentPage() {
 
     return (
         <div className="h-full flex flex-col space-y-4 p-4 bg-gray-50/50 overflow-hidden min-h-[calc(100vh-64px)]">
-            <ResponseLoader isLoading={isLoading || updateMutation.isPending} />
+            <ResponseLoader isLoading={isLoading || updateMutation.isPending || updateStatusMutation.isPending} />
 
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                 <div>
@@ -195,8 +259,18 @@ export default function IncidentPage() {
                 fields={editFields}
                 onSave={handleUpdateSave}
                 onFieldChange={handleFieldChange}
+                title="Edit Incident"
+                description="Modify incident details, region, and assignments."
+            />
+
+            <DynamicEditDialog
+                isOpen={isStatusDialogOpen}
+                onClose={() => setIsStatusDialogOpen(false)}
+                data={selectedIncident}
+                fields={statusUpdateFields}
+                onSave={handleUpdateStatusSave}
                 title="Update Incident Status"
-                description="Update the status, remarks, and pending actions for this incident."
+                description="Update the current status and escalation details for this incident."
             />
         </div>
     );

@@ -15,9 +15,7 @@ import {
 } from "@/hooks/useDropdown";
 import { SearchBar } from "@/components/search-bar/SearchBarPagination";
 import { useDebounce } from "@/hooks/useDebounce";
-import { jwtDecode } from "jwt-decode";
-import { Combobox } from "@/components/ui/combobox";
-import Cookies from "js-cookie";
+import { getDecodedToken, DecodedToken } from "@/lib/jwt";
 import { ColumnVisibilitySelector } from "@/components/column-visibility-selector";
 import {
   DropdownMenu,
@@ -27,12 +25,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { routeService } from "@/services/api/routeService";
 import { toast } from "sonner";
-
-type DecodedToken = {
-  role: string;
-  schoolId?: string;
-  id?: string;
-};
 
 type Filters = {
   search?: string;
@@ -59,13 +51,11 @@ export default function RoutePage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      const decoded = jwtDecode<DecodedToken>(token);
-      setDecodedToken(decoded);
-    } catch (err) {
-      console.error("Failed to decode token", err);
+    if (token) {
+      const decoded = getDecodedToken(token);
+      if (decoded) {
+        setDecodedToken(decoded);
+      }
     }
   }, []);
 

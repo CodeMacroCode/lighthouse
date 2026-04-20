@@ -1,17 +1,9 @@
 import { create } from "zustand";
-import { jwtDecode } from "jwt-decode";
+import { DecodedToken, getDecodedToken } from "@/lib/jwt";
 import Cookies from "js-cookie";
 import { getQueryClient } from "@/lib/queryClient";
 import { useDeviceStore } from "./deviceStore";
 import { useAccessStore } from "./accessStore";
-
-interface DecodedToken {
-  id: string;
-  username: string;
-  role: string;
-  schoolId?: string;
-  exp?: number;
-}
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -34,24 +26,26 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     if (!token) return;
 
-    try {
-      const decoded = jwtDecode<DecodedToken>(token);
+    const decoded = getDecodedToken(token);
 
-      // Optional: expiry check
-      if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-        Cookies.remove("token");
-        return;
-      }
-
-      set({
-        isAuthenticated: true,
-        token,
-        decodedToken: decoded,
-      });
-    } catch (err) {
-      console.error("Invalid token", err);
+    if (!decoded) {
       Cookies.remove("token");
+      localStorage.removeItem("token");
+      return;
     }
+
+    // Optional: expiry check
+    if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+      Cookies.remove("token");
+      localStorage.removeItem("token");
+      return;
+    }
+
+    set({
+      isAuthenticated: true,
+      token,
+      decodedToken: decoded,
+    });
   },
 
   login: (token: string, expiryDays?: number) => {
@@ -62,11 +56,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem("token", token);
     }
 
-    const decoded = jwtDecode<DecodedToken>(token);
+    const decoded = getDecodedToken(token);
 
     set({
-      isAuthenticated: true,
-      token,
+      isAuthenticated: !!decoded,
+      token: decoded ? token : null,
       decodedToken: decoded,
     });
   },

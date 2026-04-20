@@ -5,7 +5,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useDriver } from "@/hooks/useDriver";
 import { useBranchDropdown, useSchoolDropdown } from "@/hooks/useDropdown";
 import { SortingState, PaginationState } from "@tanstack/react-table";
-import { jwtDecode } from "jwt-decode";
+import { getDecodedToken, DecodedToken } from "@/lib/jwt";
 import Cookies from "js-cookie";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
@@ -17,13 +17,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import AddDriverForm from "@/components/driver/add-driver";
 import { driverService } from "@/services/api/driverService";
 import { toast } from "sonner";
-
-type DecodedToken = {
-    role: string;
-    schoolId?: string;
-    id?: string;
-    branchId?: string;
-};
 
 type Filters = {
     search?: string;
@@ -61,18 +54,21 @@ export default function Driver() {
     const [shouldFetchBranches, setShouldFetchBranches] = useState(false);
 
     // ---------------- Auth ----------------
-    const [decodedToken, setDecodedToken] = useState<DecodedToken>({ role: "" });
+    const [decodedToken, setDecodedToken] = useState<DecodedToken>({
+        role: "",
+        id: "",
+        username: "",
+    });
     const role = decodedToken.role || "";
 
     // ---------------- Decode Token ----------------
     useEffect(() => {
         const token = localStorage.getItem("token");
-        if (!token) return;
-        try {
-            const decoded = jwtDecode<DecodedToken>(token);
-            setDecodedToken(decoded);
-        } catch (err) {
-            console.error("Token decode failed", err);
+        if (token) {
+            const decoded = getDecodedToken(token);
+            if (decoded) {
+                setDecodedToken(decoded);
+            }
         }
     }, []);
 

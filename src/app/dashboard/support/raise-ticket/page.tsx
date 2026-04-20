@@ -7,7 +7,7 @@ import React, {
   useRef,
   useMemo,
 } from "react";
-import { jwtDecode } from "jwt-decode";
+import { getDecodedToken } from "@/lib/jwt";
 import {
   Dialog,
   DialogClose,
@@ -111,11 +111,9 @@ export default function RaiseTicketMaster() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      try {
-        const decoded = jwtDecode<any>(token);
+      const decoded = getDecodedToken(token);
+      if (decoded) {
         setUserInfo(decoded);
-      } catch (err) {
-        console.error("Error decoding token:", err);
       }
     }
   }, []);

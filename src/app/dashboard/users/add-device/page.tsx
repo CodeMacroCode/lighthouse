@@ -15,8 +15,7 @@ import {
   useSchoolDropdown,
   useRouteDropdown,
 } from "@/hooks/useDropdown";
-import Cookies from "js-cookie";
-import { jwtDecode } from "jwt-decode";
+import { getDecodedToken, DecodedToken } from "@/lib/jwt";
 import { ColumnVisibilitySelector } from "@/components/column-visibility-selector";
 import { AddDeviceForm } from "@/components/Device/add-device-form";
 import { deleteDeviceOld } from "@/hooks/device/useAddDevice(old)";
@@ -30,13 +29,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-type DecodedToken = {
-  role: string;
-  schoolId?: string;
-  id?: string;
-  branchId?: string;
-};
 
 type Filters = {
   search?: string;
@@ -90,19 +82,21 @@ const DevicesPage = () => {
   const [shouldFetchRoutes, setShouldFetchRoutes] = useState(false);
 
   // ---------------- Auth ----------------
-  const [decodedToken, setDecodedToken] = useState<DecodedToken>({ role: "" });
+  const [decodedToken, setDecodedToken] = useState<DecodedToken>({
+    role: "",
+    id: "",
+    username: "",
+  });
   const role = decodedToken.role || "";
 
   // ---------------- Decode Token ----------------
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      const decoded = jwtDecode<DecodedToken>(token);
-      setDecodedToken(decoded);
-    } catch (err) {
-      console.error("Token decode failed", err);
+    if (token) {
+      const decoded = getDecodedToken(token);
+      if (decoded) {
+        setDecodedToken(decoded);
+      }
     }
   }, []);
 

@@ -2021,7 +2021,7 @@ export const getRouteReportColumns = (): ColumnDef<GeofenceAlerts>[] => [
   { header: "Created At", accessorKey: "createdAt" },
 ];
 
-export const getIncidentColumns = (onEdit?: (incident: Incident) => void): ColumnDef<Incident>[] => [
+export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpdateStatus?: (incident: Incident) => void): ColumnDef<Incident>[] => [
   {
     accessorKey: "date",
     header: "Date",
@@ -2137,21 +2137,31 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void): Colum
     id: "actions",
     header: "Actions",
     cell: ({ row }) => {
-      if (!onEdit) return null;
       return (
         <div className="flex justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 cursor-pointer"
-            onClick={() => onEdit?.(row.original)}
-          >
-            Update
-          </Button>
+          {/* {onEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 cursor-pointer"
+              onClick={() => onEdit(row.original)}
+            >
+              Update
+            </Button>
+          )} */}
+          {row.original.status === "Open" ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 cursor-pointer"
+              onClick={() => onUpdateStatus(row.original)}
+            >
+              Update Status
+            </Button>
+          ) : "no action needed"}
         </div>
       );
     },
-
   },
 ];
 

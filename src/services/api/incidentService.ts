@@ -13,5 +13,9 @@ export const incidentService = {
   updateIncident: async (id: string, data: any): Promise<any> => {
     return await api.put<any>(`/update-incident/${id}`, data);
   },
+
+  updateIncidentStatus: async (id: string, data: any): Promise<any> => {
+    return await api.put<any>(`/update-incident-status/${id}`, data);
+  },
 };
 
