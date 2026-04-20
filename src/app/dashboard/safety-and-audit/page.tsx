@@ -69,7 +69,7 @@ const SECTION_D_PARAMETERS = [
     { name: "Electrical panels locked & labeled", isCritical: false, key: "electrical_panels_locked" },
     { name: "Generator / DG AMC and stack emission record (if applicable) maintained", isCritical: false, key: "dg_set_amc" },
     { name: "PPEs are available and used in Laboratories by students", isCritical: false, key: "lab_ppe_usage" },
-    { name: "Gas cylinders secured & leak‑tested", isCritical: true, key: "gas_cylinder_safety" },
+    { name: "Gas cylinders secured & leak-tested", isCritical: true, key: "gas_cylinder_safety" },
     { name: "Chemical stored and secured as per compatibility given in MSDS", isCritical: false, key: "chemical_storage_safety" },
 ];
 
@@ -132,7 +132,6 @@ const SECTIONS_CONFIG: Record<string, { title: string, weight: string, icon: Rea
 };
 
 const SECTION_KEYS = ["A", "B", "C", "D", "E", "F", "G", "I"];
-
 
 export default function SafetyAndAuditPage() {
     const { decodedToken: user } = useAuthStore();

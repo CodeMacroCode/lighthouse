@@ -735,6 +735,7 @@ export interface AuditParameter {
   name: string;
   key?: string;
   score: number;
+  maxScore: number;
   isCritical: boolean;
   remark: string;
 }
@@ -751,14 +752,40 @@ export interface AuditSection {
   updatedBy: string;
 }
 
+export interface CriticalIssue {
+  parameter: string;
+  expected: number;
+  actual: number;
+  _id: string;
+}
+
+export interface CriticalSection {
+  section: string;
+  issues: CriticalIssue[];
+  _id: string;
+}
+
+export interface SectionWiseScore {
+  section: string;
+  obtained: number;
+  max: number;
+  percentage: string;
+  _id: string;
+}
+
 export interface Audit {
   _id: string;
   schoolId: string;
   branchId: string;
   createdBy: string;
   status: string;
+  criticalIssues: CriticalSection[];
+  sectionWiseScore: SectionWiseScore[];
+  finalScore: number;
+  result: string;
   createdAt: string;
   updatedAt: string;
+  completedAt: string;
   sections: AuditSection[];
   schoolName: string;
   branchName: string;

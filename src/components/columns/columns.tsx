@@ -30,7 +30,8 @@ import {
 } from "@/interface/modal";
 import { FaPlus, FaMinus } from "react-icons/fa";
 import { CellContent } from "@/components/ui/CustomTable";
-import { Eye, EyeOff, Locate, WifiOff } from "lucide-react";
+import { Eye, EyeOff, Locate, WifiOff, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 import React, { useMemo } from "react";
 import { Button } from "../ui/button";
 import Image from "next/image";
@@ -2178,11 +2179,37 @@ export const getAuditColumns = (
         const colors: Record<string, string> = {
           draft: "bg-gray-100 text-gray-700",
           completed: "bg-green-100 text-green-700",
+          failed: "bg-red-100 text-red-700",
           "in-progress": "bg-blue-100 text-blue-700",
         };
         return (
-          <span className={ `px-2 py-1 rounded-full text-xs font-semibold ${colors[status] || "bg-gray-100 text-gray-700"}` }>
+          <span className={ `px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-tight ${colors[status] || "bg-gray-100 text-gray-700"}` }>
             {status?.toUpperCase() || "N/A"}
+          </span>
+        );
+      },
+    },
+    {
+      header: "Score",
+      accessorKey: "finalScore",
+      cell: ({ row }) => (
+        <span className="font-black text-[#0c235c]">
+          {row.original.finalScore ?? "--"}
+        </span>
+      ),
+    },
+    {
+      header: "Result",
+      accessorKey: "result",
+      cell: ({ row }) => {
+        const result = row.original.result?.toUpperCase();
+        if (!result) return <span className="text-gray-300">--</span>;
+        return (
+          <span className={ cn(
+            "px-2 py-0.5 rounded-md text-[10px] font-black tracking-widest",
+            result === "PASS" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+          ) }>
+            {result}
           </span>
         );
       },
@@ -2191,7 +2218,7 @@ export const getAuditColumns = (
       header: "Created At",
       accessorKey: "createdAt",
       cell: ({ row }) => (
-        <span>
+        <span className="text-gray-500 text-xs font-medium">
           {new Date(row.original.createdAt).toLocaleDateString("en-GB", {
             day: "2-digit",
             month: "short",
@@ -2208,7 +2235,7 @@ export const getAuditColumns = (
              <Button
                 variant="outline"
                 size="sm"
-                className="text-amber-600 border-amber-100 hover:bg-amber-50 h-8"
+                className="text-amber-600 border-amber-100 hover:bg-amber-50 h-8 font-bold px-3 rounded-lg"
                 onClick={() => onEdit?.(row.original)}
               >
                 Edit
@@ -2217,10 +2244,11 @@ export const getAuditColumns = (
           <Button
             variant="outline"
             size="sm"
-            className="text-blue-600 border-blue-100 hover:bg-blue-50 h-8"
+            className="text-blue-600 border-blue-100 hover:bg-blue-50 h-8 font-bold px-3 rounded-lg group"
             onClick={() => onView?.(row.original)}
           >
-            View
+            <FileText className="h-3.5 w-3.5 mr-1.5 transition-transform group-hover:scale-110" />
+            Report
           </Button>
         </div>
       ),
