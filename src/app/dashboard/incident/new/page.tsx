@@ -71,7 +71,7 @@ export default function NewIncidentPage() {
 
   const incidentSchema = React.useMemo(() => z.object({
     email: z.string().min(1, "Email is required").email("Invalid email address"),
-    region: (userRole === "parent" || userRole === "branchgroup") ? z.string().optional() : z.string().min(1, "Region is required"),
+    region: (userRole === "parent" || userRole === "branchgroup" || userRole === "branch") ? z.string().optional() : z.string().min(1, "Region is required"),
     otherRegion: z.string().optional(),
     category: z.string().min(1, "Category is required"),
     reportedBy: z.string().min(1, "Reported by is required"),
@@ -87,7 +87,7 @@ export default function NewIncidentPage() {
     escalatedTo: z.string().optional(),
     remarks: z.string().optional(),
     schoolId: z.string().optional(),
-    branchId: userRole === "parent" ? z.string().optional() : z.string().min(1, "Safety Head (School) is required"),
+    branchId: (userRole === "parent" || userRole === "branch") ? z.string().optional() : z.string().min(1, "Safety Head (School) is required"),
     branchName: z.string().optional(),
   }).superRefine((data, ctx) => {
     if (data.region === "Other" && (!data.otherRegion || data.otherRegion.trim() === "")) {
