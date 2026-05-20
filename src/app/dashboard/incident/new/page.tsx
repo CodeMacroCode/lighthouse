@@ -62,10 +62,10 @@ export default function NewIncidentPage() {
     queryFn: () => api.get<any[]>("/branchGroup"),
   });
   
-  // Directly trigger Branch/Safety Head API for branchGroup role
+  // Directly trigger Branch/Safety Head API for branchGroup, superadmin, and school roles
   const { data: apiBranches } = useBranchDropdown(
     undefined, 
-    userRole === "branchgroup", 
+    userRole ? ["branchgroup", "superadmin", "school"].includes(userRole) : false, 
     true
   );
 
@@ -167,7 +167,21 @@ export default function NewIncidentPage() {
 
   const selectedRegion = form.watch("region");
   const safetyHeadOptions = React.useMemo(() => {
-    if (userRole === "branchgroup" && apiBranches) {
+    const isDirectBranchRole = userRole && ["branchgroup", "superadmin", "school"].includes(userRole);
+    if (isDirectBranchRole && apiBranches) {
+      if (selectedRegion && selectedRegion !== "Other") {
+        const region = branchGroupOptions.find(o => o.value === selectedRegion);
+        if (region && region.branches) {
+          const regionBranchIds = region.branches.map((b: any) => b._id);
+          return apiBranches
+            .filter((b: any) => regionBranchIds.includes(b._id))
+            .map((b: any) => ({
+              label: b.branchName || b.name,
+              value: b._id,
+              safetyHeadName: b.safetyHeadName,
+            }));
+        }
+      }
       return apiBranches.map((b: any) => ({
         label: b.branchName || b.name,
         value: b._id,
@@ -346,9 +360,9 @@ export default function NewIncidentPage() {
                                 form.setValue("branchName" as any, selected.label);
                               }
                             }}
-                            placeholder={(selectedRegion || userRole === "branchgroup") ? "Select school" : "Select region first"}
+                            placeholder={(selectedRegion || ["branchgroup", "superadmin", "school"].includes(userRole)) ? "Select school" : "Select region first"}
                             width="w-full"
-                            disabled={userRole !== "branchgroup" && (!selectedRegion || safetyHeadOptions.length === 0)}
+                            disabled={!["branchgroup", "superadmin", "school"].includes(userRole) && (!selectedRegion || safetyHeadOptions.length === 0)}
                           />
                           <FormMessage />
                         </FormItem>
