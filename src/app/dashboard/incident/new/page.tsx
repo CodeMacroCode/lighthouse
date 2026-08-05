@@ -61,13 +61,6 @@ export default function NewIncidentPage() {
     queryFn: () => api.get<any[]>("/branchGroup"),
   });
 
-  // Directly trigger Branch/Safety Head API for branchGroup, superadmin, and school roles
-  const { data: apiBranches } = useBranchDropdown(
-    undefined,
-    userRole ? ["branchgroup", "superadmin", "school"].includes(userRole) : false,
-    true
-  );
-
   const incidentSchema = React.useMemo(() => z.object({
     email: z.string().min(1, "Email is required").email("Invalid email address"),
     region: (userRole === "parent" || userRole === "branchgroup" || userRole === "branch") ? z.string().optional() : z.string().min(1, "Region is required"),
@@ -136,6 +129,15 @@ export default function NewIncidentPage() {
     },
   });
 
+  const selectedSchoolId = form.watch("schoolId") || user?.schoolId;
+
+  // Trigger Branch/Safety Head API using schoolId from user token if available, or skip schoolId filter if superAdmin without schoolId
+  const { data: apiBranches } = useBranchDropdown(
+    selectedSchoolId || undefined,
+    userRole ? ["branchgroup", "superadmin", "school"].includes(userRole) : false,
+    userRole === "branchgroup" || !selectedSchoolId
+  );
+
   const branchGroupOptions = React.useMemo(() => {
     if (!branchGroups) return [];
     const options = branchGroups.map((bg) => ({
@@ -166,6 +168,11 @@ export default function NewIncidentPage() {
 
   const selectedRegion = form.watch("region");
   const safetyHeadOptions = React.useMemo(() => {
+    const formatBranchLabel = (b: any) => {
+      const name = b.branchName || b.name;
+      return b.fas ? `${name} (FAS: ${b.fas})` : name;
+    };
+
     const isDirectBranchRole = userRole && ["branchgroup", "superadmin", "school"].includes(userRole);
     if (isDirectBranchRole && apiBranches) {
       if (selectedRegion && selectedRegion !== "Other") {
@@ -175,14 +182,14 @@ export default function NewIncidentPage() {
           return apiBranches
             .filter((b: any) => regionBranchIds.includes(b._id))
             .map((b: any) => ({
-              label: b.branchName || b.name,
+              label: formatBranchLabel(b),
               value: b._id,
               safetyHeadName: b.safetyHeadName,
             }));
         }
       }
       return apiBranches.map((b: any) => ({
-        label: b.branchName || b.name,
+        label: formatBranchLabel(b),
         value: b._id,
         safetyHeadName: b.safetyHeadName,
       }));
@@ -190,7 +197,7 @@ export default function NewIncidentPage() {
     const region = branchGroupOptions.find(o => o.value === selectedRegion);
     if (!region || !region.branches) return [];
     return region.branches.map((b: any) => ({
-      label: b.branchName,
+      label: formatBranchLabel(b),
       value: b._id,
       safetyHeadName: b.safetyHeadName, // We can store this if needed
     }));
