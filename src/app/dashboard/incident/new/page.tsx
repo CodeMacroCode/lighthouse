@@ -33,10 +33,9 @@ import {
 import { useBranchDropdown } from "@/hooks/useDropdown";
 
 const CATEGORIES = ["Incident", "Near Miss", "Hazard & Risk"];
-const REPORTED_BY_OPTIONS = ["RSO", "Shield Executive", "School Team"];
+const REPORTED_BY_OPTIONS = ["RSO", "Business Manager", "AOM"];
 const STAKEHOLDERS_OPTIONS = [
-  "Operations HO", "OPS-Infra", "Projects", "Principal",
-  "Head School Operations", "RSO", "Child Counsellor", "Transport Manager"
+  "Regional Safety Officer", "Business Manager", "Academic Operation Manager"
 ];
 const SUB_CATEGORIES = [
   "Fire", "Infrastructure", "Transport", "Behavioural", "Classroom",
@@ -61,11 +60,11 @@ export default function NewIncidentPage() {
     queryKey: ["branchGroups"],
     queryFn: () => api.get<any[]>("/branchGroup"),
   });
-  
+
   // Directly trigger Branch/Safety Head API for branchGroup, superadmin, and school roles
   const { data: apiBranches } = useBranchDropdown(
-    undefined, 
-    userRole ? ["branchgroup", "superadmin", "school"].includes(userRole) : false, 
+    undefined,
+    userRole ? ["branchgroup", "superadmin", "school"].includes(userRole) : false,
     true
   );
 
@@ -155,10 +154,10 @@ export default function NewIncidentPage() {
     if (userRole === "branchgroup" && branchGroups && branchGroups.length > 0) {
       // Try to find group where user's branchId is a member, or matches the group's own ID
       const ownGroup = branchGroups.find((bg: any) =>
-        (bg._id === user?.branchId) || 
+        (bg._id === user?.branchId) ||
         bg.AssignedBranch?.some((b: any) => b._id === user?.branchId)
       ) || branchGroups[0]; // Fallback to first group if no specific match
-      
+
       if (ownGroup) {
         form.setValue("region", ownGroup.branchGroupName);
       }
