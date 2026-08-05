@@ -18,17 +18,20 @@ import {
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Combobox } from "@/components/ui/combobox";
 
 interface BranchImportModalProps {
-    onImport: (file: File) => Promise<void>;
+    onImport: (file: File, cxoId?: string) => Promise<void>;
     isLoading?: boolean;
+    cxoOptions?: { label: string; value: string }[];
 }
 
-export const BranchImportModal = ({ onImport, isLoading }: BranchImportModalProps) => {
+export const BranchImportModal = ({ onImport, isLoading, cxoOptions = [] }: BranchImportModalProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [parsedData, setParsedData] = useState<any[]>([]);
     const [isDragging, setIsDragging] = useState(false);
+    const [selectedCxoId, setSelectedCxoId] = useState<string>("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const requiredHeaders = ["name", "username", "password"];
@@ -69,9 +72,6 @@ export const BranchImportModal = ({ onImport, isLoading }: BranchImportModalProp
                 let jsonData: any[] = [];
 
                 if (file.name.endsWith(".csv")) {
-                    // Basic CSV parsing for preview/validation if needed, 
-                    // but relying on XLSX for robust parsing is better even for CSV if it supports it.
-                    // For now, let's just use XLSX for everything as it handles CSV too.
                     const workbook = XLSX.read(data, { type: "binary" });
                     const sheetName = workbook.SheetNames[0];
                     const sheet = workbook.Sheets[sheetName];
@@ -161,9 +161,10 @@ export const BranchImportModal = ({ onImport, isLoading }: BranchImportModalProp
     const handleUpload = async () => {
         if (!parsedData.length || !selectedFile) return;
 
-        await onImport(selectedFile);
+        await onImport(selectedFile, selectedCxoId || undefined);
         setIsOpen(false);
         removeFile();
+        setSelectedCxoId("");
     };
 
     return (
@@ -183,6 +184,21 @@ export const BranchImportModal = ({ onImport, isLoading }: BranchImportModalProp
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
+                    {/* CXO Leader Dropdown */}
+                    {cxoOptions.length > 0 && (
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium">CXO Leader / Admin</label>
+                            <Combobox
+                                items={cxoOptions}
+                                value={selectedCxoId}
+                                onValueChange={(val) => setSelectedCxoId(val || "")}
+                                placeholder="Select CXO Leader / Admin..."
+                                searchPlaceholder="Search..."
+                                width="w-full"
+                            />
+                        </div>
+                    )}
+
                     {/* Template Download */}
                     <div className="rounded-lg border bg-muted/30 p-4">
                         <div className="flex items-center justify-between">

@@ -27,6 +27,7 @@ export interface Branch {
   email: string;
   role: string;
   subscriptionExpirationDate: string;
+  fas?: string;
   createdAt: string;
   Active?: boolean;
   access?: {

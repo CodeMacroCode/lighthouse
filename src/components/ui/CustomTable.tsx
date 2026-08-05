@@ -332,17 +332,16 @@ export function CustomTable<TData extends RowData>({
                   return (
                     <div
                       key={row.id}
-                      className="flex border-b hover:bg-muted/50"
-                      style={{ height: vr.size + "px" }}
+                      className="flex border-b hover:bg-muted/50 min-h-[48px]"
                     >
                       {row.getVisibleCells().map((cell) => (
                         <div
                           key={cell.id}
-                          className="flex items-start px-2 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm border-r last:border-r-0"
+                          className="flex items-center px-2 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm border-r last:border-r-0"
                           style={getColumnStyle(cell.column)}
                         >
                           <div className="w-full text-center">
-                            <div className="break-words overflow-wrap-anywhere leading-relaxed">
+                            <div className="break-all sm:break-words whitespace-normal leading-relaxed">
                               {cell.column.id === "serialNumber"
                                 ? flexRender(
                                   cell.column.columnDef.cell,

@@ -9,6 +9,7 @@ export const incidentService = {
   addIncident: async (data: any): Promise<any> => {
     return await api.post<any>("/add-incident", data);
   },
+  
 
   updateIncident: async (id: string, data: any): Promise<any> => {
     return await api.put<any>(`/update-incident/${id}`, data);

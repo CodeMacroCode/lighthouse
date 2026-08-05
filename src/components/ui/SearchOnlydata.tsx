@@ -102,7 +102,9 @@ const SearchComponent = <T extends Record<string, unknown>>({
       const resultsChanged =
         currentResults.length !== lastResultsRef.current.length ||
         currentResults.some(
-          (item, index) => item.id !== lastResultsRef.current[index]?.id
+          (item, index) =>
+            ((item as any)._id || item.id) !==
+            ((lastResultsRef.current[index] as any)?._id || lastResultsRef.current[index]?.id)
         );
 
       if (

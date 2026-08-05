@@ -250,6 +250,16 @@ const BranchEditDialog = ({
               />
             </div>
 
+            {/* FAS */}
+            <div className="grid gap-2">
+              <Label htmlFor="edit-fas">FAS</Label>
+              <Input
+                id="edit-fas"
+                value={formData.fas || ""}
+                onChange={(e) => handleFieldChange("fas", e.target.value)}
+              />
+            </div>
+
             {/* Email */}
             <div className="grid gap-2">
               <Label htmlFor="edit-email">Email</Label>
@@ -336,12 +346,12 @@ export default function BranchMaster() {
   const router = useRouter();
   const { login: authLogin } = useAuthStore();
   const { setAccess } = useAccessStore();
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [filteredData, setFilteredData] = useState<branch[]>([]);
   const [filterResults, setFilterResults] = useState<branch[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<branch | null>(null);
   const [editTarget, setEditTarget] = useState<branch | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const { exportToPDF, exportToExcel } = useExport();
@@ -703,6 +713,7 @@ export default function BranchMaster() {
       : []),
     { key: "mobileNo", header: "Mobile" },
     { key: "email", header: "Email" },
+    { key: "fas", header: "FAS" },
     { key: "username", header: "Username" },
     // { key: "password", header: "Password" },
     // { key: "subscriptionExpirationDate", header: "Expiration Date" },
@@ -732,10 +743,10 @@ export default function BranchMaster() {
     exportToExcel(dataToExport, columnsForExport, "Branch_Master_Report");
   };
 
-  const handleImport = async (file: File) => {
+  const handleImport = async (file: File, cxoId?: string) => {
     setIsImporting(true);
     try {
-      await excelFileUploadForBranch(file);
+      await excelFileUploadForBranch(file, cxoId);
       toast.success("Branches imported successfully");
       await queryClient.invalidateQueries({ queryKey: ["branches"] });
     } catch (error) {
@@ -757,8 +768,8 @@ export default function BranchMaster() {
       // Simply invalidate the queries to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ["branches"] });
 
-      // Close dialog and reset form
-      closeButtonRef.current?.click();
+      // Close dialog
+      setAddDialogOpen(false);
 
       // Reset form states
       if (isSuperAdmin) {
@@ -767,7 +778,6 @@ export default function BranchMaster() {
       }
       setSelectedDate(undefined);
 
-      // alert("Branch added successfully.");
       toast.success("Branch added successfully.");
     },
     onError: (err: any) => {
@@ -923,6 +933,7 @@ export default function BranchMaster() {
     const data = {
       branchName: form.branchName.value,
       safetyHeadName: form.safetyHeadName.value,
+      fas: form.fas.value,
       schoolId: selectedSchool,
       mobileNo: form.branchMobile.value,
       username: form.username.value,
@@ -975,7 +986,7 @@ export default function BranchMaster() {
           type: "custom",
           render: () => (
             <div className="flex items-center gap-2 w-full">
-              <span className="truncate flex-1">{row.branchName ?? ""}</span>
+              <span className="break-all sm:break-words whitespace-normal flex-1">{row.branchName ?? ""}</span>
               {isSuperAdmin && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1013,6 +1024,15 @@ export default function BranchMaster() {
           value: row.safetyHeadName ?? "N/A",
         }),
         meta: { flex: 1, minWidth: 200, maxWidth: 300 },
+        enableHiding: true,
+      },
+      {
+        header: "FAS",
+        accessorFn: (row: any) => ({
+          type: "text",
+          value: row.fas ?? "N/A",
+        }),
+        meta: { flex: 1, minWidth: 150, maxWidth: 300 },
         enableHiding: true,
       },
 
@@ -1166,7 +1186,7 @@ export default function BranchMaster() {
         <section className="flex space-x-4">
           <SearchComponent
             data={filterResults}
-            displayKey={["branchName", "safetyHeadName", "username", "email", "mobileNo"]}
+            displayKey={["branchName", "safetyHeadName", "fas", "username", "email", "mobileNo"]}
             onResults={handleSearchResults}
             className="w-[250px] mb-4"
           />
@@ -1208,9 +1228,9 @@ export default function BranchMaster() {
           </Button>
           {(isSuperAdmin || isSchoolRole || isBranchGroup) && (
             <>
-              <BranchImportModal onImport={handleImport} isLoading={isImporting} />
+              <BranchImportModal onImport={handleImport} isLoading={isImporting} cxoOptions={schoolOptions} />
               {isSuperAdmin && (
-                <Dialog>
+                <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="default" className="text-white">Add School</Button>
                   </DialogTrigger>
@@ -1237,6 +1257,15 @@ export default function BranchMaster() {
                             name="safetyHeadName"
                             placeholder="Enter safety head name"
                             required
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="fas">FAS</Label>
+                          <Input
+                            id="fas"
+                            name="fas"
+                            placeholder="Enter FAS"
                           />
                         </div>
 
@@ -1350,11 +1379,14 @@ export default function BranchMaster() {
                       </div>
 
                       <DialogFooter>
-                        <DialogClose asChild>
-                          <Button ref={closeButtonRef} variant="outline">
-                            Cancel
-                          </Button>
-                        </DialogClose>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setAddDialogOpen(false)}
+                          disabled={addbranchMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
                         <Button
                           type="submit"
                           className="text-white"
@@ -1376,7 +1408,7 @@ export default function BranchMaster() {
 
       <section className="mb-4">
         <CustomTable
-          data={branches || []}
+          data={filteredData || []}
           columns={columns}
           columnVisibility={columnVisibility}
           onColumnVisibilityChange={setColumnVisibility}

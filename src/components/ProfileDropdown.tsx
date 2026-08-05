@@ -31,16 +31,17 @@ import {
 
 export function ProfileDropdown() {
   const router = useRouter();
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const decodedToken = token ? getDecodedToken(token) : null;
-  const username = decodedToken?.username || "User"; // Default username if not defined
-
+  const [username, setUsername] = React.useState<string>("User");
   const [blockedTypes, setBlockedTypes] = React.useState<NotificationType[]>(
     []
   );
 
   React.useEffect(() => {
-    // Load initial preferences
+    const token = localStorage.getItem("token");
+    const decodedToken = token ? getDecodedToken(token) : null;
+    if (decodedToken?.username) {
+      setUsername(decodedToken.username);
+    }
     setBlockedTypes(getStoredPreferences());
   }, []);
 

@@ -29,14 +29,16 @@ export const excelFileUploadForStudent = async (
 
   return response.data;
 };
-export const excelFileUploadForBranch = async (file: File) => {
+export const excelFileUploadForBranch = async (file: File, cxoId?: string) => {
   const formData = new FormData();
 
   // 🔑 MUST match upload.single("file")
   formData.append("file", file);
 
+  const url = cxoId ? `/add-multiple-branches/${cxoId}` : "/add-multiple-branches";
+
   const response = await fileUploadAxios.post(
-    "/add-multiple-branches",
+    url,
     formData,
     {
       headers: {

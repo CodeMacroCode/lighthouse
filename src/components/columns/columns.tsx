@@ -2141,14 +2141,24 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
       return (
         <div className="flex justify-center gap-2">
           {status === "Open" ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 cursor-pointer"
-              onClick={() => onUpdateStatus?.(row.original)}
-            >
-              Update Status
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 cursor-pointer"
+                onClick={() => onEdit?.(row.original)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 cursor-pointer"
+                onClick={() => onUpdateStatus?.(row.original)}
+              >
+                Update Status
+              </Button>
+            </div>
           ) : (
             <span className="text-xs text-muted-foreground self-center">
               No action needed

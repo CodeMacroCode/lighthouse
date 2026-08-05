@@ -214,7 +214,7 @@ export const DynamicEditDialog: React.FC<DynamicEditDialogProps> = ({
       form.reset(formData);
       // setUnlockedFields(new Set());
     }
-  }, [data, isOpen, fields, form]);
+  }, [data, isOpen, form]);
 
   // const handleUnlockClick = (fieldKey: string) => {
   //   setCurrentProtectedField(fieldKey);
