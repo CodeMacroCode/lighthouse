@@ -33,6 +33,7 @@ import {
 import { useBranchDropdown } from "@/hooks/useDropdown";
 
 const CATEGORIES = ["Incident", "Near Miss", "Hazard & Risk"];
+const SEVERITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
 const REPORTED_BY_OPTIONS = ["RSO", "Business Manager", "AOM"];
 const STAKEHOLDERS_OPTIONS = [
   "Regional Safety Officer", "Business Manager", "Academic Operation Manager"
@@ -66,6 +67,7 @@ export default function NewIncidentPage() {
     region: (userRole === "parent" || userRole === "branchgroup" || userRole === "branch") ? z.string().optional() : z.string().min(1, "Region is required"),
     otherRegion: z.string().optional(),
     category: z.string().min(1, "Category is required"),
+    severity: z.string().min(1, "Severity is required"),
     reportedBy: z.string().min(1, "Reported by is required"),
     subCategory: z.string().min(1, "Sub-category is required"),
     otherSubCategory: z.string().optional(),
@@ -112,6 +114,7 @@ export default function NewIncidentPage() {
       region: "",
       otherRegion: "",
       category: "Incident",
+      severity: "Low",
       reportedBy: "",
       subCategory: "",
       otherSubCategory: "",
@@ -406,6 +409,24 @@ export default function NewIncidentPage() {
 
                   <FormField
                     control={form.control}
+                    name="severity"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Severity Level</FormLabel>
+                        <Combobox
+                          items={SEVERITY_OPTIONS.map(s => ({ label: s, value: s }))}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder="Select severity level"
+                          width="w-full"
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="subCategory"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
@@ -568,13 +589,15 @@ export default function NewIncidentPage() {
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Initial Status</FormLabel>
-                        <Combobox
-                          items={STATUS_OPTIONS.map(s => ({ label: s, value: s }))}
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          placeholder="Select status"
-                          width="w-full"
-                        />
+                        <FormControl>
+                          <Combobox
+                            items={STATUS_OPTIONS.map(s => ({ label: s, value: s }))}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="Select status"
+                            width="w-full"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -586,13 +609,15 @@ export default function NewIncidentPage() {
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Escalation Status</FormLabel>
-                        <Combobox
-                          items={ESCALATION_OPTIONS.map(e => ({ label: e, value: e }))}
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          placeholder="Is escalation required?"
-                          width="w-full"
-                        />
+                        <FormControl>
+                          <Combobox
+                            items={ESCALATION_OPTIONS.map(e => ({ label: e, value: e }))}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="Is escalation required?"
+                            width="w-full"
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

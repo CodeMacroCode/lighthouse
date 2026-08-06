@@ -29,6 +29,7 @@ interface ComboboxProps {
   items: ComboboxItem[];
   value?: string;
   onValueChange?: (value?: string) => void;
+  allowDeselect?: boolean;
 
   // Multi-select props
   multiple?: boolean;
@@ -63,6 +64,7 @@ export function Combobox({
   items,
   value: controlledValue,
   onValueChange,
+  allowDeselect = false,
 
   // Multi-select
   multiple = false,
@@ -174,24 +176,33 @@ export function Combobox({
   const handleSingleSelect = React.useCallback(
     (currentValue: string) => {
       console.log("🖱️ Combobox handleSingleSelect:", currentValue);
-      const newValue = currentValue === value ? undefined : currentValue;
+      const targetItem = items.find(
+        (i) => i.value === currentValue || i.value.toLowerCase() === currentValue.toLowerCase()
+      );
+      const actualValue = targetItem ? targetItem.value : currentValue;
+      const isCurrentlySelected = actualValue === value || (typeof value === "string" && actualValue.toLowerCase() === value.toLowerCase());
+      const newValue = (allowDeselect && isCurrentlySelected) ? undefined : actualValue;
       setValue(newValue);
 
       if (shouldCloseOnSelect) {
         setOpen(false);
       }
     },
-    [value, setValue, setOpen, shouldCloseOnSelect]
+    [value, setValue, setOpen, shouldCloseOnSelect, items, allowDeselect]
   );
 
   // Multi select handler
   const handleMultiSelect = React.useCallback(
     (currentValue: string) => {
       console.log("🖱️ Combobox handleMultiSelect:", currentValue);
+      const targetItem = items.find(
+        (i) => i.value === currentValue || i.value.toLowerCase() === currentValue.toLowerCase()
+      );
+      const actualValue = targetItem ? targetItem.value : currentValue;
 
-      const newValues = selectedValues.includes(currentValue)
-        ? selectedValues.filter((v) => v !== currentValue)
-        : [...selectedValues, currentValue];
+      const newValues = selectedValues.includes(actualValue)
+        ? selectedValues.filter((v) => v !== actualValue)
+        : [...selectedValues, actualValue];
 
       setSelectedValues(newValues);
 
@@ -199,7 +210,7 @@ export function Combobox({
         setOpen(false);
       }
     },
-    [selectedValues, setSelectedValues, setOpen, shouldCloseOnSelect]
+    [selectedValues, setSelectedValues, setOpen, shouldCloseOnSelect, items]
   );
 
   const handleSelect = multiple ? handleMultiSelect : handleSingleSelect;
@@ -256,7 +267,7 @@ export function Combobox({
 
       return null; // Will show badges instead
     } else {
-      const selectedItem = items.find((item) => item.value === value);
+      const selectedItem = items.find((item) => item.value === value || (typeof value === "string" && item.value.toLowerCase() === value.toLowerCase()));
       return selectedItem ? selectedItem.label : placeholder;
     }
   }, [
@@ -276,7 +287,7 @@ export function Combobox({
     if (isAllSelected) return []; // Show text instead
 
     const selectedItems = selectedValues
-      .map((val) => items.find((item) => item.value === val))
+      .map((val) => items.find((item) => item.value === val || item.value.toLowerCase() === val.toLowerCase()))
       .filter(Boolean) as ComboboxItem[];
 
     return selectedItems.slice(0, maxBadges);
@@ -342,9 +353,9 @@ export function Combobox({
   const isSelected = React.useCallback(
     (itemValue: string) => {
       if (multiple) {
-        return selectedValues.includes(itemValue);
+        return selectedValues.some((v) => v === itemValue || v.toLowerCase() === itemValue.toLowerCase());
       }
-      return value === itemValue;
+      return value === itemValue || (typeof value === "string" && value.toLowerCase() === itemValue.toLowerCase());
     },
     [multiple, selectedValues, value]
   );
@@ -486,7 +497,7 @@ export function Combobox({
                 <CommandItem
                   key={`${item.value}-${idx}`}
                   value={item.value}
-                  onSelect={handleSelect}
+                  onSelect={() => handleSelect(item.value)}
                   className="cursor-pointer"
                 >
                   {multiple && (

@@ -703,6 +703,7 @@ export interface Incident {
   email: string;
   region: string;
   category: string;
+  severity?: string;
   reportedBy: string;
   subCategory: string;
   stakeholders: string[];
