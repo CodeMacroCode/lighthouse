@@ -42,7 +42,7 @@ const SUB_CATEGORIES = [
   "Play Area", "Laboratory", "Electrical", "Unattended Children",
   "CCTV", "BGV", "Health & Hygiene", "Bullying", "Theft", "Other:"
 ];
-const STATUS_OPTIONS = ["Open", "Close"];
+const STATUS_OPTIONS = ["Open", "Closed"];
 // Static regions removed in favor of dynamic Branch Groups
 const REGIONS = [
   "Mumbai", "Pune", "Gudgaon", "Bangalore", "Nagpur", "Hyderabad", "Vadodara", "Other"
