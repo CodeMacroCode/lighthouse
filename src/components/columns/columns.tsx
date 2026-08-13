@@ -2023,89 +2023,41 @@ export const getRouteReportColumns = (): ColumnDef<GeofenceAlerts>[] => [
 
 export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpdateStatus?: (incident: Incident) => void): ColumnDef<Incident>[] => [
   {
-    accessorKey: "date",
-    header: "Date",
-    cell: ({ row }) => {
-      const date = row.original.date;
-      if (!date) return "N/A";
-      return (
-        <span className="font-medium text-gray-700">
-          {new Date(date).toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            timeZone: "UTC",
-            hour12: true,
-          })}
-        </span>
-      );
-    },
-  },
-  {
     accessorKey: "region",
     header: "Region",
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => {
-      const status = row.original.status;
-      return (
-        <div className="flex justify-center gap-2">
-          {status === "Open" ? (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 cursor-pointer"
-                onClick={() => onEdit?.(row.original)}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 cursor-pointer"
-                onClick={() => onUpdateStatus?.(row.original)}
-              >
-                Update Status
-              </Button>
-            </div>
-          ) : (
-            <span className="text-xs text-muted-foreground self-center">
-              No action needed
-            </span>
-          )}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.original.status;
-      return (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-semibold ${status === "Open"
-            ? "bg-green-100 text-green-700 border border-green-200"
-            : "bg-gray-100 text-gray-700 border border-gray-200"
-            }`}
-        >
-          {status}
-        </span>
-      );
-    },
+    cell: ({ row }) => (
+      <div className="text-center w-full">
+        {row.original.region || "N/A"}
+      </div>
+    ),
   },
   {
     accessorKey: "branchName",
     header: "User Name",
+    cell: ({ row }) => (
+      <div className="text-center w-full">
+        {row.original.branchName || "N/A"}
+      </div>
+    ),
   },
   {
     accessorKey: "category",
     header: "Category",
+    cell: ({ row }) => (
+      <div className="text-center w-full">
+        {row.original.category || "N/A"}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "subCategory",
+    header: "Sub Category",
+    meta: { wrapConfig: { wrap: "wrap", maxWidth: "200px" } },
+    cell: ({ row }) => (
+      <div className="max-w-[200px] whitespace-normal break-words mx-auto text-center">
+        {row.original.subCategory || "N/A"}
+      </div>
+    ),
   },
   {
     accessorKey: "severity",
@@ -2124,72 +2076,141 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
       };
       const badgeStyle = colors[severity] || "bg-gray-100 text-gray-800 border-gray-200";
       return (
-        <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${badgeStyle}`}>
-          {severity}
-        </span>
+        <div className="text-center w-full">
+          <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${badgeStyle}`}>
+            {severity}
+          </span>
+        </div>
       );
     },
   },
   {
-    accessorKey: "subCategory",
-    header: "Sub Category",
+    accessorKey: "status",
+    header: "Status",
+    meta: { wrapConfig: { wrap: "nowrap", minWidth: "140px" } },
+    cell: ({ row }) => {
+      const status = row.original.status || "";
+      const statusLower = status.toLowerCase();
+
+      let colorStyle = "bg-gray-100 text-gray-700 border border-gray-200";
+      if (statusLower === "open") {
+        colorStyle = "bg-green-100 text-green-700 border border-green-200";
+      } else if (statusLower === "in-progress" || statusLower === "in progress") {
+        colorStyle = "bg-blue-100 text-blue-700 border border-blue-200";
+      } else if (statusLower === "resolved") {
+        colorStyle = "bg-purple-100 text-purple-700 border border-purple-200";
+      } else if (statusLower === "closed" || statusLower === "close") {
+        colorStyle = "bg-gray-100 text-gray-700 border border-gray-200";
+      }
+
+      return (
+        <div className="text-center w-full min-w-[130px]">
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap inline-block ${colorStyle}`}
+          >
+            {status || "N/A"}
+          </span>
+        </div>
+      );
+    },
   },
   {
-    accessorKey: "stakeholders",
-    header: "Stakeholders",
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => {
+      const status = row.original.status;
+      return (
+        <div className="flex justify-center items-center gap-2 w-full text-center">
+          {status === "Open" ? (
+            <div className="flex gap-2 justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 cursor-pointer"
+                onClick={() => onEdit?.(row.original)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 cursor-pointer"
+                onClick={() => onUpdateStatus?.(row.original)}
+              >
+                Update Status
+              </Button>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground self-center text-center">
+              No action needed
+            </span>
+          )}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "date",
+    header: "Date",
+    cell: ({ row }) => {
+      const date = row.original.date;
+      if (!date) return <div className="text-center w-full">N/A</div>;
+      return (
+        <div className="text-center w-full">
+          <span className="font-medium text-gray-700 whitespace-nowrap">
+            {new Date(date).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "UTC",
+              hour12: true,
+            })}
+          </span>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "briefDescription",
     header: "Brief Description",
+    meta: { wrapConfig: { wrap: "wrap", maxWidth: "250px" } },
+    cell: ({ row }) => (
+      <div className="max-w-[250px] min-w-[180px] whitespace-normal break-words mx-auto text-center">
+        {row.original.briefDescription || "N/A"}
+      </div>
+    ),
   },
   {
     accessorKey: "immediateActionTaken",
     header: "Immediate Action Taken",
+    meta: { wrapConfig: { wrap: "wrap", maxWidth: "250px" } },
+    cell: ({ row }) => (
+      <div className="max-w-[250px] min-w-[180px] whitespace-normal break-words mx-auto text-center">
+        {row.original.immediateActionTaken || "N/A"}
+      </div>
+    ),
   },
   {
     accessorKey: "pendingAction",
     header: "Pending Action",
-  },
-  {
-    accessorKey: "closureDate",
-    header: "Closure Date",
-    cell: ({ row }) => {
-      const date = row.original.closureDate;
-      if (!date) return "N/A";
-      return (
-        <span className="font-medium text-gray-700">
-          {new Date(date).toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            timeZone: "UTC",
-          })}
-        </span>
-      );
-    },
-  },
-  {
-    accessorKey: "reportedBy",
-    header: "Reported By",
-  },
-  {
-    accessorKey: "escalationStatus",
-    header: "Escalation Status",
-
-  },
-  {
-    accessorKey: "escalatedTo",
-    header: "Escalated To",
+    meta: { wrapConfig: { wrap: "wrap", maxWidth: "250px" } },
+    cell: ({ row }) => (
+      <div className="max-w-[250px] min-w-[180px] whitespace-normal break-words mx-auto text-center">
+        {row.original.pendingAction || "N/A"}
+      </div>
+    ),
   },
   {
     accessorKey: "remarks",
     header: "Remarks",
-  },
-  {
-    accessorKey: "schoolName",
-    header: "Admin Name",
+    meta: { wrapConfig: { wrap: "wrap", maxWidth: "250px" } },
+    cell: ({ row }) => (
+      <div className="max-w-[250px] min-w-[180px] whitespace-normal break-words mx-auto text-center">
+        {row.original.remarks || "N/A"}
+      </div>
+    ),
   },
 ];
 
@@ -2219,7 +2240,7 @@ export const getAuditColumns = (
           "in-progress": "bg-blue-100 text-blue-700",
         };
         return (
-          <span className={ `px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-tight ${colors[status] || "bg-gray-100 text-gray-700"}` }>
+          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-tight ${colors[status] || "bg-gray-100 text-gray-700"}`}>
             {status?.toUpperCase() || "N/A"}
           </span>
         );
@@ -2241,10 +2262,10 @@ export const getAuditColumns = (
         const result = row.original.result?.toUpperCase();
         if (!result) return <span className="text-gray-300">--</span>;
         return (
-          <span className={ cn(
+          <span className={cn(
             "px-2 py-0.5 rounded-md text-[10px] font-black tracking-widest",
             result === "PASS" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-          ) }>
+          )}>
             {result}
           </span>
         );
@@ -2268,14 +2289,14 @@ export const getAuditColumns = (
       cell: ({ row }) => (
         <div className="flex justify-center gap-2">
           {row.original.status?.toLowerCase() === "draft" && (
-             <Button
-                variant="outline"
-                size="sm"
-                className="text-amber-600 border-amber-100 hover:bg-amber-50 h-8 font-bold px-3 rounded-lg"
-                onClick={() => onEdit?.(row.original)}
-              >
-                Edit
-              </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-amber-600 border-amber-100 hover:bg-amber-50 h-8 font-bold px-3 rounded-lg"
+              onClick={() => onEdit?.(row.original)}
+            >
+              Edit
+            </Button>
           )}
           <Button
             variant="outline"
