@@ -354,8 +354,8 @@ export default function IncidentPage() {
         showSerialNumber: true,
         enableSorting: false,
         maxHeight: "calc(100vh - 300px)",
-        enableColumnWrapping: true,
-        defaultTextWrap: "wrap",
+        enableColumnWrapping: false,
+        defaultTextWrap: "nowrap",
     });
 
     return (

@@ -2052,9 +2052,8 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
   {
     accessorKey: "subCategory",
     header: "Sub Category",
-    meta: { wrapConfig: { wrap: "wrap", maxWidth: "200px" } },
     cell: ({ row }) => (
-      <div className="max-w-[200px] whitespace-normal break-words mx-auto text-center">
+      <div className="whitespace-nowrap mx-auto text-center">
         {row.original.subCategory || "N/A"}
       </div>
     ),
@@ -2087,7 +2086,6 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
   {
     accessorKey: "status",
     header: "Status",
-    meta: { wrapConfig: { wrap: "nowrap", minWidth: "140px" } },
     cell: ({ row }) => {
       const status = row.original.status || "";
       const statusLower = status.toLowerCase();
@@ -2120,7 +2118,7 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
     cell: ({ row }) => {
       const status = row.original.status;
       return (
-        <div className="flex justify-center items-center gap-2 w-full text-center">
+        <div className="flex justify-center items-center gap-2 w-full text-center whitespace-nowrap">
           {status === "Open" ? (
             <div className="flex gap-2 justify-center">
               <Button
@@ -2175,9 +2173,8 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
   {
     accessorKey: "briefDescription",
     header: "Brief Description",
-    meta: { wrapConfig: { wrap: "wrap", maxWidth: "250px" } },
     cell: ({ row }) => (
-      <div className="max-w-[250px] min-w-[180px] whitespace-normal break-words mx-auto text-center">
+      <div className="whitespace-nowrap mx-auto text-center">
         {row.original.briefDescription || "N/A"}
       </div>
     ),
@@ -2185,9 +2182,8 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
   {
     accessorKey: "immediateActionTaken",
     header: "Immediate Action Taken",
-    meta: { wrapConfig: { wrap: "wrap", maxWidth: "250px" } },
     cell: ({ row }) => (
-      <div className="max-w-[250px] min-w-[180px] whitespace-normal break-words mx-auto text-center">
+      <div className="whitespace-nowrap mx-auto text-center">
         {row.original.immediateActionTaken || "N/A"}
       </div>
     ),
@@ -2195,9 +2191,8 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
   {
     accessorKey: "pendingAction",
     header: "Pending Action",
-    meta: { wrapConfig: { wrap: "wrap", maxWidth: "250px" } },
     cell: ({ row }) => (
-      <div className="max-w-[250px] min-w-[180px] whitespace-normal break-words mx-auto text-center">
+      <div className="whitespace-nowrap mx-auto text-center">
         {row.original.pendingAction || "N/A"}
       </div>
     ),
@@ -2205,9 +2200,8 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
   {
     accessorKey: "remarks",
     header: "Remarks",
-    meta: { wrapConfig: { wrap: "wrap", maxWidth: "250px" } },
     cell: ({ row }) => (
-      <div className="max-w-[250px] min-w-[180px] whitespace-normal break-words mx-auto text-center">
+      <div className="whitespace-nowrap mx-auto text-center">
         {row.original.remarks || "N/A"}
       </div>
     ),
