@@ -2048,6 +2048,62 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
     header: "Region",
   },
   {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => {
+      const status = row.original.status;
+      return (
+        <div className="flex justify-center gap-2">
+          {status === "Open" ? (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 cursor-pointer"
+                onClick={() => onEdit?.(row.original)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 cursor-pointer"
+                onClick={() => onUpdateStatus?.(row.original)}
+              >
+                Update Status
+              </Button>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground self-center">
+              No action needed
+            </span>
+          )}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.original.status;
+      return (
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-semibold ${status === "Open"
+            ? "bg-green-100 text-green-700 border border-green-200"
+            : "bg-gray-100 text-gray-700 border border-gray-200"
+            }`}
+        >
+          {status}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "branchName",
+    header: "User Name",
+  },
+  {
     accessorKey: "category",
     header: "Category",
   },
@@ -2132,68 +2188,10 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
     header: "Remarks",
   },
   {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.original.status;
-      return (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-semibold ${status === "Open"
-            ? "bg-green-100 text-green-700 border border-green-200"
-            : "bg-gray-100 text-gray-700 border border-gray-200"
-            }`}
-        >
-          {status}
-        </span>
-      );
-    },
-  },
-  {
     accessorKey: "schoolName",
     header: "Admin Name",
   },
-  {
-    accessorKey: "branchName",
-    header: "User Name",
-  },
-  {
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => {
-      const status = row.original.status;
-      return (
-        <div className="flex justify-center gap-2">
-          {status === "Open" ? (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 cursor-pointer"
-                onClick={() => onEdit?.(row.original)}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 cursor-pointer"
-                onClick={() => onUpdateStatus?.(row.original)}
-              >
-                Update Status
-              </Button>
-            </div>
-          ) : (
-            <span className="text-xs text-muted-foreground self-center">
-              No action needed
-            </span>
-          )}
-        </div>
-      );
-    },
-  },
 ];
-
-
 
 export const getAuditColumns = (
   onView?: (row: Audit) => void,

@@ -2,7 +2,7 @@ import { api } from "../apiService";
 import { IncidentResponse } from "@/interface/modal";
 
 export const incidentService = {
-  getIncidents: async (params: { page: number; limit: number }): Promise<IncidentResponse> => {
+  getIncidents: async (params: { page: number; limit: number; status?: string; region?: string }): Promise<IncidentResponse> => {
     return await api.get<IncidentResponse>("/get-incidents", params);
   },
 

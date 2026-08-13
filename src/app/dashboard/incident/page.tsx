@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Incident } from "@/interface/modal";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchDropdown } from "@/hooks/useDropdown";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function IncidentPage() {
     const queryClient = useQueryClient();
@@ -33,12 +34,16 @@ export default function IncidentPage() {
     const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
     const [selectedEditRegion, setSelectedEditRegion] = useState<string>("");
+    const [selectedStatus, setSelectedStatus] = useState<string>("all");
+    const [selectedRegion, setSelectedRegion] = useState<string>("all");
 
     const { data, isLoading, refetch } = useQuery({
-        queryKey: ["incidents", pagination.pageIndex, pagination.pageSize],
+        queryKey: ["incidents", pagination.pageIndex, pagination.pageSize, selectedStatus, selectedRegion],
         queryFn: () => incidentService.getIncidents({
             page: pagination.pageIndex + 1,
             limit: pagination.pageSize,
+            status: selectedStatus === "all" ? undefined : selectedStatus,
+            region: selectedRegion === "all" ? undefined : selectedRegion,
         }),
     });
 
@@ -263,14 +268,53 @@ export default function IncidentPage() {
                     <h1 className="text-2xl font-bold tracking-tight text-[#0c235c]">Incident Management</h1>
                     <p className="text-muted-foreground text-sm">View and manage reported incidents</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2 bg-white cursor-pointer">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Select
+                        value={selectedRegion}
+                        onValueChange={(value) => {
+                            setSelectedRegion(value);
+                            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                        }}
+                    >
+                        <SelectTrigger className="w-[160px] bg-white h-9">
+                            <SelectValue placeholder="All Regions" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Regions</SelectItem>
+                            {branchGroupOptions.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select
+                        value={selectedStatus}
+                        onValueChange={(value) => {
+                            setSelectedStatus(value);
+                            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                        }}
+                    >
+                        <SelectTrigger className="w-[160px] bg-white h-9">
+                            <SelectValue placeholder="All Statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            <SelectItem value="Open">Open</SelectItem>
+                            <SelectItem value="In-Progress">In-Progress</SelectItem>
+                            <SelectItem value="Resolved">Resolved</SelectItem>
+                            <SelectItem value="Closed">Closed</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2 bg-white cursor-pointer h-9">
                         <RefreshCcw className="h-4 w-4" />
                         Refresh
                     </Button>
                     {canReport && (
                         <Link href="/dashboard/incident/new">
-                            <Button size="sm" className="gap-2 bg-[#0c235c] hover:bg-[#0c235c]/90 cursor-pointer">
+                            <Button size="sm" className="gap-2 bg-[#0c235c] hover:bg-[#0c235c]/90 cursor-pointer h-9">
                                 <Plus className="h-4 w-4" />
                                 Report Incident
                             </Button>
