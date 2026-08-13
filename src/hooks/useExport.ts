@@ -51,7 +51,7 @@ export const useExport = () => {
       background: [249, 250, 251] as [number, number, number],
       border: [220, 220, 220] as [number, number, number],
     },
-    compunknown: { name: "Credence Tracker" },
+    compunknown: { name: "Lighthouse" },
     fonts: { primary: "helvetica" },
     layout: { margin: 15, lineHeight: 6 },
   };

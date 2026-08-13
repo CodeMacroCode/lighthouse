@@ -842,13 +842,13 @@ export default function SchoolMaster() {
     </main>
   );
 
-      {/* <section>
+  {/* <section>
         <FloatingMenu
           onExportPdf={() => {
             console.log("Export PDF triggered");
             exportToPDF(filteredData, columnsForExport, {
               title: "School Master Report",
-              companyName: "Credence Tracker",
+              companyName: "Lighthouse",
               metadata: {
                 Total: `${filteredData.length} schools`,
               },
@@ -858,7 +858,7 @@ export default function SchoolMaster() {
             console.log("Export Excel triggered");
             exportToExcel(filteredData, columnsForExport, {
               title: "School Master Report",
-              companyName: "Credence Tracker",
+              companyName: "Lighthouse",
               metadata: {
                 Total: `${filteredData.length} schools`,
               },

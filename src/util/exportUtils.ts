@@ -46,7 +46,7 @@ export const exportToPdf = (data: DeviceData[], filename: string) => {
             background: [249, 250, 251] as [number, number, number],
             border: [220, 220, 220] as [number, number, number],
         },
-        company: { name: "Credence Tracker" },
+        company: { name: "Lighthouse" },
     };
 
     const title = "Vehicle List Report";

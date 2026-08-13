@@ -6,7 +6,7 @@ import { incidentService } from "@/services/api/incidentService";
 import { api } from "@/services/apiService";
 import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, Plus } from "lucide-react";
+import { RefreshCcw, Plus, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { PaginationState } from "@tanstack/react-table";
 import { getIncidentColumns } from "@/components/columns/columns";
 import ResponseLoader from "@/components/ResponseLoader";
@@ -17,9 +17,18 @@ import { Incident } from "@/interface/modal";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchDropdown } from "@/hooks/useDropdown";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useExport } from "@/hooks/useExport";
+import { FloatingMenu } from "@/components/floatingMenu";
 
 export default function IncidentPage() {
     const queryClient = useQueryClient();
+    const { exportToPDF, exportToExcel } = useExport();
     const { decodedToken: user } = useAuthStore();
     const userRole = user?.role?.toLowerCase();
     const canReport = ["parent", "branch", "superadmin", "branchgroup", "school"].includes(userRole || "");
@@ -29,13 +38,14 @@ export default function IncidentPage() {
         pageIndex: 0,
         pageSize: 10,
     });
-  
+
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
     const [selectedEditRegion, setSelectedEditRegion] = useState<string>("");
     const [selectedStatus, setSelectedStatus] = useState<string>("all");
     const [selectedRegion, setSelectedRegion] = useState<string>("all");
+    const [isExporting, setIsExporting] = useState(false);
 
     const { data, isLoading, refetch } = useQuery({
         queryKey: ["incidents", pagination.pageIndex, pagination.pageSize, selectedStatus, selectedRegion],
@@ -47,6 +57,93 @@ export default function IncidentPage() {
         }),
     });
 
+    const exportColumns = [
+        { key: "sn", header: "S.No." },
+        { key: "region", header: "Region" },
+        { key: "branchName", header: "User Name" },
+        { key: "category", header: "Category" },
+        { key: "subCategory", header: "Sub Category" },
+        { key: "severity", header: "Severity" },
+        { key: "status", header: "Status" },
+        { key: "actions", header: "Actions" },
+        { key: "date", header: "Date" },
+        { key: "briefDescription", header: "Brief Description" },
+        { key: "immediateActionTaken", header: "Immediate Action Taken" },
+        { key: "pendingAction", header: "Pending Action" },
+        { key: "remarks", header: "Remarks" },
+    ];
+
+    const handleExportAll = async (type: "pdf" | "excel") => {
+        try {
+            setIsExporting(true);
+            toast.info(`Preparing ${type.toUpperCase()} export...`);
+
+            const res = await incidentService.getIncidents({
+                page: 1,
+                limit: "all",
+                status: selectedStatus === "all" ? undefined : selectedStatus,
+                region: selectedRegion === "all" ? undefined : selectedRegion,
+            });
+
+            let allRecords = res?.data || [];
+            if (!allRecords.length && data?.data?.length) {
+                allRecords = data.data;
+            }
+
+            if (!allRecords.length) {
+                toast.warning("No incident records found to export");
+                return;
+            }
+
+            const formattedExportData = allRecords.map((item: any, idx: number) => ({
+                sn: idx + 1,
+                region: item.region || "N/A",
+                branchName: item.branchName || "N/A",
+                category: item.category || "N/A",
+                subCategory: item.subCategory || "N/A",
+                severity: item.severity || "Low",
+                status: item.status || "N/A",
+                actions: item.status === "Open" ? "Edit / Update Status" : "No action needed",
+                date: item.date
+                    ? new Date(item.date).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "UTC",
+                        hour12: true,
+                    })
+                    : "N/A",
+                briefDescription: item.briefDescription || "N/A",
+                immediateActionTaken: item.immediateActionTaken || "N/A",
+                pendingAction: item.pendingAction || "N/A",
+                remarks: item.remarks || "N/A",
+            }));
+
+            const config = {
+                title: "Incident Management Report",
+                companyName: "Lighthouse",
+                metadata: {
+                    Total: `${allRecords.length} records`,
+                    Region: selectedRegion === "all" ? "All Regions" : selectedRegion,
+                    Status: selectedStatus === "all" ? "All Statuses" : selectedStatus,
+                },
+            };
+
+            if (type === "pdf") {
+                exportToPDF(formattedExportData, exportColumns, config);
+            } else {
+                exportToExcel(formattedExportData, exportColumns, config);
+            }
+        } catch (err: any) {
+            console.error("Export error:", err);
+            toast.error("Failed to export incident data");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const { data: branchGroups } = useQuery({
         queryKey: ["branchGroups"],
         queryFn: () => api.get<any[]>("/branchGroup"),
@@ -56,8 +153,8 @@ export default function IncidentPage() {
 
     // Directly trigger Branch/Safety Head API for branchgroup role
     const { data: apiBranches } = useBranchDropdown(
-        undefined, 
-        isBranchGroup, 
+        undefined,
+        isBranchGroup,
         true
     );
 
@@ -101,12 +198,12 @@ export default function IncidentPage() {
             canEdit ? handleEdit : undefined,
             canEdit ? handleUpdateStatus : undefined
         );
-        
+
         // Remove Action column for parents
         if (userRole === "parent") {
             return baseColumns.filter(col => col.id !== "actions");
         }
-        
+
         return baseColumns;
     }, [canEdit, userRole]);
 
@@ -146,7 +243,7 @@ export default function IncidentPage() {
     const handleUpdateSave = (formData: any) => {
         // Extract names from options to ensure they are sent to the API
         const selectedSchool = safetyHeadOptions.find(o => o.value === formData.branchId);
-        
+
         const payload = {
             status: formData.status,
             remarks: formData.remarks,
@@ -263,7 +360,7 @@ export default function IncidentPage() {
 
     return (
         <div className="h-full flex flex-col space-y-4 p-4 bg-gray-50/50 overflow-hidden min-h-[calc(100vh-64px)]">
-            <ResponseLoader isLoading={isLoading || updateMutation.isPending || updateStatusMutation.isPending} />
+            <ResponseLoader isLoading={isLoading || isExporting || updateMutation.isPending || updateStatusMutation.isPending} />
 
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                 <div>
@@ -310,6 +407,25 @@ export default function IncidentPage() {
                         </SelectContent>
                     </Select>
 
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-2 bg-white cursor-pointer h-9">
+                                <Download className="h-4 w-4" />
+                                Export
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleExportAll("excel")} className="cursor-pointer gap-2">
+                                <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                                Export Excel
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleExportAll("pdf")} className="cursor-pointer gap-2">
+                                <FileText className="h-4 w-4 text-red-600" />
+                                Export PDF
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2 bg-white cursor-pointer h-9">
                         <RefreshCcw className="h-4 w-4" />
                         Refresh
@@ -345,6 +461,11 @@ export default function IncidentPage() {
                 onSave={handleUpdateStatusSave}
                 title="Update Incident Status"
                 description="Update the current status and escalation details for this incident."
+            />
+
+            <FloatingMenu
+                onExportPdf={() => handleExportAll("pdf")}
+                onExportExcel={() => handleExportAll("excel")}
             />
         </div>
     );

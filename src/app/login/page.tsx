@@ -163,7 +163,7 @@ export default function LoginPage() {
           <div className="absolute top-0 left-4 z-10 flex items-center gap-3">
             <Image
               src="/logo.png"
-              alt="Credence Tracker"
+              alt="Lighthouse"
               width={128}
               height={128}
               className="w-40 h-20 object-contain"
@@ -186,7 +186,7 @@ export default function LoginPage() {
           <div className="lg:hidden flex justify-center w-full mb-6 sm:mb-8">
             <Image
               src="/logo.png"
-              alt="Credence Tracker"
+              alt="Lighthouse"
               width={128}
               height={128}
               className="w-32 sm:w-40 h-12 sm:h-16 object-contain"

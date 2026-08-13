@@ -5,7 +5,7 @@ export const faq = [
       "Once the GPS device is installed, just open the Credence app and you’ll see your vehicle’s live location on the map in real time.",
   },
   {
-    question: "Is Credence Tracker accurate?",
+    question: "Is Lighthouse accurate?",
     answer:
       "Yes, it provides accurate location updates along with speed, distance, and travel details.",
   },
@@ -37,7 +37,7 @@ export const faq = [
   {
     question: "Will it work on my mobile phone?",
     answer:
-      "Yes, Credence Tracker works on both Android and iOS smartphones, and also on the web.",
+      "Yes, Lighthouse works on both Android and iOS smartphones, and also on the web.",
   },
   {
     question: "Is my data safe and secure?",
@@ -45,7 +45,7 @@ export const faq = [
       "Yes, all vehicle data is stored securely and accessed only by authorized users.",
   },
   {
-    question: "Who should use Credence Tracker?",
+    question: "Who should use Lighthouse?",
     answer:
       "It’s ideal for individual vehicle owners, businesses, fleet owners, schools, and transport companies.",
   },

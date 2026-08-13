@@ -161,7 +161,7 @@ export default function RenewalClient() {
                 key: orderResponse.keyId,
                 amount: orderResponse.amount,
                 currency: orderResponse.currency,
-                name: "Credence Tracker",
+                name: "Lighthouse",
                 description: `Subscription Renewal for ${selectedPaymentDevice.name}`,
                 order_id: orderResponse.orderId,
                 handler: function (response: any) {
@@ -466,8 +466,8 @@ export default function RenewalClient() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <motion.div 
-                        layout 
+                    <motion.div
+                        layout
                         className="px-6 py-8 relative flex flex-col items-center overflow-hidden"
                         transition={{ layout: { type: "spring", stiffness: 300, damping: 30 } }}
                     >
@@ -577,42 +577,39 @@ export default function RenewalClient() {
                                 {/* Liquid Glass Slider */}
                                 <motion.div
                                     layoutId="liquid-glass-indicator"
-                                    className={`absolute inset-y-1.5 rounded-xl shadow-lg ring-1 ring-white/20 z-0 ${
-                                        activePaymentMethod === "qr" 
-                                        ? "bg-white left-[6px] w-[calc(50%-6px)] shadow-blue-500/10" 
-                                        : "bg-[#0a1d4d] right-[6px] w-[calc(50%-6px)] shadow-[#0a1d4d]/20"
-                                    }`}
+                                    className={`absolute inset-y-1.5 rounded-xl shadow-lg ring-1 ring-white/20 z-0 ${activePaymentMethod === "qr"
+                                            ? "bg-white left-[6px] w-[calc(50%-6px)] shadow-blue-500/10"
+                                            : "bg-[#0a1d4d] right-[6px] w-[calc(50%-6px)] shadow-[#0a1d4d]/20"
+                                        }`}
                                     transition={{ type: "spring", stiffness: 400, damping: 30, bounce: 0.2 }}
                                 />
 
                                 <button
                                     onClick={() => setActivePaymentMethod("qr")}
-                                    className={`relative flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-xs font-bold transition-colors duration-500 z-10 ${
-                                        activePaymentMethod === "qr" ? "text-blue-600" : "text-slate-500 hover:text-slate-700"
-                                    }`}
+                                    className={`relative flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-xs font-bold transition-colors duration-500 z-10 ${activePaymentMethod === "qr" ? "text-blue-600" : "text-slate-500 hover:text-slate-700"
+                                        }`}
                                 >
                                     <QrCode className="h-4 w-4" />
                                     UPI QR
                                 </button>
                                 <button
                                     onClick={() => setActivePaymentMethod("bank")}
-                                    className={`relative flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-xs font-bold transition-colors duration-500 z-10 ${
-                                        activePaymentMethod === "bank" ? "text-white" : "text-slate-500 hover:text-slate-700"
-                                    }`}
+                                    className={`relative flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-xs font-bold transition-colors duration-500 z-10 ${activePaymentMethod === "bank" ? "text-white" : "text-slate-500 hover:text-slate-700"
+                                        }`}
                                 >
                                     <Landmark className="h-4 w-4" />
                                     Bank Info
                                 </button>
                             </div>
                         </div>
-                        
+
                         <p className="mt-6 text-[11px] text-slate-400 font-medium italic text-center">Click a method above to switch payment mode</p>
                     </motion.div>
 
                     <DialogFooter className="p-6 pt-0">
-                        <Button 
-                            type="button" 
-                            className="w-full h-11 bg-slate-900 hover:bg-black text-white rounded-xl font-bold shadow-lg shadow-slate-200 transition-all active:scale-[0.98] cursor-pointer" 
+                        <Button
+                            type="button"
+                            className="w-full h-11 bg-slate-900 hover:bg-black text-white rounded-xl font-bold shadow-lg shadow-slate-200 transition-all active:scale-[0.98] cursor-pointer"
                             onClick={() => setIsQRModalOpen(false)}
                         >
                             Close
