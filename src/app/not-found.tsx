@@ -45,7 +45,7 @@ export default function NotFound() {
                     The page you are looking for does not exist or has been moved.
                 </p>
                 <button
-                    onClick={() => router.replace("/")}
+                    onClick={() => router.replace("/dashboard/users/user-access")}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
                 >
                     Go to Dashboard

@@ -45,6 +45,7 @@ import {
   Ticket,
   Shield,
   ShieldAlert,
+  LayoutDashboard,
 } from "lucide-react";
 import { GiGps, GiReceiveMoney } from "react-icons/gi";
 import Image from "next/image";
@@ -97,6 +98,8 @@ const iconMap: Record<string, React.ElementType> = {
   Driver: MdDriveEta,
   "Ticket Types": Ticket,
   "Incident": ShieldAlert,
+  "Safety and Audit": Shield,
+  "Analytics Dashboard": LayoutDashboard,
 };
 
 // Access permission mapping for Master section
@@ -154,6 +157,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         case "Master":
           if (role === "superAdmin") {
             return [
+              { title: "Analytics Dashboard", url: "/dashboard/analytics" },
               { title: "CXO / Leaders", url: "/dashboard/users/school-master" },
               { title: "Regional Head", url: "/dashboard/users/user-access" },
               { title: "Safety Head", url: "/dashboard/users/branch-master" },
@@ -163,6 +167,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             ];
           } else if (role === "school") {
             return [
+              { title: "Analytics Dashboard", url: "/dashboard/analytics" },
               { title: "Regional Head", url: "/dashboard/users/user-access" },
               {
                 title: "Safety Head",
@@ -174,17 +179,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             ];
           } else if (role === "branchGroup") {
             return [
+              { title: "Analytics Dashboard", url: "/dashboard/analytics" },
               { title: "Safety Head", url: "/dashboard/users/branch-master" },
               { title: "Coordinator", url: "/dashboard/users/coordinator" },
               { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
-            ]
+            ];
           } else if (role === "parent") {
             return [
               { title: "Incident", url: "/dashboard/incident" }
             ];
           } else if (role === "branch") {
             return [
+              { title: "Analytics Dashboard", url: "/dashboard/analytics" },
               { title: "Coordinator", url: "/dashboard/users/coordinator" },
               { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },

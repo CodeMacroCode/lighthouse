@@ -5,15 +5,15 @@ importScripts(
   "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"
 );
 
-firebase.initializeApp({
-  apiKey: "AIzaSyDcv0z79fwnkHSXcSSHXiTCEzgdhbX9qR4",
-  authDomain: "credence-tracker-faded.firebaseapp.com",
-  projectId: "credence-tracker-faded",
-  storageBucket: "credence-tracker-faded.firebasestorage.app",
-  messagingSenderId: "844537820319",
-  appId: "1:844537820319:web:dc1aedd2e8632184075eaa",
-  measurementId: "G-PS0FWPY16T"
-});
+// firebase.initializeApp({
+//   apiKey: "AIzaSyDcv0z79fwnkHSXcSSHXiTCEzgdhbX9qR4",
+//   authDomain: "credence-tracker-faded.firebaseapp.com",
+//   projectId: "credence-tracker-faded",
+//   storageBucket: "credence-tracker-faded.firebasestorage.app",
+//   messagingSenderId: "844537820319",
+//   appId: "1:844537820319:web:dc1aedd2e8632184075eaa",
+//   measurementId: "G-PS0FWPY16T"
+// });
 
 const messaging = firebase.messaging();
 
