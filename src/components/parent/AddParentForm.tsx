@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,6 +19,7 @@ import { Check, ChevronsUpDown, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Parent } from "@/interface/modal";
+import { useBranchGroupDropdown } from "@/hooks/useDropdown";
 
 interface Props {
   onSubmit: (data: {
@@ -80,6 +81,15 @@ export default function AddParentForm({
     decodedTokenRole === "school" ? decodedToken?.id : decodedToken?.schoolId;
   const tokenBranchId = decodedToken?.id;
 
+  // Fetch branch groups for Regional Head dropdown (https://lighthouse.run.place/api/api/branchGroup)
+  const { data: branchGroups = [] } = useBranchGroupDropdown(
+    decodedTokenRole === "superAdmin" || !decodedTokenRole
+  );
+
+  const [selectedRegionalHeadId, setSelectedRegionalHeadId] = useState<string | undefined>(
+    selectedSchoolId
+  );
+
   /* ✅ Token based auto selection */
   useEffect(() => {
     if (decodedTokenRole === "school" && tokenSchoolId) {
@@ -94,18 +104,95 @@ export default function AddParentForm({
   /* ✅ Edit Prefill */
   useEffect(() => {
     if (initialData) {
-      setParentName(initialData.parentName);
-      setMobileNo(initialData.mobileNo);
-      setEmail(initialData.email);
-      setUsername(initialData.username);
-      onSchoolChange?.(initialData.schoolId?._id);
-      onBranchChange?.(initialData.branchId?._id);
+      setParentName(initialData.parentName || "");
+      setMobileNo(initialData.mobileNo || "");
+      setEmail(initialData.email || "");
+      setUsername(initialData.username || "");
+
+      const initBranchId =
+        typeof initialData.branchId === "object"
+          ? initialData.branchId?._id
+          : initialData.branchId;
+      const initSchoolId =
+        typeof initialData.schoolId === "object"
+          ? initialData.schoolId?._id
+          : initialData.schoolId;
+
+      // Find matching branch group by assigned branch or school
+      const matchingBg = branchGroups.find(
+        (bg: any) =>
+          (initBranchId &&
+            bg.AssignedBranch?.some((b: any) => b._id === initBranchId)) ||
+          (initSchoolId &&
+            (bg._id === initSchoolId ||
+              bg.schoolId?._id === initSchoolId ||
+              bg.schoolId === initSchoolId))
+      );
+
+      if (matchingBg) {
+        setSelectedRegionalHeadId(matchingBg._id);
+        const effectiveSchoolId =
+          typeof matchingBg.schoolId === "object"
+            ? matchingBg.schoolId?._id
+            : matchingBg.schoolId || matchingBg._id;
+        onSchoolChange?.(effectiveSchoolId);
+      } else if (initSchoolId) {
+        setSelectedRegionalHeadId(initSchoolId);
+        onSchoolChange?.(initSchoolId);
+      }
+
+      if (initBranchId) {
+        onBranchChange?.(initBranchId);
+      }
     }
-  }, [initialData]);
+  }, [initialData, branchGroups]);
+
+  // Keep selectedRegionalHeadId in sync if selectedSchoolId is set externally
+  useEffect(() => {
+    if (selectedSchoolId && !selectedRegionalHeadId && branchGroups.length > 0) {
+      const match = branchGroups.find(
+        (bg: any) =>
+          bg._id === selectedSchoolId ||
+          bg.schoolId?._id === selectedSchoolId ||
+          bg.schoolId === selectedSchoolId
+      );
+      if (match) {
+        setSelectedRegionalHeadId(match._id);
+      }
+    }
+  }, [selectedSchoolId, selectedRegionalHeadId, branchGroups]);
+
+  const selectedRegionalHead = useMemo(() => {
+    return branchGroups.find(
+      (bg: any) =>
+        bg._id === selectedRegionalHeadId ||
+        (selectedSchoolId &&
+          (bg._id === selectedSchoolId ||
+            bg.schoolId?._id === selectedSchoolId ||
+            bg.schoolId === selectedSchoolId))
+    );
+  }, [branchGroups, selectedRegionalHeadId, selectedSchoolId]);
+
+  const availableBranches = useMemo(() => {
+    if (selectedRegionalHead?.AssignedBranch && selectedRegionalHead.AssignedBranch.length > 0) {
+      return selectedRegionalHead.AssignedBranch.map((b: any) => ({
+        _id: b._id,
+        branchName: b.branchName || b.name,
+      }));
+    }
+    return branches || [];
+  }, [selectedRegionalHead, branches]);
+
+  const getRegionalHeadLabel = (bg: any) => {
+    if (bg.branchGroupName && bg.regionHeadName) {
+      return `${bg.branchGroupName} - ${bg.regionHeadName}`;
+    }
+    return bg.branchGroupName || bg.regionHeadName || "Unnamed Regional Head";
+  };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!parentName.trim()) newErrors.parentName = "Coordinator name is required";
+    if (!parentName.trim()) newErrors.parentName = "Area Operations Manager name is required";
     
     if (!mobileNo.trim()) {
       newErrors.mobileNo = "Mobile number is required";
@@ -127,12 +214,16 @@ export default function AddParentForm({
       }
     }
 
-    if (decodedTokenRole === "superAdmin" && !selectedSchoolId) {
-      newErrors.schoolId = "School selection is required";
+    if (
+      decodedTokenRole === "superAdmin" &&
+      !selectedRegionalHeadId &&
+      !selectedSchoolId
+    ) {
+      newErrors.schoolId = "Regional Head selection is required";
     }
 
     if (decodedTokenRole !== "branch" && !selectedBranchId) {
-      newErrors.branchId = "Branch selection is required";
+      newErrors.branchId = "Business Manager selection is required";
     }
 
     setErrors(newErrors);
@@ -141,30 +232,37 @@ export default function AddParentForm({
 
   const handleSave = () => {
     if (validate()) {
+      const effectiveSchoolId =
+        (typeof selectedRegionalHead?.schoolId === "object"
+          ? selectedRegionalHead?.schoolId?._id
+          : selectedRegionalHead?.schoolId) ||
+        selectedSchoolId ||
+        selectedRegionalHeadId;
+
       onSubmit({
         parentName: parentName.trim(),
         mobileNo: mobileNo.trim(),
         email: email.trim(),
         username: username.trim(),
         ...(initialData ? {} : { password }),
-        schoolId: selectedSchoolId,
+        schoolId: effectiveSchoolId,
         branchId: selectedBranchId,
       });
     }
   };
 
   return (
-    <Card className="w-[420px] shadow-xl">
+    <Card className="w-full max-w-[440px] mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
       <CardHeader>
-        <CardTitle>{initialData ? "Edit Coordinator" : "Add Coordinator"}</CardTitle>
+        <CardTitle>{initialData ? "Edit Area Operations Manager" : "Add Area Operations Manager"}</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {/* NAME */}
         <div>
-          <label className="text-sm font-medium">Coordinator Name *</label>
+          <label className="text-sm font-medium">Area Operations Manager Name *</label>
           <Input
-            placeholder="Enter coordinator name"
+            placeholder="Enter area operations manager name"
             value={parentName}
             onChange={(e) => {
               setParentName(e.target.value);
@@ -263,43 +361,57 @@ export default function AddParentForm({
           </div>
         )}
 
-        {/* SCHOOL */}
+        {/* REGIONAL HEAD (from /branchGroup) */}
         {decodedTokenRole === "superAdmin" && (
           <div>
-            <label className="text-sm font-medium">School *</label>
+            <label className="text-sm font-medium">Regional Head *</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button 
                   variant="outline" 
                   className={cn("w-full justify-between", errors.schoolId && "border-red-500")}
                 >
-                  {schools.find((s) => s._id === selectedSchoolId)
-                    ?.schoolName || "Select School"}
+                  {selectedRegionalHead
+                    ? getRegionalHeadLabel(selectedRegionalHead)
+                    : (schools?.find((s) => s._id === selectedSchoolId)?.schoolName || "Select Regional Head")}
                   <ChevronsUpDown className="h-4 w-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[360px] p-0">
+              <PopoverContent className="w-[min(360px,calc(100vw-3rem))] p-0">
                 <Command>
-                  <CommandInput placeholder="Search school..." />
-                  <CommandEmpty>No schools found</CommandEmpty>
+                  <CommandInput placeholder="Search regional head..." />
+                  <CommandEmpty>No regional heads found</CommandEmpty>
                   <CommandGroup className="max-h-[220px] overflow-y-auto">
-                    {schools.map((s) => (
+                    {branchGroups.map((bg: any) => (
                       <CommandItem
-                        key={s._id}
+                        key={bg._id}
+                        value={`${bg.branchGroupName || ""} ${bg.regionHeadName || ""}`}
                         onSelect={() => {
-                          onSchoolChange?.(s._id);
+                          setSelectedRegionalHeadId(bg._id);
+                          const effectiveSchoolId =
+                            typeof bg.schoolId === "object"
+                              ? bg.schoolId?._id
+                              : (bg.schoolId || bg._id);
+                          onSchoolChange?.(effectiveSchoolId);
+                          if (
+                            selectedBranchId &&
+                            bg.AssignedBranch &&
+                            !bg.AssignedBranch.some((b: any) => b._id === selectedBranchId)
+                          ) {
+                            onBranchChange?.(undefined);
+                          }
                           if (errors.schoolId) setErrors({ ...errors, schoolId: "" });
                         }}
                       >
                         <Check
                           className={cn(
                             "mr-2 h-4",
-                            s._id === selectedSchoolId
+                            (selectedRegionalHeadId === bg._id || selectedRegionalHead?._id === bg._id)
                               ? "opacity-100"
                               : "opacity-0"
                           )}
                         />
-                        {s.schoolName}
+                        {getRegionalHeadLabel(bg)}
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -312,35 +424,36 @@ export default function AddParentForm({
           </div>
         )}
 
-        {/* BRANCH */}
+        {/* BUSINESS MANAGER (BRANCH) */}
         {decodedTokenRole !== "branch" && (
           <div>
-            <label className="text-sm font-medium">Branch *</label>
+            <label className="text-sm font-medium">Business Manager *</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn("w-full justify-between", errors.branchId && "border-red-500")}
                   disabled={
-                    decodedTokenRole === "superAdmin" && !selectedSchoolId
+                    decodedTokenRole === "superAdmin" && !selectedRegionalHeadId && !selectedSchoolId
                   }
                 >
-                  {branches.find((b) => b._id === selectedBranchId)
+                  {availableBranches.find((b: any) => b._id === selectedBranchId)
                     ?.branchName ||
-                    (selectedSchoolId
-                      ? "Select Branch"
-                      : "Select school first")}
+                    (selectedRegionalHeadId || selectedSchoolId
+                      ? "Select Business Manager"
+                      : "Select regional head first")}
                   <ChevronsUpDown className="h-4 w-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[360px] p-0">
+              <PopoverContent className="w-[min(360px,calc(100vw-3rem))] p-0">
                 <Command>
-                  <CommandInput placeholder="Search branch..." />
-                  <CommandEmpty>No branches found</CommandEmpty>
+                  <CommandInput placeholder="Search business manager..." />
+                  <CommandEmpty>No business managers found</CommandEmpty>
                   <CommandGroup className="max-h-[220px] overflow-y-auto">
-                    {branches.map((b) => (
+                    {availableBranches.map((b: any) => (
                       <CommandItem
                         key={b._id}
+                        value={b.branchName}
                         onSelect={() => {
                           onBranchChange?.(b._id);
                           if (errors.branchId) setErrors({ ...errors, branchId: "" });

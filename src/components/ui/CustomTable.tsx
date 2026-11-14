@@ -16,6 +16,7 @@ import { CustomArrowUpDown } from "@/components/ui/customarrowupdown";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import TablePagination from "@/components/ui/TablePagination";
+import { cn } from "@/lib/utils";
 
 export type CellContent =
   | { type: "text"; value: string }
@@ -191,6 +192,102 @@ export function CustomTable<TData extends RowData>({
 
   const rows = table.getRowModel().rows;
 
+  // Mobile Infinite Scrolling state (no second useReactTable instance to prevent re-render loops)
+  const MOBILE_PAGE_SIZE = 15;
+  const [mobileDisplayCount, setMobileDisplayCount] = useState(MOBILE_PAGE_SIZE);
+  const [prevDataLength, setPrevDataLength] = useState(finalData.length);
+  const mobileSentinelRef = useRef<HTMLDivElement>(null);
+
+  if (finalData.length !== prevDataLength) {
+    setPrevDataLength(finalData.length);
+    setMobileDisplayCount(MOBILE_PAGE_SIZE);
+  }
+
+  const mobileItems = useMemo(() => {
+    return finalData.slice(0, mobileDisplayCount);
+  }, [finalData, mobileDisplayCount]);
+
+  const hasMoreMobile = mobileDisplayCount < finalData.length;
+
+  useEffect(() => {
+    const sentinel = mobileSentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreMobile) {
+          setMobileDisplayCount((prev) => Math.min(prev + MOBILE_PAGE_SIZE, finalData.length));
+        }
+      },
+      { rootMargin: "300px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreMobile, finalData.length]);
+
+  // Mobile column categorization
+  const visibleMobileColumns = useMemo(() => {
+    return columns.filter((col) => {
+      const colId = (col.id || (col as any).accessorKey || "");
+      if (colId === "serialNumber") return false;
+      if (currentColumnVisibility[colId] === false) return false;
+      return true;
+    });
+  }, [columns, currentColumnVisibility]);
+
+  const actionColumn = useMemo(() => {
+    return visibleMobileColumns.find((col) => {
+      const id = (col.id || (col as any).accessorKey || "").toLowerCase();
+      const h = typeof col.header === "string" ? col.header.toLowerCase() : "";
+      return id.includes("action") || h.includes("action");
+    });
+  }, [visibleMobileColumns]);
+
+  const statusColumn = useMemo(() => {
+    return visibleMobileColumns.find((col) => {
+      if (col === actionColumn) return false;
+      const id = (col.id || (col as any).accessorKey || "").toLowerCase();
+      return (
+        id.includes("status") ||
+        id.includes("result") ||
+        id.includes("severity") ||
+        id.includes("access")
+      );
+    });
+  }, [visibleMobileColumns, actionColumn]);
+
+  const contentColumns = useMemo(() => {
+    return visibleMobileColumns.filter((col) => col !== actionColumn && col !== statusColumn);
+  }, [visibleMobileColumns, actionColumn, statusColumn]);
+
+  const primaryColumn = contentColumns[0];
+  const detailColumns = contentColumns.slice(1);
+
+  const getColValue = (col: ColumnDef<TData, unknown>, item: TData) => {
+    if (typeof col.accessorFn === "function") {
+      return col.accessorFn(item, 0);
+    }
+    const key = (col as any).accessorKey;
+    if (key && item) {
+      return (item as any)[key];
+    }
+    return undefined;
+  };
+
+  const getColHeaderLabel = (col: ColumnDef<TData, unknown>) => {
+    if (typeof col.header === "string") return col.header;
+    if (typeof col.header === "function") {
+      try {
+        const rendered = (col.header as any)({} as any);
+        if (typeof rendered === "string") return rendered;
+      } catch {
+        // fallback
+      }
+    }
+    return col.id || (col as any).accessorKey || "";
+  };
+
   const adaptiveHeight = useMemo(() => {
     if (typeof maxHeight === "string") return maxHeight;
     const maxH = maxHeight;
@@ -253,12 +350,24 @@ export function CustomTable<TData extends RowData>({
   const shouldExpand = containerWidth > totalMinWidth;
   const tableWidth = shouldExpand ? "100%" : totalMinWidth + "px";
 
+  const renderCustomTableCell = (cell: any) => {
+    if (cell.column.id === "serialNumber") {
+      return flexRender(cell.column.columnDef.cell, cell.getContext());
+    }
+    const val = cell.getValue();
+    if (val !== undefined && val !== null) {
+      return renderCellContent(val);
+    }
+    return flexRender(cell.column.columnDef.cell, cell.getContext());
+  };
+
   return (
     <div ref={containerRef} className="w-full space-y-4 overflow-hidden">
       <div className="rounded-md border bg-background w-full flex flex-col overflow-hidden">
+        {/* Desktop Table View */}
         <div
           ref={tableScrollRef}
-          className="overflow-scroll relative"
+          className="hidden md:block overflow-x-auto overflow-y-auto relative w-full"
           style={{
             maxHeight: typeof adaptiveHeight === "number" ? `${adaptiveHeight}px` : adaptiveHeight,
             WebkitOverflowScrolling: "touch",
@@ -282,7 +391,7 @@ export function CustomTable<TData extends RowData>({
                           }`}
                         onClick={header.column.getToggleSortingHandler()}
                       >
-                        <span className="truncate">
+                        <span className="whitespace-nowrap">
                           {flexRender(
                             header.column.columnDef.header,
                             header.getContext()
@@ -341,7 +450,7 @@ export function CustomTable<TData extends RowData>({
                           style={getColumnStyle(cell.column)}
                         >
                           <div className="w-full text-center">
-                            <div className="break-all sm:break-words whitespace-normal leading-relaxed">
+                            <div className="break-words whitespace-normal leading-relaxed">
                               {cell.column.id === "serialNumber"
                                 ? flexRender(
                                   cell.column.columnDef.cell,
@@ -363,11 +472,126 @@ export function CustomTable<TData extends RowData>({
           </div>
         </div>
 
-        <TablePagination
-          table={table}
-          pageSizeArray={pageSizeArray}
-          totalRecords={finalData.length}
-        />
+        {/* Mobile Cards View */}
+        <div className="block md:hidden space-y-3 p-3 bg-slate-50/50">
+          {isLoading ? (
+            <div className="space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-3 animate-pulse">
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-5 w-24 rounded" />
+                    <Skeleton className="h-5 w-16 rounded" />
+                  </div>
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-3/4 rounded" />
+                  <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                    <Skeleton className="h-8 w-20 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : finalData.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-muted-foreground">
+              <div className="font-medium text-slate-800 mb-1">{noDataMessage}</div>
+              <div>No records found to display</div>
+            </div>
+          ) : (
+            <>
+              {mobileItems.map((item, index) => {
+                const itemId = (item as any)?._id || (item as any)?.id || (item as any)?.key || index;
+                const primaryVal = primaryColumn ? getColValue(primaryColumn, item) : null;
+                const statusVal = statusColumn ? getColValue(statusColumn, item) : null;
+                const actionVal = actionColumn ? getColValue(actionColumn, item) : null;
+
+                return (
+                  <div
+                    key={itemId}
+                    className="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 space-y-3 transition-colors"
+                  >
+                    {/* Card Header: SN + Primary Field + Status */}
+                    <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {showSerialNumber && (
+                          <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-bold shrink-0">
+                            #{index + 1}
+                          </span>
+                        )}
+                        {primaryColumn && (
+                          <div className="font-bold text-sm text-[#0c235c] truncate">
+                            {renderCellContent(primaryVal)}
+                          </div>
+                        )}
+                      </div>
+
+                      {statusColumn && statusVal !== undefined && statusVal !== null && (
+                        <div className="shrink-0 text-xs">
+                          {renderCellContent(statusVal)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Details: Key-Value List */}
+                    {detailColumns.length > 0 && (
+                      <div className="space-y-2 text-xs">
+                        {detailColumns.map((col) => {
+                          const val = getColValue(col, item);
+                          if (val === undefined || val === null || val === "") return null;
+                          const headerLabel = getColHeaderLabel(col);
+
+                          return (
+                            <div
+                              key={col.id || (col as any).accessorKey || headerLabel}
+                              className="flex items-center justify-between gap-3 py-1 border-b border-slate-50 last:border-0"
+                            >
+                              <span className="text-slate-500 font-medium text-[11px] uppercase tracking-tight shrink-0">
+                                {headerLabel}
+                              </span>
+                              <div className="text-right font-medium text-slate-800 break-words max-w-[65%]">
+                                {renderCellContent(val)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Card Actions Footer */}
+                    {actionColumn && actionVal !== undefined && actionVal !== null && (
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2 flex-wrap">
+                        {renderCellContent(actionVal)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Mobile Infinite Scroll Sentinel & Indicator */}
+              {hasMoreMobile && (
+                <div ref={mobileSentinelRef} className="py-3 text-center">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-medium shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-[#0c235c] animate-pulse" />
+                    Loading more...
+                  </div>
+                </div>
+              )}
+
+              {!hasMoreMobile && finalData.length > 0 && (
+                <div className="py-3 text-center text-xs text-slate-400 font-medium">
+                  Showing all {finalData.length} records
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Desktop Pagination */}
+        <div className="hidden md:block">
+          <TablePagination
+            table={table}
+            pageSizeArray={pageSizeArray}
+            totalRecords={finalData.length}
+          />
+        </div>
       </div>
     </div>
   );

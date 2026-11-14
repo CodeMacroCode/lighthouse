@@ -29,6 +29,7 @@ import { useSchoolData } from "@/hooks/useSchoolData";
 import { useBranchData } from "@/hooks/useBranchData";
 import { useExport } from "@/hooks/useExport";
 import { api } from "@/services/apiService";
+import { userService } from "@/services/api/userService";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   type ColumnDef,
@@ -185,8 +186,8 @@ const TableBranchDropdown: React.FC<{
       >
         <span className="text-gray-700 truncate">
           {assignedBranches.length > 0
-            ? `${assignedBranches.length} School`
-            : "Assign School"}
+            ? `${assignedBranches.length} Business Manager${assignedBranches.length > 1 ? "s" : ""}`
+            : "Assign Business Manager"}
         </span>
         <ChevronDown
           className={`h-4 w-4 text-gray-500 transition-transform flex-shrink-0 ml-2 ${isOpen ? "rotate-180" : ""
@@ -209,7 +210,7 @@ const TableBranchDropdown: React.FC<{
             {/* Header */}
             <div className="px-3 py-2 border-b border-gray-200 bg-blue-50 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
-                Assign Schools
+                Assign Business Managers
               </span>
 
               <button
@@ -345,7 +346,7 @@ const BranchDropdown: React.FC<{
               ) : null;
             })
           ) : (
-            <span className="text-gray-500">Select School</span>
+            <span className="text-gray-500">Select Business Manager</span>
           )}
           {selectedBranches.length > 3 && (
             <span className="inline-flex items-center bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full">
@@ -365,7 +366,7 @@ const BranchDropdown: React.FC<{
           <div className="px-3 py-2 border-b border-gray-200 bg-blue-50">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
-                Schools
+                Business Managers
               </span>
               <button
                 type="button"
@@ -407,7 +408,7 @@ const BranchDropdown: React.FC<{
               ))
             ) : (
               <div className="px-3 py-3 text-center text-sm text-gray-500">
-                No matching School
+                No matching Business Manager
               </div>
             )}
           </div>
@@ -505,11 +506,21 @@ export default function UserAccessPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.get<BranchGroupAccess[]>(`/branchGroup`);
-      setBranchGroupsData(response);
-      setFilteredData(response);
+      const uRes: any = await userService.getUsers({ role: "RSO" });
+      const list = uRes?.data || uRes?.users || (Array.isArray(uRes) ? uRes : []);
+      if (Array.isArray(list)) {
+        const mapped = list.map((u: any) => ({
+          ...u,
+          name: u.name || u.username,
+          _id: u._id || u.id,
+          branches: u.centres || u.branches || [],
+        }));
+        setBranchGroupsData(mapped);
+        setFilteredData(mapped);
+        return;
+      }
     } catch (err) {
-      // setError("Failed to load user data.");
+      console.error("Failed to load RSO user data:", err);
       setBranchGroupsData([]);
       setFilteredData([]);
     } finally {
@@ -578,8 +589,17 @@ export default function UserAccessPage() {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (newBranchGroup: any) =>
-      api.post("/branchGroup", newBranchGroup),
+    mutationFn: async (newBranchGroup: any) => {
+      return await userService.createUser({
+        name: newBranchGroup.name || newBranchGroup.username,
+        username: newBranchGroup.username,
+        password: newBranchGroup.password,
+        email: newBranchGroup.email,
+        role: "RSO",
+        centres: newBranchGroup.branches || [],
+        ...newBranchGroup,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branchGroups"] });
       setIsAddDialogOpen(false);
@@ -592,8 +612,9 @@ export default function UserAccessPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      api.put(`/branchGroup/${id}`, data),
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      return await userService.updateUser(id, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branchGroups"] });
       setIsEditDialogOpen(false);
@@ -608,7 +629,7 @@ export default function UserAccessPage() {
 
   const updateBranchesMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return await api.put(`/branchGroup/${id}`, data);
+      return await userService.updateUser(id, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branchGroups"] });
@@ -620,7 +641,9 @@ export default function UserAccessPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/branchGroup/${id}`),
+    mutationFn: async (id: string) => {
+      return await userService.deleteUser(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branchGroups"] });
       setDeleteTarget(null);
@@ -829,7 +852,7 @@ export default function UserAccessPage() {
         meta: { flex: 1, minWidth: 180, maxWidth: 250 },
       },
       {
-        header: "Regional Head",
+        header: "Regional Safety Officer (RSO)",
         accessorFn: (row: BranchGroupAccess) => ({
           type: "text",
           value: row.regionHeadName || "N/A",
@@ -910,7 +933,7 @@ export default function UserAccessPage() {
         meta: { flex: 1, minWidth: 150, maxWidth: 200 },
       },
       {
-        header: "CXO",
+        header: "National Head",
         accessorFn: (row: BranchGroupAccess) => ({
           type: "text",
           value: row.schoolId?.schoolName || "N/A",
@@ -933,7 +956,7 @@ export default function UserAccessPage() {
         meta: { flex: 1, minWidth: 250, maxWidth: 300 },
       },
       {
-        header: "Assigned School",
+        header: "Assigned Business Manager",
         accessorFn: (row: BranchGroupAccess) => {
           // console.log("Branches:", branchOptions);
           // console.log("Row:", row);
@@ -1129,7 +1152,7 @@ export default function UserAccessPage() {
                   placeholder="Enter regional head name"
                   required
                 />
-                <Label htmlFor="regionHeadName">Regional Head Name</Label>
+                <Label htmlFor="regionHeadName">Regional Safety Officer (RSO) Name</Label>
                 <Input
                   id="regionHeadName"
                   name="regionHeadName"
@@ -1174,17 +1197,17 @@ export default function UserAccessPage() {
                   required
                 />
 
-                <Label htmlFor="schoolId">Select CXO</Label>
+                <Label htmlFor="schoolId">Select National Head</Label>
                 <Combobox
                   items={schoolOptions}
                   value={selectedSchool || undefined}
                   onValueChange={handleSchoolChange}
-                  placeholder="Select CXO"
-                  searchPlaceholder="Search CXO..."
-                  emptyMessage="No CXO found"
+                  placeholder="Select National Head"
+                  searchPlaceholder="Search National Head..."
+                  emptyMessage="No National Head found"
                 />
 
-                <Label htmlFor="assignedBranches">Assigned </Label>
+                <Label htmlFor="assignedBranches">Assigned Business Manager</Label>
                 <BranchDropdown
                   selectedBranches={selectedBranches}
                   branchOptions={filteredBranches}
@@ -1193,7 +1216,7 @@ export default function UserAccessPage() {
                 />
                 {selectedBranches.length > 0 && (
                   <div className="text-sm text-gray-600">
-                    Selected: {selectedBranches.length} Safety Heads
+                    Selected: {selectedBranches.length} Business Managers
                   </div>
                 )}
 
@@ -1255,7 +1278,7 @@ export default function UserAccessPage() {
                   required
                 />
 
-                <Label htmlFor="edit-regionHeadName">Regional Head Name</Label>
+                <Label htmlFor="edit-regionHeadName">Regional Safety Officer (RSO) Name</Label>
                 <Input
                   id="edit-regionHeadName"
                   name="regionHeadName"
@@ -1295,17 +1318,17 @@ export default function UserAccessPage() {
                   required
                 />
 
-                <Label htmlFor="edit-schoolId">CXO</Label>
+                <Label htmlFor="edit-schoolId">National Head</Label>
                 <Combobox
                   items={schoolOptions}
                   value={editSelectedSchool || undefined}
                   onValueChange={handleEditSchoolChange}
-                  placeholder="Select Admin"
-                  searchPlaceholder="Search Admin..."
-                  emptyMessage="No Admin found"
+                  placeholder="Select National Head"
+                  searchPlaceholder="Search National Head..."
+                  emptyMessage="No National Head found"
                 />
 
-                <Label htmlFor="edit-assignedBranches">Assigned School</Label>
+                <Label htmlFor="edit-assignedBranches">Assigned Business Manager</Label>
                 <BranchDropdown
                   selectedBranches={editSelectedBranches}
                   branchOptions={filteredEditBranches}
@@ -1314,7 +1337,7 @@ export default function UserAccessPage() {
                 />
                 {editSelectedBranches.length > 0 && (
                   <div className="text-sm text-gray-600">
-                    Selected: {editSelectedBranches.length} School
+                    Selected: {editSelectedBranches.length} Business Managers
                   </div>
                 )}
 

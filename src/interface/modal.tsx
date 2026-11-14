@@ -700,6 +700,13 @@ export interface TicketType {
 
 export interface Incident {
   _id: string;
+  caseId?: string;
+  type?: string;
+  state?: string;
+  centre?: string;
+  escalationOwner?: string;
+  sla?: string;
+  slaDeadline?: string;
   email: string;
   region: string;
   category: string;

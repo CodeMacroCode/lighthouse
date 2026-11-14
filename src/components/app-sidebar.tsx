@@ -22,6 +22,7 @@ import RouteLoader from "@/components/RouteLoader";
 import { useTransition } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   GraduationCap,
   Users,
@@ -40,6 +41,7 @@ import {
   Bell,
   CheckCircle,
   XCircle,
+  X,
   MessageCircle,
   Group,
   Ticket,
@@ -51,11 +53,12 @@ import { GiGps, GiReceiveMoney } from "react-icons/gi";
 import Image from "next/image";
 import { MdDriveEta, MdDriveFileMoveRtl, MdOutlineLocalPolice } from "react-icons/md";
 import { LiaMoneyBillAlt } from "react-icons/lia";
+import { PREK_ROLES, PrekRole, normalizePrekRole } from "@/constants/roles";
 
-type UserRole = "superAdmin" | "school" | "branchGroup" | "branch" | "parent" | null;
+type UserRole = PrekRole | "superAdmin" | "school" | "branchGroup" | "branch" | "parent" | null;
 
 // Icon mapping for menu items
-const iconMap: Record<string, React.ElementType> = {
+const iconMap: Record<string, any> = {
   "Student Details": GraduationCap,
   Geofence: MapPin,
   "Pickup And Drop": Route,
@@ -67,8 +70,13 @@ const iconMap: Record<string, React.ElementType> = {
   "Approved Request": CheckCircle,
   "Denied Request": XCircle,
   "Admin Master": School,
+  "National Head": School,
+  "Regional Safety Officer (RSO)": Users,
   "Regional Head": Users,
-  "Safety Head": School,
+  "Business Manager (BM)": School,
+  "Business Manager": School,
+  "Area Operations Manager (AOM)": Users,
+  "Area Operations Manager": Users,
   "Parents Master": Users,
   "Driver Approve": UserCheck,
   "Student Approve": UserCheck,
@@ -140,63 +148,63 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const decoded = token ? getDecodedToken(token) : null;
     const role = decoded?.role;
 
-    if (
-      typeof role === "string" &&
-      ["superAdmin", "school", "branchGroup", "branch", "parent"].includes(role)
-    ) {
-      setUserRole(role as UserRole);
+    if (role && typeof role === "string") {
+      const normalized = normalizePrekRole(role);
+      setUserRole(normalized || (role as UserRole));
     }
-
 
     setIsLoading(false);
   }, []);
 
   const getSidebarData = React.useCallback(
     (section: string, role: UserRole) => {
+      const normalized = normalizePrekRole(role);
       switch (section) {
         case "Master":
-          if (role === "superAdmin") {
+          // Central (All-Activity Admin) - Full National Scope
+          if (normalized === PREK_ROLES.CENTRAL || role === "superAdmin") {
             return [
               { title: "Analytics Dashboard", url: "/dashboard/analytics" },
-              { title: "CXO / Leaders", url: "/dashboard/users/school-master" },
-              { title: "Regional Head", url: "/dashboard/users/user-access" },
-              { title: "Safety Head", url: "/dashboard/users/branch-master" },
-              { title: "Coordinator", url: "/dashboard/users/coordinator" },
+              { title: "National Head", url: "/dashboard/users/school-master" },
+              { title: "Business Manager (BM)", url: "/dashboard/users/branch-master" },
+              { title: "Regional Safety Officer (RSO)", url: "/dashboard/users/user-access" },
+              { title: "Area Operations Manager (AOM)", url: "/dashboard/users/coordinator" },
               { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
             ];
-          } else if (role === "school") {
+          } else if (normalized === PREK_ROLES.NATIONAL_HEAD || role === "school") {
             return [
               { title: "Analytics Dashboard", url: "/dashboard/analytics" },
-              { title: "Regional Head", url: "/dashboard/users/user-access" },
-              {
-                title: "Safety Head",
-                url: "/dashboard/users/branch-master",
-              },
-              { title: "Coordinator", url: "/dashboard/users/coordinator" },
+              { title: "National Head", url: "/dashboard/users/school-master" },
+              { title: "Business Manager (BM)", url: "/dashboard/users/branch-master" },
+              { title: "Regional Safety Officer (RSO)", url: "/dashboard/users/user-access" },
+              { title: "Area Operations Manager (AOM)", url: "/dashboard/users/coordinator" },
               { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
             ];
-          } else if (role === "branchGroup") {
+          } else if (normalized === PREK_ROLES.RSO || role === "branchGroup") {
             return [
               { title: "Analytics Dashboard", url: "/dashboard/analytics" },
-              { title: "Safety Head", url: "/dashboard/users/branch-master" },
-              { title: "Coordinator", url: "/dashboard/users/coordinator" },
+              { title: "Business Manager (BM)", url: "/dashboard/users/branch-master" },
+              { title: "Area Operations Manager (AOM)", url: "/dashboard/users/coordinator" },
               { title: "Incident", url: "/dashboard/incident" },
               { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
             ];
-          } else if (role === "parent") {
+          } else if (normalized === PREK_ROLES.BM || role === "branch") {
+            return [
+              { title: "Analytics Dashboard", url: "/dashboard/analytics" },
+              { title: "Area Operations Manager (AOM)", url: "/dashboard/users/coordinator" },
+              { title: "Incident", url: "/dashboard/incident" },
+              { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
+            ];
+          } else if (normalized === PREK_ROLES.AOM || role === "parent") {
             return [
               { title: "Incident", url: "/dashboard/incident" }
             ];
-          } else if (role === "branch") {
-            return [
-              { title: "Analytics Dashboard", url: "/dashboard/analytics" },
-              { title: "Coordinator", url: "/dashboard/users/coordinator" },
-              { title: "Incident", url: "/dashboard/incident" },
-              { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
-            ];
           }
+          return [
+            { title: "Incident", url: "/dashboard/incident" }
+          ];
         default:
           return [];
       }
@@ -216,7 +224,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       if (activeSection === "Master") {
         items = items.filter(item => {
           const accessKey = masterAccessMap[item.title];
-          // If no mapping, always show (e.g., Device, Safety Head)
+          // If no mapping, always show (e.g., Device, Business Manager)
           if (!accessKey) return true;
           return access.master?.[accessKey as keyof typeof access.master] === true;
         });
@@ -275,26 +283,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {...props}
         className="border-r border-blue-600/20 transition-all duration-300 ease-in-out bg-primary h-screen"
       >
-        {/* Header with Search - Fixed Height */}
-        <SidebarHeader className="border-b border-blue-600/20 bg-primary h-[60px] flex items-center justify-center transition-all duration-300 ease-in-out">
-          {isLoading ? (
-            <div className={isCollapsed ? "w-auto" : "w-full px-3"}>
-              <Skeleton
-                className={`rounded-md bg-blue-300/60 transition-all duration-300 ${isCollapsed ? "h-10 w-10" : "h-9 w-full"
-                  }`}
-              />
+        {/* Header - Fixed Height */}
+        <SidebarHeader className="border-b border-blue-600/20 bg-primary h-[60px] flex items-center justify-between px-3 transition-all duration-300 ease-in-out">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+              LH
             </div>
-          ) : (
-            <>
-              {/* Expanded Search Bar - Only show when NOT collapsed */}
-              {!isCollapsed && (
-                <div className="w-full px-3 animate-in fade-in duration-200">
-                  <div className="relative mt-3">
-
-                  </div>
-                </div>
-              )}
-            </>
+            {!isCollapsed && (
+              <span className="font-bold text-white text-base tracking-tight truncate">
+                Lighthouse
+              </span>
+            )}
+          </div>
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOpenMobile(false)}
+              className="text-white hover:bg-white/10 size-8 cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close sidebar</span>
+            </Button>
           )}
         </SidebarHeader>
 
@@ -356,6 +366,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           >
                             <Link
                               href={item.url}
+                              title={item.title}
                               onClick={(e) => {
                                 e.preventDefault();
                                 handleItemSelect(item.url);
@@ -372,7 +383,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 `}
                               />
                               {/* Text with slide and fade animation */}
-                              <span className="flex-1 truncate text-sm transition-all duration-300 ease-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:translate-x-2 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:hidden">
+                              <span
+                                title={item.title}
+                                className="flex-1 truncate text-sm transition-all duration-300 ease-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:translate-x-2 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:hidden"
+                              >
                                 {item.title}
                               </span>
                               {/* Active indicator with pulse */}

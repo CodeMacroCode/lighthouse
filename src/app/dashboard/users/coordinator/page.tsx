@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import AddParentForm from "@/components/parent/AddParentForm";
 import { Parent } from "@/interface/modal";
-import { useSchoolDropdown, useBranchDropdown } from "@/hooks/useDropdown";
+import { useSchoolDropdown, useBranchDropdown, useBranchGroupDropdown } from "@/hooks/useDropdown";
 import { useAuthStore } from "@/store/authStore";
 import { ColumnVisibilitySelector } from "@/components/column-visibility-selector";
 import { SearchBar } from "@/components/search-bar/SearchBarPagination";
@@ -83,23 +83,37 @@ export default function ParentsMaster() {
     }
   }, [filterSchoolId]);
 
+  // Determine if dropdowns should fetch based on role
+  const shouldFetchSchools = role === "superadmin";
+
+  // Fetch branch groups (Regional Heads) from https://lighthouse.run.place/api/api/branchGroup
+  const { data: branchGroups = [] } = useBranchGroupDropdown(shouldFetchSchools);
+
+  const selectedBgForFilter = useMemo(() => {
+    return branchGroups.find((bg: any) => bg._id === filterSchoolId);
+  }, [branchGroups, filterSchoolId]);
+
+  const effectiveFilterSchoolId = useMemo(() => {
+    if (!filterSchoolId) return undefined;
+    return typeof selectedBgForFilter?.schoolId === "object"
+      ? selectedBgForFilter?.schoolId?._id
+      : selectedBgForFilter?.schoolId || filterSchoolId;
+  }, [selectedBgForFilter, filterSchoolId]);
+
   // Filters object - only uses filter states, not form states
   const filters: Filters = useMemo(
     () => ({
       search: debouncedSearch || undefined,
-      schoolId: filterSchoolId, // Only set when user selects from filter dropdown
+      schoolId: effectiveFilterSchoolId, // Only set when user selects from filter dropdown
       branchId: filterBranchId, // Only set when user selects from filter dropdown
     }),
-    [debouncedSearch, filterSchoolId, filterBranchId]
+    [debouncedSearch, effectiveFilterSchoolId, filterBranchId]
   );
 
   // Reset pagination when filters change
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
   }, [filters.search, filters.schoolId, filters.branchId]);
-
-  // Determine if dropdowns should fetch based on role
-  const shouldFetchSchools = role === "superadmin";
 
   // Determine when to fetch branches based on role
   const shouldFetchBranches = useMemo(() => {
@@ -128,24 +142,30 @@ export default function ParentsMaster() {
       role === "branchgroup"
     );
 
-
-  const schoolItems = useMemo(
+  const regionalHeadItems = useMemo(
     () =>
-      schools.map((s) => ({
-        label: s.schoolName!,
-        value: s._id,
+      branchGroups.map((bg: any) => ({
+        label:
+          bg.regionHeadName && bg.branchGroupName
+            ? `${bg.branchGroupName} - ${bg.regionHeadName}`
+            : bg.branchGroupName || bg.regionHeadName || "N/A",
+        value: bg._id,
       })),
-    [schools]
+    [branchGroups]
   );
 
-  const branchItems = useMemo(
-    () =>
-      branches.map((b) => ({
-        label: b.branchName!,
+  const filteredBranchItems = useMemo(() => {
+    if (selectedBgForFilter?.AssignedBranch && selectedBgForFilter.AssignedBranch.length > 0) {
+      return selectedBgForFilter.AssignedBranch.map((b: any) => ({
+        label: b.branchName,
         value: b._id,
-      })),
-    [branches]
-  );
+      }));
+    }
+    return branches.map((b) => ({
+      label: b.branchName!,
+      value: b._id,
+    }));
+  }, [selectedBgForFilter, branches]);
 
   const {
     parents,
@@ -169,7 +189,7 @@ export default function ParentsMaster() {
 
   // Handle edit
   const handleEdit = useCallback((parent: Parent) => {
-    console.log("Editing coordinator:", parent);
+    console.log("Editing area operations manager:", parent);
     setSelectedParent(parent);
 
     // Extract IDs properly - handle both object and string formats
@@ -190,7 +210,7 @@ export default function ParentsMaster() {
   // Handle delete
   const handleDelete = useCallback(
     (parent: Parent) => {
-      if (confirm("Are you sure you want to delete this coordinator?")) {
+      if (confirm("Are you sure you want to delete this area operations manager?")) {
         deleteParent(parent._id);
       }
     },
@@ -239,7 +259,7 @@ export default function ParentsMaster() {
     onPaginationChange: setPagination,
     onSortingChange: setSorting,
     sorting,
-    emptyMessage: "No coordinators found",
+    emptyMessage: "No area operations managers found",
     pageSizeOptions: [5, 10, 15, 20, 30, 50, 100, 500, 1000, "All"],
     showSerialNumber: true,
     enableSorting: true,
@@ -254,18 +274,18 @@ export default function ParentsMaster() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Coordinator Master</h2>
+        <h2 className="text-xl font-bold">Area Operations Manager Master</h2>
       </div>
 
       {/* Filters and Actions */}
-      <div className="flex justify-between items-center my-3 gap-3">
-        <div className="flex gap-3 items-center">
+      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center my-3 gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
           {/* Search Bar */}
           <SearchBar
             value={searchInput}
             onChange={setSearchInput}
-            placeholder="Search coordinators..."
-            width="w-[280px]"
+            placeholder="Search area operations managers..."
+            width="w-full sm:w-[240px] md:w-[280px]"
           />
 
           {/* Column Visibility */}
@@ -275,35 +295,35 @@ export default function ParentsMaster() {
             buttonSize="default"
           />
 
-          <div className="flex gap-3 items-center">
-            {/* SCHOOL FILTER */}
+          <div className="flex flex-wrap gap-2 sm:gap-3 items-center w-full sm:w-auto">
+            {/* REGIONAL HEAD FILTER */}
             {role === "superadmin" && (
               <Combobox
-                items={schoolItems}
+                items={regionalHeadItems}
                 value={filterSchoolId}
                 onValueChange={(val) => {
                   setFilterSchoolId(val || undefined);
                   setFilterBranchId(undefined);
                 }}
-                placeholder="Filter School"
-                searchPlaceholder="Search School..."
-                width="w-[220px]"
-                emptyMessage="No schools found"
+                placeholder="Filter Regional Safety Officer"
+                searchPlaceholder="Search Regional Safety Officer..."
+                width="w-full sm:w-[200px]"
+                emptyMessage="No regional safety officers found"
               />
             )}
 
-            {/* BRANCH FILTER */}
+            {/* BUSINESS MANAGER FILTER */}
             {(role === "superadmin" ||
               role === "school" ||
               role === "branchgroup") && (
               <Combobox
-                items={branchItems}
+                items={filteredBranchItems}
                 value={filterBranchId}
                 onValueChange={(val) => setFilterBranchId(val || undefined)}
-                placeholder="Filter Branch"
-                searchPlaceholder="Search Branch..."
-                width="w-[220px]"
-                emptyMessage="No branches found"
+                placeholder="Filter Business Manager"
+                searchPlaceholder="Search Business Manager..."
+                width="w-full sm:w-[200px]"
+                emptyMessage="No business managers found"
                 disabled={role === "superadmin" && !filterSchoolId}
               />
             )}
@@ -312,7 +332,7 @@ export default function ParentsMaster() {
 
         {/* Add Parent Button */}
         <Button
-          className="cursor-pointer"
+          className="cursor-pointer w-full sm:w-auto shrink-0"
           onClick={() => {
             setSelectedParent(null);
             setSchoolId(undefined);
@@ -321,7 +341,7 @@ export default function ParentsMaster() {
           }}
           disabled={isCreateLoading}
         >
-          {isCreateLoading ? "Adding..." : "Add Coordinator"}
+          {isCreateLoading ? "Adding..." : "Add Area Operations Manager"}
         </Button>
       </div>
 

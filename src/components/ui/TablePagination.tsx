@@ -7,14 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
-
 import type { Table } from "@tanstack/react-table";
 
 interface TablePaginationProps<TData> {
@@ -37,17 +29,18 @@ function TablePagination<TData>({ table, pageSizeArray, totalRecords }: TablePag
       <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 order-1 sm:order-2">
         <div className="flex items-center gap-2">
           <span>Rows per page:</span>
-          <Select
+          <select
             value={pagination.pageSize >= totalRecords ? "All" : pagination.pageSize.toString()}
-            onValueChange={(v) => table.setPageSize(v === "All" ? totalRecords : Number(v))}
+            onChange={(e) => {
+              const v = e.target.value;
+              table.setPageSize(v === "All" ? totalRecords : Number(v));
+            }}
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-ring"
           >
-            <SelectTrigger className="w-[80px] h-8"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {pageSizeArray.map((size) => (
-                <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {pageSizeArray.map((size) => (
+              <option key={size} value={size.toString()}>{size}</option>
+            ))}
+          </select>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}><ChevronsLeft className="h-4 w-4" /></Button>

@@ -22,6 +22,7 @@ import {
   VisibilityState,
   type ColumnDef,
 } from "@tanstack/react-table";
+import { userService } from "@/services/api/userService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/apiService";
 import { School } from "@/interface/modal";
@@ -154,8 +155,20 @@ export default function SchoolMaster() {
   } = useQuery<School[]>({
     queryKey: ["schools"],
     queryFn: async () => {
-      const res = await api.get<School[]>("/school");
-      return res;
+      try {
+        const uRes: any = await userService.getUsers({ role: "National Head" });
+        const list = uRes?.data || uRes?.users || (Array.isArray(uRes) ? uRes : []);
+        if (Array.isArray(list)) {
+          return list.map((u: any) => ({
+            ...u,
+            schoolName: u.name || u.schoolName || u.username,
+            _id: u._id || u.id,
+          }));
+        }
+      } catch (e) {
+        console.error("Error fetching National Head users:", e);
+      }
+      return [];
     },
     enabled: !isSchoolRole,
   });
@@ -200,7 +213,7 @@ export default function SchoolMaster() {
   // Define the columns for the table
   const columns: ColumnDef<School, CellContent>[] = [
     {
-      header: "CXO / Leaders",
+      header: "National Head",
       accessorFn: (row: any) => ({
         type: "custom",
         render: () => (
@@ -320,13 +333,21 @@ export default function SchoolMaster() {
   // Mutation to add a new school
   const addSchoolMutation = useMutation({
     mutationFn: async (newSchool: any) => {
-      const school = await api.post("/school", newSchool);
-      return school.school;
+      const res = await userService.createUser({
+        name: newSchool.schoolName || newSchool.name,
+        username: newSchool.username,
+        password: newSchool.password,
+        email: newSchool.email,
+        role: "National Head",
+        ...newSchool,
+      });
+      return res?.data || res?.user || res?.school || newSchool;
     },
     onSuccess: (createdSchool) => {
       queryClient.setQueryData<School[]>(["schools"], (oldSchools = []) => {
         return [...oldSchools, createdSchool];
       });
+      queryClient.invalidateQueries({ queryKey: ["schools"] });
     },
   });
 
@@ -339,7 +360,7 @@ export default function SchoolMaster() {
       schoolId: string;
       data: Partial<School>;
     }) => {
-      return await api.put(`/school/${schoolId}`, data);
+      return await userService.updateUser(schoolId, data);
     },
     onSuccess: (_, { schoolId, data }) => {
       queryClient.setQueryData<School[]>(["schools"], (oldData) => {
@@ -368,7 +389,7 @@ export default function SchoolMaster() {
   // Mutation to delete a school
   const deleteSchoolMutation = useMutation({
     mutationFn: async (schoolId: string) => {
-      return await api.delete(`/school/${schoolId}`);
+      return await userService.deleteUser(schoolId);
     },
     onSuccess: (_, deletedId) => {
       queryClient.setQueryData<School[]>(["schools"], (oldData) =>
@@ -383,19 +404,24 @@ export default function SchoolMaster() {
 
   const deactivateMutation = useMutation({
     mutationFn: async (school: any) => {
-      const token = localStorage.getItem("token");
-      return await authAxios.put(
-        `/user/deactivate/${school._id}`,
-        {
-          Active: !school.Active,
-          userRole: school.role,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
+      const nextActive = !school.Active;
+      try {
+        return await userService.updateUserStatus(school._id, nextActive);
+      } catch {
+        const token = localStorage.getItem("token");
+        return await authAxios.put(
+          `/user/deactivate/${school._id}`,
+          {
+            Active: nextActive,
+            userRole: school.role,
           },
-        }
-      );
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["schools"] });
@@ -403,8 +429,7 @@ export default function SchoolMaster() {
     },
     onError: (err: any) => {
       toast.error(
-        `Failed to update admin status: ${err.response?.data?.message || err.message
-        }`
+        `Failed to update admin status: ${err.response?.data?.message || err.message}`
       );
     },
   });
@@ -558,15 +583,15 @@ export default function SchoolMaster() {
         </div>
       ) : (
         <>
-          <header className="flex items-center justify-between mb-4">
-            <section className="flex space-x-4">
+          <header className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 mb-4">
+            <section className="flex flex-wrap items-center gap-2 sm:gap-3">
               <SearchComponent
                 data={filterResults}
                 displayKey={["schoolName", "username", "email", "mobileNo"]}
                 onResults={handleSearchResults}
-                className="w-[300px] mb-4"
+                className="w-full sm:w-[240px] md:w-[300px]"
               />
-              <div>
+              <div className="w-full sm:w-auto">
                 <DateRangeFilter
                   onDateRangeChange={handleDateFilter}
                   title="Search by Registration Date"
@@ -580,7 +605,7 @@ export default function SchoolMaster() {
               />
             </section>
 
-            <section className="flex gap-2">
+            <section className="flex flex-wrap gap-2 items-center">
               <AdminImportModal
                 onImport={handleBulkImport}
                 isLoading={addSchoolMutation.isPending}
@@ -594,15 +619,15 @@ export default function SchoolMaster() {
                 <DialogContent className="sm:max-w-[600px]">
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <DialogHeader>
-                      <DialogTitle>Add CXO</DialogTitle>
+                      <DialogTitle>Add National Head</DialogTitle>
                     </DialogHeader>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="grid gap-2">
-                        <Label htmlFor="schoolName">CXO</Label>
+                        <Label htmlFor="schoolName">National Head</Label>
                         <Input
                           id="schoolName"
                           name="schoolName"
-                          placeholder="Enter regional head name"
+                          placeholder="Enter national head name"
                           required
                         />
                       </div>

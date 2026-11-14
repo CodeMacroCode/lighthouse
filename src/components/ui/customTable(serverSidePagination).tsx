@@ -1,6 +1,7 @@
-import React, { useState, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Checkbox } from "./checkbox";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { cn } from "@/lib/utils";
 
 import {
   useReactTable,
@@ -30,13 +31,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./select";
 import { Button } from "./button";
 
 export type { ColumnDef, SortingState, PaginationState };
@@ -247,6 +241,8 @@ export function useCustomTable<
     });
   };
 
+  const mobileSentinelRef = useRef<HTMLDivElement>(null);
+
   const changePageSize = (value: string) => {
     const isAll = value === "All";
 
@@ -281,6 +277,41 @@ export function useCustomTable<
 
   // Use data as dependency since table object is stable
   const rows = useMemo(() => table.getRowModel().rows, [data, table]);
+
+  // Mobile Infinite Scrolling state (ref-based accumulation to completely eliminate state update loops)
+  const accumulatedRowsRef = useRef<typeof rows>(rows);
+  const lastLoadedPageRef = useRef(0);
+
+  if (pagination.pageIndex === 0) {
+    accumulatedRowsRef.current = rows;
+    lastLoadedPageRef.current = 0;
+  } else if (pagination.pageIndex > lastLoadedPageRef.current) {
+    lastLoadedPageRef.current = pagination.pageIndex;
+    const seen = new Set(
+      accumulatedRowsRef.current.map((r) => getRowId(r.original as T))
+    );
+    const newRows = rows.filter((r) => !seen.has(getRowId(r.original as T)));
+    accumulatedRowsRef.current = [...accumulatedRowsRef.current, ...newRows];
+  }
+
+  const mobileDisplayRows = pagination.pageIndex === 0 ? rows : accumulatedRowsRef.current;
+
+  useEffect(() => {
+    const sentinel = mobileSentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !loading) {
+          goToPage(pagination.pageIndex + 1);
+        }
+      },
+      { rootMargin: "300px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, loading, pagination.pageIndex]);
 
   // Adaptive overscan: increase for larger datasets for smoother scrolling
   const adaptiveOverscan = useMemo(() => {
@@ -322,12 +353,14 @@ export function useCustomTable<
     selectedRows,
     tableElement: (
       <div className="space-y-4">
-        <div className="border rounded-lg overflow-hidden">
+        {/* Desktop Table View */}
+        <div className="hidden md:block border rounded-lg overflow-hidden">
           <div
             ref={tableContainerRef}
-            className="overflow-scroll relative"
+            className="overflow-x-auto overflow-y-auto relative w-full max-w-full"
             style={{ 
-              maxHeight: maxHeight === "none" ? "calc(100vh - 300px)" : maxHeight
+              WebkitOverflowScrolling: "touch",
+              maxHeight: maxHeight === "none" ? "calc(100vh - 240px)" : maxHeight
             }}
           >
             <Table>
@@ -352,7 +385,7 @@ export function useCustomTable<
                               }`}
                             onClick={header.column.getToggleSortingHandler()}
                           >
-                            <span className="truncate">
+                            <span className="whitespace-nowrap">
                               {flexRender(
                                 header.column.columnDef.header,
                                 header.getContext()
@@ -520,7 +553,159 @@ export function useCustomTable<
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-2 py-2">
+        {/* Mobile Cards View */}
+        <div className="block md:hidden space-y-3">
+          {loading && pagination.pageIndex === 0 ? (
+            <div className="space-y-3">
+              {Array.from({ length: Math.min(pagination.pageSize, 5) }).map((_, i) => (
+                <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-3 animate-pulse">
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-5 w-24 rounded" />
+                    <Skeleton className="h-5 w-16 rounded" />
+                  </div>
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-3/4 rounded" />
+                  <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                    <Skeleton className="h-8 w-20 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : !mobileDisplayRows?.length ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-muted-foreground">
+              {emptyMessage}
+            </div>
+          ) : (
+            <>
+              {mobileDisplayRows.map((row) => {
+                const rowData = row.original as T;
+                const rowId = getRowId(rowData);
+                const isSelected = selectedRowId !== null && rowId === selectedRowId;
+                const cells = row.getVisibleCells();
+
+                const serialCell = cells.find((c) => c.column.id === "serialNumber");
+                const actionCell = cells.find(
+                  (c) => c.column.id === "actions" || c.column.id === "action"
+                );
+                const statusCell = cells.find((c) => {
+                  const id = c.column.id.toLowerCase();
+                  return (
+                    id.includes("status") ||
+                    id.includes("result") ||
+                    id.includes("severity") ||
+                    id.includes("access")
+                  );
+                });
+
+                const candidateCells = cells.filter(
+                  (c) =>
+                    c.column.id !== "serialNumber" &&
+                    c.column.id !== "actions" &&
+                    c.column.id !== "action" &&
+                    c !== statusCell
+                );
+
+                const primaryCell = candidateCells[0];
+                const detailCells = candidateCells.slice(1);
+
+                return (
+                  <div
+                    key={row.id}
+                    className={cn(
+                      "bg-white rounded-xl border border-slate-200 shadow-2xs p-4 space-y-3 transition-colors",
+                      enableRowClick && onRowClick
+                        ? "cursor-pointer active:scale-[0.99] hover:border-slate-300"
+                        : "",
+                      isSelected
+                        ? "ring-2 ring-[#0c235c] border-[#0c235c] bg-blue-50/20"
+                        : "",
+                      getRowClassName ? getRowClassName(rowData, isSelected) : ""
+                    )}
+                    onClick={(event) => handleRowClick(row, event)}
+                    data-selected={isSelected}
+                    data-row-id={rowId}
+                  >
+                    {/* Card Header: SN + Primary Field + Status */}
+                    <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {serialCell && (
+                          <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-bold shrink-0">
+                            #{row.index + 1}
+                          </span>
+                        )}
+                        {primaryCell && (
+                          <div className="font-bold text-sm text-[#0c235c] truncate">
+                            {flexRender(primaryCell.column.columnDef.cell, primaryCell.getContext())}
+                          </div>
+                        )}
+                      </div>
+
+                      {statusCell && (
+                        <div className="shrink-0 text-xs">
+                          {flexRender(statusCell.column.columnDef.cell, statusCell.getContext())}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Details: Key-Value List */}
+                    {detailCells.length > 0 && (
+                      <div className="space-y-2 text-xs">
+                        {detailCells.map((cell) => {
+                          const headerContent = cell.column.columnDef.header;
+                          const headerLabel =
+                            typeof headerContent === "string"
+                              ? headerContent
+                              : typeof headerContent === "function"
+                              ? flexRender(headerContent, cell.getContext())
+                              : cell.column.id;
+
+                          return (
+                            <div
+                              key={cell.id}
+                              className="flex items-center justify-between gap-3 py-1 border-b border-slate-50 last:border-0"
+                            >
+                              <span className="text-slate-500 font-medium text-[11px] uppercase tracking-tight shrink-0">
+                                {headerLabel}
+                              </span>
+                              <div className="text-right font-medium text-slate-800 break-words max-w-[65%]">
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Card Actions Footer */}
+                    {actionCell && (
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2 flex-wrap">
+                        {flexRender(actionCell.column.columnDef.cell, actionCell.getContext())}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Mobile Sentinel & Infinite Scroll Status */}
+              {hasNextPage && (
+                <div ref={mobileSentinelRef} className="py-3 text-center">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-medium shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-[#0c235c] animate-pulse" />
+                    {loading ? "Loading more records..." : "Scroll for more"}
+                  </div>
+                </div>
+              )}
+
+              {!hasNextPage && mobileDisplayRows.length > 0 && (
+                <div className="py-3 text-center text-xs text-slate-400 font-medium">
+                  Showing all {totalCount || mobileDisplayRows.length} records
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="hidden md:flex flex-col sm:flex-row items-center justify-between gap-3 px-2 py-2">
           <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground order-2 sm:order-1">
             <span className="hidden sm:inline">
               Showing {pagination.pageIndex * pagination.pageSize + 1} to{" "}
@@ -544,21 +729,17 @@ export function useCustomTable<
             <div className="flex items-center space-x-2">
               <p className="text-xs sm:text-sm font-medium hidden sm:block">Rows per page</p>
               <p className="text-xs font-medium sm:hidden">Rows</p>
-              <Select
+              <select
                 value={isAllSelected ? "All" : pagination.pageSize.toString()}
-                onValueChange={changePageSize}
+                onChange={(e) => changePageSize(e.target.value)}
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-ring"
               >
-                <SelectTrigger className="h-8 w-fit min-w-[70px] cursor-pointer text-xs sm:text-sm px-2">
-                  <SelectValue placeholder={isAllSelected ? `All (${totalCount})` : pagination.pageSize.toString()} />
-                </SelectTrigger>
-                <SelectContent side="top">
-                  {pageSizeOptions.map((pageSize) => (
-                    <SelectItem key={pageSize} value={pageSize.toString()} className="cursor-pointer">
-                      {pageSize === "All" ? (totalCount > 0 ? `All (${totalCount})` : "All") : pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {pageSizeOptions.map((pageSize) => (
+                  <option key={pageSize} value={pageSize.toString()}>
+                    {pageSize === "All" ? (totalCount > 0 ? `All (${totalCount})` : "All") : pageSize}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="flex items-center space-x-1 sm:space-x-2">

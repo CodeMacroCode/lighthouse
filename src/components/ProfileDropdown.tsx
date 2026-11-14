@@ -21,6 +21,7 @@ import { LogoutButton } from "./logout-button";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { getDecodedToken } from "@/lib/jwt";
+import { normalizePrekRole, PREK_ROLES } from "@/constants/roles";
 import {
   getStoredPreferences,
   setStoredPreference,
@@ -32,6 +33,7 @@ import {
 export function ProfileDropdown() {
   const router = useRouter();
   const [username, setUsername] = React.useState<string>("User");
+  const [roleLabel, setRoleLabel] = React.useState<string>("");
   const [blockedTypes, setBlockedTypes] = React.useState<NotificationType[]>(
     []
   );
@@ -41,6 +43,10 @@ export function ProfileDropdown() {
     const decodedToken = token ? getDecodedToken(token) : null;
     if (decodedToken?.username) {
       setUsername(decodedToken.username);
+    }
+    if (decodedToken?.role) {
+      const normalized = normalizePrekRole(decodedToken.role);
+      setRoleLabel(normalized || decodedToken.role);
     }
     setBlockedTypes(getStoredPreferences());
   }, []);
@@ -77,8 +83,8 @@ export function ProfileDropdown() {
             <span className="text-white font-semibold text-sm drop-shadow-sm">
               {username}
             </span>
-            <span className="text-blue-200 text-[10px] font-medium uppercase tracking-wider">
-              Profile
+            <span className="text-blue-200 text-[10px] font-medium tracking-wider">
+              {roleLabel || "Profile"}
             </span>
           </div>
           <ChevronDown className="h-4 w-4 text-blue-200 hidden md:block opacity-60" />
@@ -93,6 +99,11 @@ export function ProfileDropdown() {
         <DropdownMenuLabel>
           <div className="flex flex-col">
             <span className="font-medium">{username}</span>
+            {roleLabel && (
+              <span className="text-[11px] text-muted-foreground font-normal mt-0.5">
+                Role: <span className="font-semibold text-blue-600">{roleLabel}</span>
+              </span>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

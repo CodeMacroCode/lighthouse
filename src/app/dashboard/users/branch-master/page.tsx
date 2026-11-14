@@ -31,6 +31,7 @@ import {
   type ColumnDef,
 } from "@tanstack/react-table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { userService } from "@/services/api/userService";
 import { api } from "@/services/apiService";
 import { useSchoolData } from "@/hooks/useSchoolData";
 import { Branch as branch } from "@/interface/modal";
@@ -196,7 +197,7 @@ const BranchEditDialog = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Edit School Info</DialogTitle>
+          <DialogTitle>Edit Business Manager Info</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -240,9 +241,9 @@ const BranchEditDialog = ({
               />
             </div>
 
-            {/* Safety Head Name */}
+            {/* Business Manager Name */}
             <div className="grid gap-2">
-              <Label htmlFor="edit-safetyHeadName">Safety Head Name</Label>
+              <Label htmlFor="edit-safetyHeadName">Business Manager Name</Label>
               <Input
                 id="edit-safetyHeadName"
                 value={formData.safetyHeadName || ""}
@@ -504,63 +505,20 @@ export default function BranchMaster() {
   } = useQuery<branch[]>({
     queryKey: ["branches", userSchoolId, normalizedRole, assignedBranches],
     queryFn: async () => {
-      // console.log("[Branch Master - QueryFn Executing]:", {
-      //   isBranchGroup,
-      //   assignedBranches,
-      //   assignedBranchesCount: assignedBranches?.length || 0,
-      //   userSchoolId,
-      //   normalizedRole,
-      // });
-
-      // For branchGroup
-      if (isBranchGroup) {
-        // console.log("[Branch Master - BranchGroup: Fetching ALL branches]:", {
-        //   assignedBranches,
-        //   assignedBranchesCount: assignedBranches.length,
-        // });
-        try {
-          const res = await api.get<branch[]>("/branch");
-          // console.log("[Branch Master - BranchGroup API Response]:", {
-          //   url: "/branch",
-          //   totalBranches: res?.length,
-          //   assignedBranches,
-          //   responseBranches: res?.map((b) => ({
-          //     id: b._id,
-          //     name: b.branchName,
-          //   })),
-          // });
-          return res || [];
-        } catch (error) {
-          // console.error("[Branch Master - BranchGroup API Error]:", error);
-          return [];
+      try {
+        const uRes: any = await userService.getUsers({ role: "BM" });
+        const list = uRes?.data || uRes?.users || (Array.isArray(uRes) ? uRes : []);
+        if (Array.isArray(list)) {
+          return list.map((u: any) => ({
+            ...u,
+            branchName: u.name || u.branchName || u.username,
+            _id: u._id || u.id,
+          }));
         }
+      } catch (e) {
+        console.error("Failed to fetch BM users:", e);
       }
-      // For school and branch roles, use schoolId parameter
-      else if (!isSuperAdmin && userSchoolId) {
-        // console.log("[Branch Master - Fetching with schoolId param]:", {
-        //   role: normalizedRole,
-        //   userSchoolId,
-        // });
-        try {
-          const res = await api.get<branch[]>(
-            `/branch?schoolId=${userSchoolId}`
-          );
-          // console.log("[Branch Master - API Response]:", {
-          //   url: `/branch?schoolId=${userSchoolId}`,
-          //   response: res,
-          //   responseLength: res?.length,
-          // });
-          return res || [];
-        } catch (error) {
-          // console.error("[Branch Master - API Error]:", error);
-          return [];
-        }
-      }
-      // For superadmin, get all branches
-      else {
-        const res = await api.get<branch[]>("/branch");
-        return res || [];
-      }
+      return [];
     },
     // FIXED: Simplified enabled condition
     enabled:
@@ -761,8 +719,20 @@ export default function BranchMaster() {
   // Mutation to add a new branch
   const addbranchMutation = useMutation({
     mutationFn: async (newbranch: any) => {
-      const response = await api.post("branch", newbranch) as { branch: branch };
-      return response.branch;
+      try {
+        const res = await userService.createUser({
+          name: newbranch.branchName || newbranch.name,
+          username: newbranch.username,
+          password: newbranch.password,
+          email: newbranch.email,
+          role: "BM",
+          ...newbranch,
+        });
+        return res?.data || res?.user || res?.branch || newbranch;
+      } catch {
+        const response = await api.post("branch", newbranch) as { branch: branch };
+        return response.branch;
+      }
     },
     onSuccess: () => {
       // Simply invalidate the queries to refetch fresh data
@@ -787,8 +757,6 @@ export default function BranchMaster() {
     },
   });
 
-
-
   const updatebranchMutation = useMutation({
     mutationFn: async ({
       branchId,
@@ -797,7 +765,11 @@ export default function BranchMaster() {
       branchId: string;
       data: Partial<branch>;
     }) => {
-      return await api.put(`branch/${branchId}`, data);
+      try {
+        return await userService.updateUser(branchId, data);
+      } catch {
+        return await api.put(`branch/${branchId}`, data);
+      }
     },
     onSuccess: () => {
       // Invalidate queries to refetch fresh data
@@ -822,7 +794,11 @@ export default function BranchMaster() {
 
   const deletebranchMutation = useMutation({
     mutationFn: async (branchId: string) => {
-      return await api.delete(`branch/${branchId}`);
+      try {
+        return await userService.deleteUser(branchId);
+      } catch {
+        return await api.delete(`branch/${branchId}`);
+      }
     },
     onSuccess: () => {
       // Invalidate queries to refetch fresh data
@@ -1018,7 +994,7 @@ export default function BranchMaster() {
         enableHiding: true,
       },
       {
-        header: "Safety Head",
+        header: "Business Manager",
         accessorFn: (row: any) => ({
           type: "text",
           value: row.safetyHeadName ?? "N/A",
@@ -1039,7 +1015,7 @@ export default function BranchMaster() {
       ...(isSuperAdmin
         ? [
           {
-            header: "Regional Head",
+            header: "Regional Safety Officer (RSO)",
             accessorFn: (row: any) => ({
               type: "text",
               value: row.schoolId?.schoolName ?? "",
@@ -1182,36 +1158,20 @@ export default function BranchMaster() {
     <main>
       <ResponseLoader isLoading={isLoading} />
 
-      <header className="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-        <section className="flex space-x-4">
+      <header className="px-2 sm:px-3 py-2 border-b border-gray-200 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        <section className="flex flex-wrap items-center gap-2 sm:gap-3">
           <SearchComponent
             data={filterResults}
             displayKey={["branchName", "safetyHeadName", "fas", "username", "email", "mobileNo"]}
             onResults={handleSearchResults}
-            className="w-[250px] mb-4"
+            className="w-full sm:w-[220px] md:w-[250px]"
           />
-          <div>
+          <div className="w-full sm:w-auto">
             <DateRangeFilter
               onDateRangeChange={handleDateFilter}
               title="Search by Registration Date"
             />
           </div>
-          {/* {(isSuperAdmin || isSchoolRole || isBranchGroup) && (
-            <CustomFilter
-              data={filterResults as any[]}
-              originalData={filterResults as any[]}
-              filterFields={["fullAccess"]}
-              onFilter={handleCustomFilter as any}
-              placeholder={"Filter by Access"}
-              className="w-[180px]"
-              valueFormatter={(value) =>
-                value ? "Full Access" : "Limited Access"
-              }
-              booleanToLable={"fullAccess"}
-              trueValue={"Full Access"}
-              falseValue={"Limited Access"}
-            />
-          )} */}
           <ColumnVisibilitySelector
             columns={table.getAllColumns()}
             buttonVariant="outline"
@@ -1219,7 +1179,7 @@ export default function BranchMaster() {
           />
         </section>
 
-        <section className="flex flex-wrap gap-2 items-center mb-4">
+        <section className="flex flex-wrap gap-2 items-center">
           <Button variant="outline" onClick={handleExportPDF} className="gap-2">
             Export PDF
           </Button>
@@ -1232,12 +1192,12 @@ export default function BranchMaster() {
               {isSuperAdmin && (
                 <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="default" className="text-white">Add School</Button>
+                    <Button variant="default" className="text-white">Add Business Manager</Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[600px]">
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <DialogHeader>
-                        <DialogTitle>Add School</DialogTitle>
+                        <DialogTitle>Add Business Manager</DialogTitle>
                       </DialogHeader>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="grid gap-2">
@@ -1251,11 +1211,11 @@ export default function BranchMaster() {
                         </div>
 
                         <div className="grid gap-2">
-                          <Label htmlFor="safetyHeadName">Safety Head Name*</Label>
+                          <Label htmlFor="safetyHeadName">Business Manager Name*</Label>
                           <Input
                             id="safetyHeadName"
                             name="safetyHeadName"
-                            placeholder="Enter safety head name"
+                            placeholder="Enter business manager name"
                             required
                           />
                         </div>

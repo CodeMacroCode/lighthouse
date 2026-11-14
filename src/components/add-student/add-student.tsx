@@ -677,7 +677,7 @@ export default function AddStudentForm({
                   className="shrink-0"
                   disabled={!branchSelected}
                   onClick={() => setShowAddParent(true)}
-                  title="Add Coordinator"
+                  title="Add Area Operations Manager"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>

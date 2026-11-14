@@ -48,12 +48,20 @@ export interface IncidentStatsData {
 }
 
 export const incidentService = {
-  getIncidents: async (params: { page: number; limit: number | string; status?: string; region?: string }): Promise<IncidentResponse> => {
+  getIncidents: async (params: { page: number; limit: number | string; status?: string; region?: string; search?: string }): Promise<IncidentResponse> => {
     return await api.get<IncidentResponse>("/get-incidents", params);
   },
 
   getIncidentStats: async (params?: { region?: string; category?: string; month?: string; startDate?: string; endDate?: string }): Promise<{ success: boolean; data: IncidentStatsData }> => {
     return await api.get<{ success: boolean; data: IncidentStatsData }>("/incident-stats", params);
+  },
+
+  getNationalDashboard: async (params?: { state?: string }): Promise<any> => {
+    return await api.get<any>("/national-dashboard", params);
+  },
+
+  getEscalationMatrix: async (): Promise<any> => {
+    return await api.get<any>("/escalation-matrix");
   },
 
   addIncident: async (data: any): Promise<any> => {
@@ -66,6 +74,14 @@ export const incidentService = {
 
   updateIncidentStatus: async (id: string, data: any): Promise<any> => {
     return await api.put<any>(`/update-incident-status/${id}`, data);
+  },
+
+  deleteIncident: async (id: string): Promise<any> => {
+    return await api.delete<any>(`/delete-incident/${id}`);
+  },
+
+  getAuditLogs: async (params?: { page?: number; limit?: number | string; action?: string; search?: string }): Promise<any> => {
+    return await api.get<any>("/audit-logs", params);
   },
 };
 

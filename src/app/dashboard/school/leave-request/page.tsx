@@ -163,7 +163,7 @@ export default function LeaveRequestMaster() {
     },
     {
       id: "parentName",
-      header: "Coordinator Name",
+      header: "Area Operations Manager Name",
       accessorFn: (row) => row.parentId?.parentName ?? "",
     },
     {

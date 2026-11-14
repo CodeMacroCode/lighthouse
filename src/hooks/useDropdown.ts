@@ -1,5 +1,7 @@
 import { dropdownService } from "@/services/api/dropdownService";
+import { api } from "@/services/apiService";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { PREK_ROLES } from "@/constants/roles";
 
 export interface DropdownItem {
   _id: string;
@@ -27,6 +29,40 @@ export const useSchoolDropdown = (shouldFetch: boolean = true) => {
     queryFn: dropdownService.getSchools,
     enabled: shouldFetch,
     select: (res) => res.data.data,
+    refetchOnWindowFocus: false,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export interface BranchGroupDropdownItem {
+  _id: string;
+  branchGroupName: string;
+  regionHeadName?: string;
+  schoolId?: { _id: string; schoolName: string } | string;
+  AssignedBranch?: { _id: string; branchName: string }[];
+  [key: string]: any;
+}
+
+export const useBranchGroupDropdown = (shouldFetch: boolean = true) => {
+  return useQuery({
+    queryKey: ["branchGroups-dropdown"],
+    queryFn: async () => {
+      try {
+        const res: any = await api.get("/users", { params: { role: PREK_ROLES.RSO } });
+        const list = res?.data || (Array.isArray(res) ? res : []);
+        if (Array.isArray(list)) {
+          return list.map((u: any) => ({
+            ...u,
+            _id: u._id || u.id,
+            branchGroupName: u.name || u.branchGroupName || u.username,
+          }));
+        }
+      } catch {}
+      return [];
+    },
+    enabled: shouldFetch,
+    select: (res: any) => (Array.isArray(res) ? res : res?.data || []),
     refetchOnWindowFocus: false,
     retry: false,
     staleTime: 5 * 60 * 1000,

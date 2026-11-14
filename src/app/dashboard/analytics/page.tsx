@@ -132,17 +132,17 @@ function Overview({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 rounded-lg p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <div className="md:col-span-2 rounded-lg p-3 sm:p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
           <div className="text-sm font-semibold mb-3" style={{ color: INK }}>Incident Trend by Severity</div>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={trendData}>
+            <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: MUTED }} />
               <YAxis tick={{ fontSize: 11, fill: MUTED }} allowDecimals={false} />
               <Tooltip />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
               {SEVERITY_LEVELS.map((s) => (
                 <Area
                   key={s}
@@ -157,7 +157,7 @@ function Overview({
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <div className="rounded-lg p-4 flex flex-col justify-between" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <div className="rounded-lg p-3 sm:p-4 flex flex-col justify-between" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-semibold" style={{ color: INK }}>Severity Split</div>
             <span className="text-xs font-mono text-slate-500 font-medium">Total: {totalSeverity}</span>
@@ -213,7 +213,7 @@ function Overview({
                 <div key={lvl} className="flex flex-col items-center">
                   <div className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                    <span className="text-[11px] font-medium text-slate-600">{lvl}</span>
+                    <span className="text-[10px] sm:text-[11px] font-medium text-slate-600">{lvl}</span>
                   </div>
                   <span className="font-bold text-slate-900 text-xs font-mono mt-0.5">{count}</span>
                 </div>
@@ -224,22 +224,22 @@ function Overview({
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
-        <div className="rounded-lg p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <div className="rounded-lg p-3 sm:p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
           <div className="text-sm font-semibold mb-3" style={{ color: INK }}>Incidents by Type</div>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={typeData} layout="vertical" margin={{ left: 20 }}>
+            <BarChart data={typeData} layout="vertical" margin={{ left: -10, right: 10, top: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BORDER} horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: MUTED }} allowDecimals={false} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: MUTED }} width={130} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: MUTED }} allowDecimals={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: MUTED }} width={100} />
               <Tooltip />
               <Bar dataKey="count" fill={STEEL} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="rounded-lg p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <div className="rounded-lg p-3 sm:p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
           <div className="text-sm font-semibold mb-3" style={{ color: INK }}>Region Comparison</div>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={regionData}>
+            <BarChart data={regionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: MUTED }} />
               <YAxis tick={{ fontSize: 11, fill: MUTED }} allowDecimals={false} />
@@ -250,24 +250,27 @@ function Overview({
         </div>
       </div>
 
-      <div className="rounded-lg p-4 overflow-x-auto" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-semibold" style={{ color: INK }}>Month-wise Summary</div>
+      <div className="rounded-lg p-3 sm:p-4 overflow-x-auto scrollbar-thin" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+          <div>
+            <div className="text-sm font-semibold" style={{ color: INK }}>Month-wise Summary</div>
+            <div className="text-[11px] text-slate-400 font-normal sm:hidden mt-0.5">Scroll horizontally to view columns →</div>
+          </div>
           {activeMonth !== "All" && (
             <button
               onClick={() => onSelectMonth("All")}
-              className="text-xs font-semibold flex items-center gap-1 cursor-pointer"
+              className="text-xs font-semibold flex items-center gap-1 cursor-pointer bg-slate-100 px-2 py-1 rounded"
               style={{ color: MUTED }}
             >
               <X size={12} /> Clear month filter
             </button>
           )}
         </div>
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[520px] text-xs sm:text-sm">
           <thead>
             <tr style={{ background: "#F7F8FA" }}>
               {["Month", "Total", "Open", "Closed", "Closure Rate", "Severity Mix"].map((h) => (
-                <th key={h} className="text-left px-3 py-2 text-xs font-semibold" style={{ color: MUTED }}>
+                <th key={h} className="text-left px-3 py-2 text-xs font-semibold whitespace-nowrap" style={{ color: MUTED }}>
                   {h}
                 </th>
               ))}
@@ -330,22 +333,23 @@ function Overview({
 
       {/* Incident Type × Region Matrix Table (Using the existing table) */}
       <div className="bg-white rounded-lg border border-slate-200/90 shadow-sm overflow-hidden">
-        <div className="p-5 pb-3">
+        <div className="p-4 sm:p-5 pb-2 sm:pb-3 flex items-center justify-between gap-2 flex-wrap">
           <h2 className="text-sm font-bold text-slate-800 tracking-wide">
             Incident Type × Region
           </h2>
+          <span className="text-[11px] text-slate-400 font-normal sm:hidden">Scroll to view all →</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border-collapse">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-[500px] text-xs text-left border-collapse">
             <thead>
               <tr className="bg-[#0b1b2d] text-white">
-                <th className="py-3 px-4 font-semibold">Incident Type</th>
-                <th className={`py-3 px-4 text-center font-semibold ${activeRegion === "North" ? "bg-[#162f4c]" : ""}`}>North</th>
-                <th className={`py-3 px-4 text-center font-semibold ${activeRegion === "South" ? "bg-[#162f4c]" : ""}`}>South</th>
-                <th className={`py-3 px-4 text-center font-semibold ${activeRegion === "East" ? "bg-[#162f4c]" : ""}`}>East</th>
-                <th className={`py-3 px-4 text-center font-semibold ${activeRegion === "West" ? "bg-[#162f4c]" : ""}`}>West</th>
-                <th className="py-3 px-4 text-center font-bold text-orange-400">Total</th>
+                <th className="py-2.5 sm:py-3 px-3 sm:px-4 font-semibold whitespace-nowrap">Incident Type</th>
+                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "North" ? "bg-[#162f4c]" : ""}`}>North</th>
+                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "South" ? "bg-[#162f4c]" : ""}`}>South</th>
+                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "East" ? "bg-[#162f4c]" : ""}`}>East</th>
+                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "West" ? "bg-[#162f4c]" : ""}`}>West</th>
+                <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center font-bold text-orange-400 whitespace-nowrap">Total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -363,20 +367,20 @@ function Overview({
                       key={row.type}
                       className={`transition-colors hover:bg-slate-50/80 ${isEven ? "bg-white" : "bg-[#f8fafc]/60"}`}
                     >
-                      <td className="py-2.5 px-4 font-medium text-slate-800">{row.type}</td>
-                      <td className={`py-2.5 px-4 text-center ${row.north === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${activeRegion === "North" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                      <td className="py-2 px-3 sm:px-4 font-medium text-slate-800 whitespace-nowrap">{row.type}</td>
+                      <td className={`py-2 px-3 sm:px-4 text-center ${row.north === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${activeRegion === "North" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
                         {row.north}
                       </td>
-                      <td className={`py-2.5 px-4 text-center ${row.south === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${activeRegion === "South" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                      <td className={`py-2 px-3 sm:px-4 text-center ${row.south === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${activeRegion === "South" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
                         {row.south}
                       </td>
-                      <td className={`py-2.5 px-4 text-center ${row.east === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${activeRegion === "East" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                      <td className={`py-2 px-3 sm:px-4 text-center ${row.east === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${activeRegion === "East" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
                         {row.east}
                       </td>
-                      <td className={`py-2.5 px-4 text-center ${row.west === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${activeRegion === "West" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                      <td className={`py-2 px-3 sm:px-4 text-center ${row.west === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${activeRegion === "West" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
                         {row.west}
                       </td>
-                      <td className="py-2.5 px-4 text-center font-bold text-[#e07a38]">
+                      <td className="py-2 px-3 sm:px-4 text-center font-bold text-[#e07a38]">
                         {row.total}
                       </td>
                     </tr>
@@ -445,6 +449,27 @@ export default function AnalyticsDashboardPage() {
       active = false;
     };
   }, [selectedRegion]);
+
+  // BRD v1.1 National Dashboard Data
+  const [nationalDashboardData, setNationalDashboardData] = useState<any>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchNational() {
+      try {
+        const res = await incidentService.getNationalDashboard();
+        if (active && res && (res.data || res.success)) {
+          setNationalDashboardData(res.data || res);
+        }
+      } catch (err) {
+        console.warn("National dashboard API fallback to local computation:", err);
+      }
+    }
+    fetchNational();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Live Incident Stats for Zone Overview
   const [zoneBaselineData, setZoneBaselineData] = useState<IncidentStatsData | null>(null);
@@ -660,16 +685,16 @@ export default function AnalyticsDashboardPage() {
   }, [activeZoneData]);
 
   return (
-    <div className="min-h-full bg-[#f8fafc] text-slate-800 -m-2 md:-m-4">
+    <div className="min-h-full bg-[#f8fafc] text-slate-800 -m-2 md:-m-4 overflow-x-clip">
       {/* 1. TOP NAVIGATION SUB-TABS */}
-      <div className="bg-white border-b border-slate-200 px-4 md:px-8 flex items-center gap-8 text-xs md:text-sm shadow-2xs">
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-4 md:px-8 flex items-center gap-4 sm:gap-6 md:gap-8 text-xs md:text-sm shadow-2xs overflow-x-auto no-scrollbar scrollbar-none">
         {(["National", "Zone Overview", "Escalation Matrix"] as TabType[]).map((tab) => {
           const isActive = activeTab === tab;
           return (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-3.5 font-semibold cursor-pointer relative transition-colors whitespace-nowrap ${
+              className={`py-3 sm:py-3.5 font-semibold cursor-pointer relative transition-colors whitespace-nowrap shrink-0 ${
                 isActive ? "text-slate-900 font-bold" : "text-slate-500 hover:text-slate-800"
               }`}
             >
@@ -684,15 +709,15 @@ export default function AnalyticsDashboardPage() {
 
       {/* 2. REGION FILTER TABS (Shown on National tab) */}
       {activeTab === "National" && (
-        <div className="bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between overflow-x-auto shadow-2xs">
-          <div className="flex items-center gap-6">
+        <div className="bg-white border-b border-slate-200 px-3 sm:px-4 md:px-8 flex items-center justify-between overflow-x-auto shadow-2xs no-scrollbar scrollbar-none">
+          <div className="flex items-center gap-3 sm:gap-4 md:gap-6 shrink-0">
             {(["All Regions", "North", "South", "East", "West"] as Region[]).map((region) => {
               const isActive = selectedRegion === region;
               return (
                 <button
                   key={region}
                   onClick={() => setSelectedRegion(region)}
-                  className={`py-3 text-xs md:text-sm transition-all duration-150 whitespace-nowrap cursor-pointer relative ${
+                  className={`py-2.5 sm:py-3 text-xs md:text-sm transition-all duration-150 whitespace-nowrap cursor-pointer relative shrink-0 ${
                     isActive
                       ? "text-slate-900 font-bold"
                       : "text-slate-500 font-medium hover:text-slate-800"
@@ -707,20 +732,62 @@ export default function AnalyticsDashboardPage() {
             })}
           </div>
           {loadingStats && (
-            <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-400 py-2 pl-3 sm:pl-4 shrink-0">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-500" />
-              <span>Updating...</span>
+              <span className="hidden sm:inline">Updating...</span>
             </div>
           )}
         </div>
       )}
 
-      <div className="p-4 md:p-6 space-y-6 max-w-[1600px] mx-auto">
+      {/* 2. ZONE FILTER TABS & MONTH SELECTOR (Single line, no scrollbar) */}
+      {activeTab === "Zone Overview" && (
+        <div className="bg-white border-b border-slate-200 px-2.5 sm:px-4 md:px-8 flex items-center justify-between gap-2 shadow-2xs no-scrollbar">
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-6 shrink-0">
+            {(["All", ...REGIONS]).map((r) => {
+              const isActive = activeZoneRegion === r;
+              const label = r === "All" ? "All Zones" : r;
+              return (
+                <button
+                  key={r}
+                  onClick={() => setActiveZoneRegion(r)}
+                  className={`py-2.5 sm:py-3 text-[11px] sm:text-xs md:text-sm transition-all duration-150 whitespace-nowrap cursor-pointer relative shrink-0 ${
+                    isActive
+                      ? "text-slate-900 font-bold"
+                      : "text-slate-500 font-medium hover:text-slate-800"
+                  }`}
+                >
+                  {label}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#ea580c] rounded-t-full transition-all" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center py-1.5 sm:py-2 shrink-0">
+            <select
+              value={activeZoneMonth}
+              onChange={(e) => setActiveZoneMonth(e.target.value)}
+              className="text-[11px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md border border-slate-300 flex-shrink-0 cursor-pointer bg-white text-slate-700 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            >
+              <option value="All">All Months</option>
+              {zoneMonthOptions.map((m) => (
+                <option key={m.key} value={m.key}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-[1600px] mx-auto">
         {/* ======================================================== */}
         {/* TAB 1: NATIONAL OVERVIEW (WITH 4 KPI CARDS & FULL STATS) */}
         {/* ======================================================== */}
         {activeTab === "National" && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {statsError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700 flex items-center justify-between">
                 <span>{statsError}</span>
@@ -733,54 +800,66 @@ export default function AnalyticsDashboardPage() {
               </div>
             )}
 
-            {/* KPI METRIC CARDS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-sm border-l-4 border-l-[#0f2942] transition-transform hover:-translate-y-0.5 duration-200">
-                <div className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+            {/* KPI METRIC CARDS (BRD v1.1 FR-3.1 Baseline Metrics) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
+              <div className="bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-5 shadow-sm border-l-4 border-l-[#0f2942] transition-transform hover:-translate-y-0.5 duration-200">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
                   {loadingStats && !statsData ? "..." : totalIncidents}
                 </div>
-                <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1.5">
+                <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider mt-1 sm:mt-1.5">
                   Total Incidents
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-sm border-l-4 border-l-[#d97706] transition-transform hover:-translate-y-0.5 duration-200">
-                <div className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              <div className="bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-5 shadow-sm border-l-4 border-l-[#d97706] transition-transform hover:-translate-y-0.5 duration-200">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
                   {loadingStats && !statsData ? "..." : openCases}
                 </div>
-                <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1.5">
+                <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider mt-1 sm:mt-1.5">
                   Open Cases
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-sm border-l-4 border-l-[#991b1b] transition-transform hover:-translate-y-0.5 duration-200">
-                <div className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              <div className="bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-5 shadow-sm border-l-4 border-l-[#991b1b] transition-transform hover:-translate-y-0.5 duration-200">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
                   {loadingStats && !statsData ? "..." : highOrCritical}
                 </div>
-                <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1.5">
+                <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider mt-1 sm:mt-1.5">
                   High / Critical
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200/80 p-5 shadow-sm border-l-4 border-l-[#059669] transition-transform hover:-translate-y-0.5 duration-200">
-                <div className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              <div className="bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-5 shadow-sm border-l-4 border-l-[#059669] transition-transform hover:-translate-y-0.5 duration-200">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
                   {loadingStats && !statsData ? "..." : closureRate}
                 </div>
-                <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1.5">
+                <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider mt-1 sm:mt-1.5">
                   Closure Rate
+                </div>
+              </div>
+
+              <div className="col-span-2 sm:col-span-1 bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-5 shadow-sm border-l-4 border-l-[#2563eb] transition-transform hover:-translate-y-0.5 duration-200">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+                  {nationalDashboardData?.totalCentres || 2260}
+                </div>
+                <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider mt-1 sm:mt-1.5">
+                  Network Centres
                 </div>
               </div>
             </div>
 
             {/* ROW 1: Incident Trend by Severity & Severity Split */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
               {/* Card 1: Incident Trend by Severity (Stacked Bar) */}
-              <div className="lg:col-span-8 bg-white rounded-lg border border-slate-200/90 p-6 shadow-sm">
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide mb-6">
-                  Incident Trend by Severity
-                </h2>
+              <div className="lg:col-span-8 bg-white rounded-lg border border-slate-200/90 p-4 sm:p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h2 className="text-sm font-bold text-slate-800 tracking-wide">
+                    Incident Trend by Severity
+                  </h2>
+                  <span className="text-[11px] text-slate-400 font-normal sm:hidden">Scroll months →</span>
+                </div>
 
-                <div className="h-64 flex items-end justify-center gap-8 md:gap-16 px-4 overflow-x-auto">
+                <div className="h-60 sm:h-64 flex items-end justify-start sm:justify-center gap-6 sm:gap-10 md:gap-16 px-2 sm:px-4 overflow-x-auto scrollbar-thin">
                   {incidentTrend.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-slate-400 text-xs w-full">
                       No trend data available for this selection
@@ -794,7 +873,7 @@ export default function AnalyticsDashboardPage() {
 
                       return (
                         <div key={`${item.month || idx}-${idx}`} className="flex flex-col items-center flex-shrink-0">
-                          <div className="w-14 sm:w-16 flex flex-col-reverse rounded-t-sm overflow-hidden shadow-sm transition-all duration-300 hover:brightness-105">
+                          <div className="w-11 sm:w-16 flex flex-col-reverse rounded-t-sm overflow-hidden shadow-sm transition-all duration-300 hover:brightness-105">
                             {(item.low || 0) > 0 && (
                               <div
                                 style={{ height: `${lowH}px` }}
@@ -828,9 +907,9 @@ export default function AnalyticsDashboardPage() {
                             )}
                           </div>
 
-                          <div className="text-center mt-3">
-                            <div className="text-xs font-medium text-slate-700">{item.month}</div>
-                            <div className="text-sm font-bold text-slate-900 mt-0.5">{item.total}</div>
+                          <div className="text-center mt-2.5 sm:mt-3">
+                            <div className="text-[11px] sm:text-xs font-medium text-slate-700">{item.month}</div>
+                            <div className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5">{item.total}</div>
                           </div>
                         </div>
                       );
@@ -838,20 +917,20 @@ export default function AnalyticsDashboardPage() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-slate-100 text-xs font-medium text-slate-600">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-100 text-[11px] sm:text-xs font-medium text-slate-600">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="w-2.5 h-2.5 rounded-sm bg-[#2e7d52]" />
                     <span>Low</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="w-2.5 h-2.5 rounded-sm bg-[#b87326]" />
                     <span>Medium</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="w-2.5 h-2.5 rounded-sm bg-[#b93829]" />
                     <span>High</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="w-2.5 h-2.5 rounded-sm bg-[#651212]" />
                     <span>Critical</span>
                   </div>
@@ -859,13 +938,13 @@ export default function AnalyticsDashboardPage() {
               </div>
 
               {/* Card 2: Severity Split */}
-              <div className="lg:col-span-4 bg-white rounded-lg border border-slate-200/90 p-6 shadow-sm flex flex-col justify-between">
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide mb-4">
+              <div className="lg:col-span-4 bg-white rounded-lg border border-slate-200/90 p-4 sm:p-6 shadow-sm flex flex-col justify-between">
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide mb-3 sm:mb-4">
                   Severity Split
                 </h2>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-6 my-auto">
-                  <div className="relative w-44 h-44 flex items-center justify-center">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 my-auto">
+                  <div className="relative w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center shrink-0">
                     <svg viewBox="0 0 180 180" className="w-full h-full -rotate-90 transform overflow-visible">
                       {severitySegments
                         .filter((seg) => seg.dash > 0)
@@ -896,36 +975,36 @@ export default function AnalyticsDashboardPage() {
                     </svg>
 
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-xs text-slate-400 font-medium">Total</span>
-                      <span className="text-xl font-extrabold text-slate-900">{totalSeverity}</span>
+                      <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Total</span>
+                      <span className="text-lg sm:text-xl font-extrabold text-slate-900">{totalSeverity}</span>
                     </div>
                   </div>
 
-                  <div className="space-y-3 text-xs md:text-sm font-medium">
+                  <div className="grid grid-cols-2 sm:flex sm:flex-col gap-2 sm:gap-3 text-xs md:text-sm font-medium w-full sm:w-auto">
                     {severityItems.map((item) => {
                       const color = SEVERITY_COLORS[item.name as keyof typeof SEVERITY_COLORS] || "#64748b";
                       return (
-                        <div key={item.name} className="flex items-center gap-2.5">
-                          <span className="w-3 h-3 rounded-xs shrink-0" style={{ backgroundColor: color }} />
-                          <span className="text-slate-600 w-16">{item.name}</span>
-                          <span className="text-slate-400 font-normal">—</span>
-                          <span className="font-bold text-slate-900">{item.value}</span>
+                        <div key={item.name} className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-xs shrink-0" style={{ backgroundColor: color }} />
+                          <span className="text-slate-600 w-14 sm:w-16 text-xs">{item.name}</span>
+                          <span className="text-slate-400 font-normal hidden sm:inline">—</span>
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm ml-auto sm:ml-0">{item.value}</span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
 
-                <div className="text-[11px] text-slate-400 text-center mt-4">
+                <div className="text-[10px] sm:text-[11px] text-slate-400 text-center mt-3 sm:mt-4">
                   Categorized by initial safety assessment
                 </div>
               </div>
             </div>
 
             {/* ROW 2: Incidents by Type & Region Comparison */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg border border-slate-200/90 p-6 shadow-sm">
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="bg-white rounded-lg border border-slate-200/90 p-4 sm:p-6 shadow-sm">
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide mb-4 sm:mb-6">
                   Incidents by Type
                 </h2>
 
@@ -934,21 +1013,21 @@ export default function AnalyticsDashboardPage() {
                     No incidents recorded by type
                   </div>
                 ) : (
-                  <div className="space-y-3.5">
+                  <div className="space-y-3 sm:space-y-3.5">
                     {incidentsByType.map((item, idx) => {
                       const widthPercent = (item.count / maxTypeCount) * 100;
                       return (
-                        <div key={`${item.name || idx}-${idx}`} className="flex items-center gap-3 text-xs">
-                          <div className="w-40 sm:w-44 text-right truncate text-slate-700 font-medium shrink-0">
+                        <div key={`${item.name || idx}-${idx}`} className="flex items-center gap-2 sm:gap-3 text-xs">
+                          <div className="w-28 sm:w-40 md:w-44 text-right truncate text-slate-700 font-medium shrink-0 text-[11px] sm:text-xs">
                             {item.name}
                           </div>
-                          <div className="flex-1 bg-slate-100 rounded-sm h-5 overflow-hidden flex items-center pr-2">
+                          <div className="flex-1 bg-slate-100 rounded-sm h-4 sm:h-5 overflow-hidden flex items-center pr-2">
                             <div
                               style={{ width: `${Math.max(widthPercent, 2)}%` }}
                               className="bg-[#0f2942] h-full rounded-sm transition-all duration-500 ease-out"
                             />
                           </div>
-                          <div className="w-6 text-right font-bold text-slate-800 shrink-0">
+                          <div className="w-6 text-right font-bold text-slate-800 shrink-0 text-[11px] sm:text-xs">
                             {item.count}
                           </div>
                         </div>
@@ -958,8 +1037,8 @@ export default function AnalyticsDashboardPage() {
                 )}
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200/90 p-6 shadow-sm">
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide mb-6">
+              <div className="bg-white rounded-lg border border-slate-200/90 p-4 sm:p-6 shadow-sm">
+                <h2 className="text-sm font-bold text-slate-800 tracking-wide mb-4 sm:mb-6">
                   Region Comparison
                 </h2>
 
@@ -968,21 +1047,21 @@ export default function AnalyticsDashboardPage() {
                     No regional comparison data available
                   </div>
                 ) : (
-                  <div className="h-56 flex items-end justify-between px-4 sm:px-8 pt-6">
+                  <div className="h-48 sm:h-56 flex items-end justify-between px-2 sm:px-8 pt-4 sm:pt-6">
                     {regionComparison.map((item, idx) => {
                       const barHeight = ((item.count || 0) / maxRegionVal) * 160;
                       const isSelected = selectedRegion === "All Regions" || (item.region && selectedRegion.toLowerCase() === item.region.toLowerCase());
 
                       return (
-                        <div key={`${item.region || idx}-${idx}`} className="flex flex-col items-center flex-1 max-w-[60px]">
+                        <div key={`${item.region || idx}-${idx}`} className="flex flex-col items-center flex-1 max-w-[50px] sm:max-w-[60px]">
                           <div className="text-xs font-bold text-slate-700 mb-1.5">{item.count}</div>
                           <div
                             style={{ height: `${Math.max(barHeight, 4)}px` }}
-                            className={`w-10 sm:w-12 rounded-t-sm transition-all duration-300 ${
+                            className={`w-8 sm:w-12 rounded-t-sm transition-all duration-300 ${
                               isSelected ? "bg-[#e07a38] hover:bg-[#d06927]" : "bg-[#e07a38]/40"
                             }`}
                           />
-                          <div className="text-[11px] font-medium text-slate-600 mt-2.5">
+                          <div className="text-[10px] sm:text-[11px] font-medium text-slate-600 mt-2 sm:mt-2.5 truncate max-w-full text-center">
                             {item.region}
                           </div>
                         </div>
@@ -995,22 +1074,23 @@ export default function AnalyticsDashboardPage() {
 
             {/* ROW 3: Incident Type × Region Matrix Table */}
             <div className="bg-white rounded-lg border border-slate-200/90 shadow-sm overflow-hidden">
-              <div className="p-5 pb-3">
+              <div className="p-4 sm:p-5 pb-2 sm:pb-3 flex items-center justify-between gap-2 flex-wrap">
                 <h2 className="text-sm font-bold text-slate-800 tracking-wide">
                   Incident Type × Region
                 </h2>
+                <span className="text-[11px] text-slate-400 font-normal sm:hidden">Scroll to view all →</span>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left border-collapse">
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full min-w-[500px] text-xs text-left border-collapse">
                   <thead>
                     <tr className="bg-[#0b1b2d] text-white">
-                      <th className="py-3 px-4 font-semibold">Incident Type</th>
-                      <th className={`py-3 px-4 text-center font-semibold ${selectedRegion === "North" ? "bg-[#162f4c]" : ""}`}>North</th>
-                      <th className={`py-3 px-4 text-center font-semibold ${selectedRegion === "South" ? "bg-[#162f4c]" : ""}`}>South</th>
-                      <th className={`py-3 px-4 text-center font-semibold ${selectedRegion === "East" ? "bg-[#162f4c]" : ""}`}>East</th>
-                      <th className={`py-3 px-4 text-center font-semibold ${selectedRegion === "West" ? "bg-[#162f4c]" : ""}`}>West</th>
-                      <th className="py-3 px-4 text-center font-bold text-orange-400">Total</th>
+                      <th className="py-2.5 sm:py-3 px-3 sm:px-4 font-semibold whitespace-nowrap">Incident Type</th>
+                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "North" ? "bg-[#162f4c]" : ""}`}>North</th>
+                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "South" ? "bg-[#162f4c]" : ""}`}>South</th>
+                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "East" ? "bg-[#162f4c]" : ""}`}>East</th>
+                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "West" ? "bg-[#162f4c]" : ""}`}>West</th>
+                      <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center font-bold text-orange-400 whitespace-nowrap">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1028,20 +1108,20 @@ export default function AnalyticsDashboardPage() {
                             key={`${row.type || idx}-${idx}`}
                             className={`transition-colors hover:bg-slate-50/80 ${isEven ? "bg-white" : "bg-[#f8fafc]/60"}`}
                           >
-                            <td className="py-2.5 px-4 font-medium text-slate-800">{row.type}</td>
-                            <td className={`py-2.5 px-4 text-center ${row.north === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "North" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                            <td className="py-2 px-3 sm:px-4 font-medium text-slate-800 whitespace-nowrap">{row.type}</td>
+                            <td className={`py-2 px-3 sm:px-4 text-center ${row.north === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "North" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
                               {row.north ?? 0}
                             </td>
-                            <td className={`py-2.5 px-4 text-center ${row.south === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "South" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                            <td className={`py-2 px-3 sm:px-4 text-center ${row.south === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "South" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
                               {row.south ?? 0}
                             </td>
-                            <td className={`py-2.5 px-4 text-center ${row.east === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "East" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                            <td className={`py-2 px-3 sm:px-4 text-center ${row.east === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "East" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
                               {row.east ?? 0}
                             </td>
-                            <td className={`py-2.5 px-4 text-center ${row.west === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "West" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                            <td className={`py-2 px-3 sm:px-4 text-center ${row.west === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "West" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
                               {row.west ?? 0}
                             </td>
-                            <td className="py-2.5 px-4 text-center font-bold text-[#e07a38]">
+                            <td className="py-2 px-3 sm:px-4 text-center font-bold text-[#e07a38]">
                               {row.total ?? 0}
                             </td>
                           </tr>
@@ -1059,44 +1139,9 @@ export default function AnalyticsDashboardPage() {
         {/* TAB 2: ZONE OVERVIEW (FROM example.md)                   */}
         {/* ======================================================== */}
         {activeTab === "Zone Overview" && (
-          <div className="space-y-6">
-            {/* Zone & Month filter subheader bar matching example.md */}
-            <div className="w-full border-b bg-white -mt-6 -mx-4 md:-mx-6 mb-6 px-4 md:px-6 py-0 border-slate-200">
-              <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-3">
-                <div className="flex gap-1 overflow-x-auto">
-                  {["All", ...REGIONS].map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => setActiveZoneRegion(r)}
-                      className="px-4 py-3 text-xs md:text-sm font-semibold whitespace-nowrap border-b-2 transition-colors cursor-pointer"
-                      style={{
-                        borderColor: activeZoneRegion === r ? "#E8843A" : "transparent",
-                        color: activeZoneRegion === r ? INK : MUTED,
-                        fontFamily: "Inter, sans-serif",
-                      }}
-                    >
-                      {r === "All" ? "All Zones" : `${r} Zone`}
-                    </button>
-                  ))}
-                </div>
-                <select
-                  value={activeZoneMonth}
-                  onChange={(e) => setActiveZoneMonth(e.target.value)}
-                  className="text-xs font-semibold px-3 py-1.5 rounded border flex-shrink-0 cursor-pointer bg-white"
-                  style={{ borderColor: BORDER, color: INK, fontFamily: "Inter, sans-serif" }}
-                >
-                  <option value="All">All Months</option>
-                  {zoneMonthOptions.map((m) => (
-                    <option key={m.key} value={m.key}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
+          <div className="space-y-4 sm:space-y-6">
             {/* KPI strip matching example.md */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
               {[
                 { label: "Total Incidents", value: zoneKpis.total, icon: FolderOpen, color: STEEL },
                 { label: "Open Cases", value: zoneKpis.open, icon: Clock, color: STATUS_COLORS.Open },
@@ -1105,16 +1150,16 @@ export default function AnalyticsDashboardPage() {
               ].map((k, idx) => (
                 <div
                   key={idx}
-                  className="rounded-lg p-4"
+                  className="rounded-lg p-3 sm:p-4"
                   style={{ background: CARD, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${k.color}` }}
                 >
                   <div className="flex items-center justify-between">
-                    <div style={{ fontFamily: "IBM Plex Mono, monospace", fontWeight: 600, fontSize: "1.9rem", color: INK }}>
+                    <div style={{ fontFamily: "IBM Plex Mono, monospace", fontWeight: 600, color: INK }} className="text-2xl sm:text-3xl">
                       {k.value}
                     </div>
                     <k.icon size={18} color={k.color} />
                   </div>
-                  <div style={{ color: MUTED }} className="text-xs mt-1 font-medium">
+                  <div style={{ color: MUTED }} className="text-[11px] sm:text-xs mt-1 font-medium">
                     {k.label}
                   </div>
                 </div>
@@ -1140,38 +1185,19 @@ export default function AnalyticsDashboardPage() {
         {/* TAB 3: ESCALATION MATRIX                                 */}
         {/* ======================================================== */}
         {activeTab === "Escalation Matrix" && (
-          <div className="bg-white rounded-xl border border-slate-200/90 p-6 md:p-8 shadow-sm space-y-3.5">
-            <p className="text-xs md:text-sm text-slate-600 mb-6">
+          <div className="bg-white rounded-xl border border-slate-200/90 p-4 sm:p-6 md:p-8 shadow-sm space-y-3 sm:space-y-3.5">
+            <p className="text-xs md:text-sm text-slate-600 mb-4 sm:mb-6 leading-relaxed">
               Every incident is routed automatically to an owner based on severity. Reps can still escalate manually if a case feels understated.
             </p>
 
             {/* Row 1: LOW */}
-            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-4 md:py-4 md:px-5 border-l-4 border-l-[#1b6d48] flex flex-col md:flex-row md:items-center gap-3 md:gap-5 shadow-2xs">
-              <div className="w-24 shrink-0 flex items-center">
-                <span className="w-full text-center bg-[#eef7f2] text-[#1b6d48] font-bold text-xs uppercase py-1 rounded tracking-wide">
+            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-3.5 sm:p-4 md:py-4 md:px-5 border-l-4 border-l-[#1b6d48] flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3 md:gap-5 shadow-2xs">
+              <div className="flex items-center justify-between md:justify-start md:w-24 shrink-0">
+                <span className="text-center bg-[#eef7f2] text-[#1b6d48] font-bold text-xs uppercase px-2.5 py-1 rounded tracking-wide">
                   LOW
                 </span>
-              </div>
-              <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
-                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
-              </div>
-              <div className="w-full md:w-64 lg:w-72 shrink-0">
-                <div className="text-sm md:text-[15px] font-bold text-slate-900">Branch Manager (BM)</div>
-                <div className="text-xs font-mono text-slate-500 mt-0.5">SLA: 3 working days</div>
-              </div>
-              <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
-                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
-              </div>
-              <div className="flex-1 text-xs md:text-sm text-slate-600 leading-relaxed">
-                Log the case, investigate locally, resolve and close. Include in weekly summary to AOM.
-              </div>
-            </div>
-
-            {/* Row 2: MEDIUM */}
-            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-4 md:py-4 md:px-5 border-l-4 border-l-[#b87326] flex flex-col md:flex-row md:items-center gap-3 md:gap-5 shadow-2xs">
-              <div className="w-24 shrink-0 flex items-center">
-                <span className="w-full text-center bg-[#fdf6ee] text-[#b87326] font-bold text-xs uppercase py-1 rounded tracking-wide">
-                  MEDIUM
+                <span className="md:hidden text-[11px] font-mono font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                  72 hrs
                 </span>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
@@ -1179,21 +1205,64 @@ export default function AnalyticsDashboardPage() {
               </div>
               <div className="w-full md:w-64 lg:w-72 shrink-0">
                 <div className="text-sm md:text-[15px] font-bold text-slate-900">Area Operations Manager (AOM)</div>
-                <div className="text-xs font-mono text-slate-500 mt-0.5">SLA: 48 hours</div>
+                <div className="text-xs font-mono text-slate-500 mt-0.5 hidden md:block">SLA: 3 working days (72 hrs)</div>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
                 <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
               </div>
               <div className="flex-1 text-xs md:text-sm text-slate-600 leading-relaxed">
-                Review with BM, agree corrective action, keep RSO informed via weekly rollup.
+                Log the case, investigate locally, resolve and close. Include in weekly summary to BM.
+                <div className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1 flex-wrap">
+                  <span className="font-semibold text-slate-700">Authorized Closure:</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">AOM</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">BM</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">RSO</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">National Head</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">Central</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 2: MEDIUM */}
+            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-3.5 sm:p-4 md:py-4 md:px-5 border-l-4 border-l-[#b87326] flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3 md:gap-5 shadow-2xs">
+              <div className="flex items-center justify-between md:justify-start md:w-24 shrink-0">
+                <span className="text-center bg-[#fdf6ee] text-[#b87326] font-bold text-xs uppercase px-2.5 py-1 rounded tracking-wide">
+                  MEDIUM
+                </span>
+                <span className="md:hidden text-[11px] font-mono font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                  48 hrs
+                </span>
+              </div>
+              <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
+                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
+              </div>
+              <div className="w-full md:w-64 lg:w-72 shrink-0">
+                <div className="text-sm md:text-[15px] font-bold text-slate-900">Business Manager (BM)</div>
+                <div className="text-xs font-mono text-slate-500 mt-0.5 hidden md:block">SLA: 48 hours</div>
+              </div>
+              <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
+                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
+              </div>
+              <div className="flex-1 text-xs md:text-sm text-slate-600 leading-relaxed">
+                Review with AOM, agree corrective action, keep RSO informed via weekly rollup.
+                <div className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1 flex-wrap">
+                  <span className="font-semibold text-slate-700">Authorized Closure:</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">BM</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">RSO</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">National Head</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">Central</span>
+                </div>
               </div>
             </div>
 
             {/* Row 3: HIGH */}
-            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-4 md:py-4 md:px-5 border-l-4 border-l-[#c2410c] flex flex-col md:flex-row md:items-center gap-3 md:gap-5 shadow-2xs">
-              <div className="w-24 shrink-0 flex items-center">
-                <span className="w-full text-center bg-[#fef2f2] text-[#c2410c] font-bold text-xs uppercase py-1 rounded tracking-wide">
+            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-3.5 sm:p-4 md:py-4 md:px-5 border-l-4 border-l-[#c2410c] flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3 md:gap-5 shadow-2xs">
+              <div className="flex items-center justify-between md:justify-start md:w-24 shrink-0">
+                <span className="text-center bg-[#fef2f2] text-[#c2410c] font-bold text-xs uppercase px-2.5 py-1 rounded tracking-wide">
                   HIGH
+                </span>
+                <span className="md:hidden text-[11px] font-mono font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                  24 hrs
                 </span>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
@@ -1201,40 +1270,53 @@ export default function AnalyticsDashboardPage() {
               </div>
               <div className="w-full md:w-64 lg:w-72 shrink-0">
                 <div className="text-sm md:text-[15px] font-bold text-slate-900">Regional Safety Officer (RSO)</div>
-                <div className="text-xs font-mono text-slate-500 mt-0.5">SLA: 24 hours</div>
+                <div className="text-xs font-mono text-slate-500 mt-0.5 hidden md:block">SLA: 24 hours</div>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
                 <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
               </div>
               <div className="flex-1 text-xs md:text-sm text-slate-600 leading-relaxed">
-                Lead investigation directly, initiate parent/guardian communication, notify Central Safety Team.
+                Lead investigation directly, initiate parent/guardian communication, notify National Head & Central.
+                <div className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1 flex-wrap">
+                  <span className="font-semibold text-slate-700">Authorized Closure:</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">RSO</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">National Head</span>
+                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">Central</span>
+                </div>
               </div>
             </div>
 
             {/* Row 4: CRITICAL */}
-            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-4 md:py-4 md:px-5 border-l-4 border-l-[#781919] flex flex-col md:flex-row md:items-center gap-3 md:gap-5 shadow-2xs">
-              <div className="w-24 shrink-0 flex items-center">
-                <span className="w-full text-center bg-[#fdf2f2] text-[#781919] font-bold text-xs uppercase py-1 rounded tracking-wide">
+            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-3.5 sm:p-4 md:py-4 md:px-5 border-l-4 border-l-[#781919] flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3 md:gap-5 shadow-2xs">
+              <div className="flex items-center justify-between md:justify-start md:w-24 shrink-0">
+                <span className="text-center bg-[#fdf2f2] text-[#781919] font-bold text-xs uppercase px-2.5 py-1 rounded tracking-wide">
                   CRITICAL
+                </span>
+                <span className="md:hidden text-[11px] font-mono font-medium text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded">
+                  2 hrs
                 </span>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
                 <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
               </div>
               <div className="w-full md:w-64 lg:w-72 shrink-0">
-                <div className="text-sm md:text-[15px] font-bold text-slate-900">Central Safety & Compliance</div>
-                <div className="text-xs font-mono text-slate-500 mt-0.5">SLA: 2 hours — immediate</div>
+                <div className="text-sm md:text-[15px] font-bold text-slate-900">Central (All-Activity Admin)</div>
+                <div className="text-xs font-mono text-slate-500 mt-0.5 hidden md:block">SLA: 2 hours — immediate</div>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
                 <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
               </div>
               <div className="flex-1 text-xs md:text-sm text-slate-600 leading-relaxed">
-                RSO and Central notified simultaneously. Mandatory / statutory reporting triggered (e.g. POCSO, Corporal Punishment).
+                RSO, National Head & Central notified simultaneously. Mandatory / statutory reporting triggered (POCSO, Corporal Punishment).
+                <div className="text-[11px] text-red-600 font-semibold mt-1.5 flex items-center gap-1">
+                  <span>Authorized Closure:</span>
+                  <span className="bg-red-50 border border-red-200 text-red-700 px-1.5 py-0.5 rounded text-[10px]">Central only</span>
+                </div>
               </div>
             </div>
 
             {/* Bottom Alert / Warning */}
-            <div className="bg-[#fff8f3] border border-[#fed7aa]/80 rounded-lg p-3.5 px-4 mt-6 flex items-start gap-2.5">
+            <div className="bg-[#fff8f3] border border-[#fed7aa]/80 rounded-lg p-3.5 px-4 mt-4 sm:mt-6 flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 text-[#c2410c] shrink-0 mt-0.5" />
               <p className="text-xs text-[#9a3412] leading-relaxed font-normal">
                 Corporal Punishment and POCSO cases are treated as Critical by default and cannot be downgraded from this portal — statutory / mandatory reporting rules apply regardless of who logs the case.

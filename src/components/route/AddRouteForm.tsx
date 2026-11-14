@@ -267,7 +267,7 @@ export default function AddRouteForm({
   };
 
   return (
-    <Card className="w-[400px] shadow-xl">
+    <Card className="w-full max-w-[420px] mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
       <CardHeader>
         <CardTitle>{initialData ? "Edit Route" : "Add Route"}</CardTitle>
       </CardHeader>

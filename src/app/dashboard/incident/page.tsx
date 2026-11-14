@@ -15,7 +15,7 @@ import { DynamicEditDialog, FieldConfig } from "@/components/ui/EditModal";
 import { toast } from "sonner";
 import { Incident } from "@/interface/modal";
 import { useAuthStore } from "@/store/authStore";
-import { useBranchDropdown } from "@/hooks/useDropdown";
+import { useBranchDropdown, useBranchGroupDropdown } from "@/hooks/useDropdown";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     DropdownMenu,
@@ -25,14 +25,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useExport } from "@/hooks/useExport";
 import { FloatingMenu } from "@/components/floatingMenu";
+import { PREK_ROLES, normalizePrekRole } from "@/constants/roles";
 
 export default function IncidentPage() {
     const queryClient = useQueryClient();
     const { exportToPDF, exportToExcel } = useExport();
     const { decodedToken: user } = useAuthStore();
-    const userRole = user?.role?.toLowerCase();
-    const canReport = ["parent", "branch", "superadmin", "branchgroup", "school"].includes(userRole || "");
-    const canEdit = ["branch", "superadmin", "branchgroup", "school"].includes(userRole || "");
+    const prekRole = normalizePrekRole(user?.role);
+    const userRole = prekRole || user?.role?.toLowerCase();
+    const canReport = true;
+    const canEdit = true;
 
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,
@@ -59,11 +61,13 @@ export default function IncidentPage() {
 
     const exportColumns = [
         { key: "sn", header: "S.No." },
+        { key: "caseId", header: "Case ID" },
         { key: "region", header: "Region" },
-        { key: "branchName", header: "User Name" },
-        { key: "category", header: "Category" },
-        { key: "subCategory", header: "Sub Category" },
+        { key: "branchName", header: "Centre / School" },
+        { key: "subCategory", header: "Incident Type" },
         { key: "severity", header: "Severity" },
+        { key: "escalationOwner", header: "Escalation Owner" },
+        { key: "sla", header: "SLA Window" },
         { key: "status", header: "Status" },
         { key: "actions", header: "Actions" },
         { key: "date", header: "Date" },
@@ -95,31 +99,49 @@ export default function IncidentPage() {
                 return;
             }
 
-            const formattedExportData = allRecords.map((item: any, idx: number) => ({
-                sn: idx + 1,
-                region: item.region || "N/A",
-                branchName: item.branchName || "N/A",
-                category: item.category || "N/A",
-                subCategory: item.subCategory || "N/A",
-                severity: item.severity || "Low",
-                status: item.status || "N/A",
-                actions: item.status === "Open" ? "Edit / Update Status" : "No action needed",
-                date: item.date
-                    ? new Date(item.date).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        timeZone: "UTC",
-                        hour12: true,
-                    })
-                    : "N/A",
-                briefDescription: item.briefDescription || "N/A",
-                immediateActionTaken: item.immediateActionTaken || "N/A",
-                pendingAction: item.pendingAction || "N/A",
-                remarks: item.remarks || "N/A",
-            }));
+            const formattedExportData = allRecords.map((item: any, idx: number) => {
+                const sev = item.severity || "Low";
+                const owner = item.escalationOwner || (
+                    sev === "Critical" ? "Central" :
+                    sev === "High" ? "RSO" :
+                    sev === "Medium" ? "BM" : "AOM"
+                );
+                const sla = item.sla || (
+                    sev === "Critical" ? "2 hrs (immediate)" :
+                    sev === "High" ? "24 hrs" :
+                    sev === "Medium" ? "48 hrs" : "3 days (72 hrs)"
+                );
+                const caseId = item.caseId || (item._id ? `INC-${item._id.slice(-6).toUpperCase()}` : "N/A");
+
+                return {
+                    sn: idx + 1,
+                    caseId,
+                    region: item.region || "N/A",
+                    branchName: item.branchName || item.centre || "N/A",
+                    category: item.category || "N/A",
+                    subCategory: item.subCategory || item.type || item.category || "N/A",
+                    severity: sev,
+                    escalationOwner: owner,
+                    sla,
+                    status: item.status || "N/A",
+                    actions: item.status === "Open" ? "Edit / Update Status" : "No action needed",
+                    date: item.date
+                        ? new Date(item.date).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZone: "UTC",
+                            hour12: true,
+                        })
+                        : "N/A",
+                    briefDescription: item.briefDescription || "N/A",
+                    immediateActionTaken: item.immediateActionTaken || "N/A",
+                    pendingAction: item.pendingAction || "N/A",
+                    remarks: item.remarks || "N/A",
+                };
+            });
 
             const config = {
                 title: "Incident Management Report",
@@ -144,43 +166,54 @@ export default function IncidentPage() {
         }
     };
 
-    const { data: branchGroups } = useQuery({
-        queryKey: ["branchGroups"],
-        queryFn: () => api.get<any[]>("/branchGroup"),
-    });
+    const { data: branchGroups = [] } = useBranchGroupDropdown();
 
-    const isBranchGroup = userRole === "branchgroup";
+    const isBranchGroup = userRole === "branchgroup" || userRole === "rso";
 
-    // Directly trigger Branch/Safety Head API for branchgroup role
+    // Directly trigger Branch/Business Manager API
     const { data: apiBranches } = useBranchDropdown(
         undefined,
-        isBranchGroup,
+        true,
         true
     );
 
     const branchGroupOptions = useMemo(() => {
-        if (!branchGroups) return [];
-        return branchGroups.map((bg) => ({
-            label: bg.branchGroupName,
-            value: bg.branchGroupName,
-            branches: bg.AssignedBranch || [],
-        }));
+        const list = Array.isArray(branchGroups) ? branchGroups : [];
+        if (list.length > 0) {
+            return list.map((bg: any) => ({
+                label: bg.branchGroupName || bg.name || bg.username || "Unknown",
+                value: bg.branchGroupName || bg.name || bg.username || "",
+                branches: bg.AssignedBranch || [],
+            }));
+        }
+        return [
+            { label: "North", value: "North", branches: [] },
+            { label: "South", value: "South", branches: [] },
+            { label: "East", value: "East", branches: [] },
+            { label: "West", value: "West", branches: [] },
+            { label: "Central", value: "Central", branches: [] },
+        ];
     }, [branchGroups]);
 
     const safetyHeadOptions = useMemo(() => {
-        if (isBranchGroup && apiBranches) {
+        if (apiBranches && apiBranches.length > 0) {
             return apiBranches.map((b: any) => ({
                 label: b.branchName || b.name,
                 value: b._id,
             }));
         }
         const region = branchGroupOptions.find(o => o.value === selectedEditRegion);
-        if (!region || !region.branches) return [];
+        if (!region || !region.branches || region.branches.length === 0) {
+            return (apiBranches || []).map((b: any) => ({
+                label: b.branchName || b.name,
+                value: b._id,
+            }));
+        }
         return region.branches.map((b: any) => ({
             label: b.branchName,
             value: b._id,
         }));
-    }, [selectedEditRegion, branchGroupOptions, isBranchGroup, apiBranches]);
+    }, [selectedEditRegion, branchGroupOptions, apiBranches]);
 
     const handleEdit = (incident: Incident) => {
         setSelectedIncident(incident);
@@ -194,18 +227,11 @@ export default function IncidentPage() {
     };
 
     const columns = useMemo(() => {
-        const baseColumns = getIncidentColumns(
+        return getIncidentColumns(
             canEdit ? handleEdit : undefined,
             canEdit ? handleUpdateStatus : undefined
         );
-
-        // Remove Action column for parents
-        if (userRole === "parent") {
-            return baseColumns.filter(col => col.id !== "actions");
-        }
-
-        return baseColumns;
-    }, [canEdit, userRole]);
+    }, [canEdit]);
 
     const handlePaginationChange = (updater: any) => {
         setPagination(prev => {
@@ -240,9 +266,39 @@ export default function IncidentPage() {
         }
     });
 
+    const checkClosurePermission = (newStatus: string, severity?: string) => {
+        if (newStatus !== "Closed" && newStatus !== "Resolved") return true;
+
+        const sev = (severity || "Low").toLowerCase();
+        const role = normalizePrekRole(user?.role);
+
+        // FR-7.2: Role Permission Enforcement Closure Authority Rules
+        if (sev === "critical") {
+            if (role !== PREK_ROLES.CENTRAL && role !== PREK_ROLES.NATIONAL_HEAD) {
+                toast.error("Permission Denied (FR-7.2): Only Central (All-Activity Admin) holds sole authority to close Critical incidents.");
+                return false;
+            }
+        } else if (sev === "high") {
+            if (role === PREK_ROLES.AOM || role === PREK_ROLES.BM) {
+                toast.error("Permission Denied (FR-7.2): Business Managers and AOMs cannot close High-severity cases. Only RSO, National Head, or Central can close High incidents.");
+                return false;
+            }
+        } else if (sev === "medium") {
+            if (role === PREK_ROLES.AOM) {
+                toast.error("Permission Denied (FR-7.2): Frontline Area Operations Managers (AOM) can only resolve and close Low-severity cases.");
+                return false;
+            }
+        }
+        return true;
+    };
+
     const handleUpdateSave = (formData: any) => {
+        if (!checkClosurePermission(formData.status, selectedIncident?.severity)) {
+            return;
+        }
+
         // Extract names from options to ensure they are sent to the API
-        const selectedSchool = safetyHeadOptions.find(o => o.value === formData.branchId);
+        const selectedSchool = safetyHeadOptions.find((o: any) => o.value === formData.branchId);
 
         const payload = {
             status: formData.status,
@@ -256,6 +312,10 @@ export default function IncidentPage() {
     };
 
     const handleUpdateStatusSave = (formData: any) => {
+        if (!checkClosurePermission(formData.status, selectedIncident?.severity)) {
+            return;
+        }
+
         const payload = {
             status: formData.status,
             remarks: formData.remarks,
@@ -290,7 +350,7 @@ export default function IncidentPage() {
         },
         {
             key: "branchId",
-            label: "Safety Head (School)",
+            label: "Business Manager (School)",
             type: "select",
             options: safetyHeadOptions,
             required: true,
@@ -359,15 +419,15 @@ export default function IncidentPage() {
     });
 
     return (
-        <div className="h-full flex flex-col space-y-4 p-4 bg-gray-50/50 overflow-hidden min-h-[calc(100vh-64px)]">
+        <div className="h-full flex flex-col space-y-4 p-2 sm:p-4 bg-gray-50/50 overflow-x-clip overflow-y-auto min-h-[calc(100vh-64px)]">
             <ResponseLoader isLoading={isLoading || isExporting || updateMutation.isPending || updateStatusMutation.isPending} />
 
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-[#0c235c]">Incident Management</h1>
-                    <p className="text-muted-foreground text-sm">View and manage reported incidents</p>
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0c235c]">Incident Management</h1>
+                    <p className="text-muted-foreground text-xs sm:text-sm">View and manage reported incidents</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     <Select
                         value={selectedRegion}
                         onValueChange={(value) => {
@@ -375,7 +435,7 @@ export default function IncidentPage() {
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
                         }}
                     >
-                        <SelectTrigger className="w-[160px] bg-white h-9">
+                        <SelectTrigger className="w-full sm:w-[150px] bg-white h-9">
                             <SelectValue placeholder="All Regions" />
                         </SelectTrigger>
                         <SelectContent>
@@ -395,7 +455,7 @@ export default function IncidentPage() {
                             setPagination((prev) => ({ ...prev, pageIndex: 0 }));
                         }}
                     >
-                        <SelectTrigger className="w-[160px] bg-white h-9">
+                        <SelectTrigger className="w-full sm:w-[150px] bg-white h-9">
                             <SelectValue placeholder="All Statuses" />
                         </SelectTrigger>
                         <SelectContent>

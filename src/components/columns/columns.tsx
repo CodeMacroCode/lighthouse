@@ -288,7 +288,7 @@ export const getStudentColumns = (
       accessorKey: "age",
     },
     {
-      header: "Coordinator Name",
+      header: "Area Operations Manager Name",
       accessorFn: (row: Student) => row.parentId?.parentName ?? "—",
     },
     {
@@ -1028,7 +1028,7 @@ export const getParentsColumns = (
   onDelete: (row: Parent) => void
 ): ColumnDef<Parent>[] => [
     {
-      header: "Coordinator Name",
+      header: "Area Operations Manager Name",
       accessorKey: "parentName",
     },
     {
@@ -1073,7 +1073,7 @@ export const getParentsColumns = (
     { header: "Mobile No.", accessorKey: "mobileNo" },
     {
       id: "branch",
-      header: "School",
+      header: "Business Manager",
       accessorFn: (row: Parent) => row.branchId?.branchName ?? "—",
     },
     {
@@ -2023,6 +2023,20 @@ export const getRouteReportColumns = (): ColumnDef<GeofenceAlerts>[] => [
 
 export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpdateStatus?: (incident: Incident) => void): ColumnDef<Incident>[] => [
   {
+    accessorKey: "caseId",
+    header: "Case ID",
+    cell: ({ row }) => {
+      const caseId = row.original.caseId || (row.original._id ? `INC-${row.original._id.slice(-6).toUpperCase()}` : "N/A");
+      return (
+        <div className="text-center w-full">
+          <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 whitespace-nowrap">
+            {caseId}
+          </span>
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: "region",
     header: "Region",
     cell: ({ row }) => (
@@ -2033,28 +2047,19 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
   },
   {
     accessorKey: "branchName",
-    header: "User Name",
+    header: "Centre / School",
     cell: ({ row }) => (
       <div className="text-center w-full">
-        {row.original.branchName || "N/A"}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "category",
-    header: "Category",
-    cell: ({ row }) => (
-      <div className="text-center w-full">
-        {row.original.category || "N/A"}
+        {row.original.branchName || (row.original as any).centre || "N/A"}
       </div>
     ),
   },
   {
     accessorKey: "subCategory",
-    header: "Sub Category",
+    header: "Incident Type",
     cell: ({ row }) => (
-      <div className="whitespace-nowrap mx-auto text-center">
-        {row.original.subCategory || "N/A"}
+      <div className="whitespace-nowrap mx-auto text-center font-medium">
+        {row.original.subCategory || (row.original as any).type || row.original.category || "N/A"}
       </div>
     ),
   },
@@ -2064,8 +2069,8 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
     cell: ({ row }) => {
       const severity = row.original.severity || "Low";
       const colors: Record<string, string> = {
-        Low: "bg-blue-100 text-blue-800 border-blue-200",
-        low: "bg-blue-100 text-blue-800 border-blue-200",
+        Low: "bg-emerald-100 text-emerald-800 border-emerald-200",
+        low: "bg-emerald-100 text-emerald-800 border-emerald-200",
         Medium: "bg-amber-100 text-amber-800 border-amber-200",
         medium: "bg-amber-100 text-amber-800 border-amber-200",
         High: "bg-orange-100 text-orange-800 border-orange-200",
@@ -2079,6 +2084,42 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
           <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${badgeStyle}`}>
             {severity}
           </span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "escalationOwner",
+    header: "Escalation Owner",
+    cell: ({ row }) => {
+      const severity = row.original.severity || "Low";
+      const owner = row.original.escalationOwner || (
+        severity === "Critical" ? "Central" :
+        severity === "High" ? "RSO" :
+        severity === "Medium" ? "BM" : "AOM"
+      );
+      return (
+        <div className="text-center w-full">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 whitespace-nowrap">
+            {owner}
+          </span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "sla",
+    header: "SLA Window",
+    cell: ({ row }) => {
+      const severity = row.original.severity || "Low";
+      const sla = row.original.sla || (
+        severity === "Critical" ? "2 hrs (immediate)" :
+        severity === "High" ? "24 hrs" :
+        severity === "Medium" ? "48 hrs" : "3 days (72 hrs)"
+      );
+      return (
+        <div className="text-center w-full text-xs text-slate-600 font-medium whitespace-nowrap">
+          {sla}
         </div>
       );
     },
@@ -2102,7 +2143,7 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
       }
 
       return (
-        <div className="text-center w-full min-w-[130px]">
+        <div className="text-center w-full min-w-[100px]">
           <span
             className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap inline-block ${colorStyle}`}
           >

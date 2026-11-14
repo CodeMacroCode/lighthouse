@@ -184,15 +184,15 @@ export const BranchImportModal = ({ onImport, isLoading, cxoOptions = [] }: Bran
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
-                    {/* CXO Leader Dropdown */}
+                    {/* National Head Dropdown */}
                     {cxoOptions.length > 0 && (
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium">CXO Leader / Admin</label>
+                            <label className="text-sm font-medium">National Head / Admin</label>
                             <Combobox
                                 items={cxoOptions}
                                 value={selectedCxoId}
                                 onValueChange={(val) => setSelectedCxoId(val || "")}
-                                placeholder="Select CXO Leader / Admin..."
+                                placeholder="Select National Head / Admin..."
                                 searchPlaceholder="Search..."
                                 width="w-full"
                             />

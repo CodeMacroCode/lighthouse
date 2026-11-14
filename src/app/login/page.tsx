@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useAccessStore } from "@/store/accessStore";
 import { getDecodedToken } from "@/lib/jwt";
+import { PREK_ROLES, normalizePrekRole } from "@/constants/roles";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,14 +75,11 @@ export default function LoginPage() {
 
     if (isAuthenticated) {
       const role = getDecodedToken(localStorage.getItem("token") || "")?.role;
-      if (role === "branchGroup") {
-        router.replace("/dashboard/users/user-access");
-      } else if (role === "parent") {
+      const normalized = normalizePrekRole(role);
+      if (normalized === PREK_ROLES.AOM) {
         router.replace("/dashboard/incident");
-      } else if (role === "branch") {
-        router.replace("/dashboard/users/branch-master");
       } else {
-        router.replace("/dashboard/users/school-master");
+        router.replace("/dashboard/analytics");
       }
     }
   }, [isAuthenticated, router]);
@@ -102,14 +100,11 @@ export default function LoginPage() {
         }
 
         const role = getDecodedToken(data.token)?.role;
-        if (role === "branchGroup") {
-          router.push("/dashboard/users/user-access");
-        } else if (role === "parent") {
+        const normalized = normalizePrekRole(role);
+        if (normalized === PREK_ROLES.AOM) {
           router.push("/dashboard/incident");
-        } else if (role === "branch") {
-          router.push("/dashboard/users/branch-master");
         } else {
-          router.push("/dashboard/users/school-master");
+          router.push("/dashboard/analytics");
         }
       } else {
         form.setError("root", {

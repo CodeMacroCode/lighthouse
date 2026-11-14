@@ -1,12 +1,28 @@
 import api from "@/lib/axios";
+import { PREK_ROLES } from "@/constants/roles";
 
 export const dropdownService = {
-  getSchools: () => api.get("school/dropdown"),
+  getSchools: async () => {
+    try {
+      const res: any = await api.get("/users", { params: { role: PREK_ROLES.NATIONAL_HEAD } });
+      const list = res?.data || (Array.isArray(res) ? res : []);
+      if (Array.isArray(list)) {
+        return { data: { data: list.map((u: any) => ({ ...u, _id: u._id || u.id, schoolName: u.name || u.schoolName || u.username })) } };
+      }
+    } catch {}
+    return { data: { data: [] } };
+  },
 
-  getBranches: (schoolId?: string) =>
-    api.get("branch/dropdown", {
-      params: schoolId ? { schoolId } : {},
-    }),
+  getBranches: async (schoolId?: string) => {
+    try {
+      const res: any = await api.get("/users", { params: { role: PREK_ROLES.BM } });
+      const list = res?.data || (Array.isArray(res) ? res : []);
+      if (Array.isArray(list)) {
+        return { data: { data: list.map((u: any) => ({ ...u, _id: u._id || u.id, branchName: u.name || u.branchName || u.username })) } };
+      }
+    } catch {}
+    return { data: { data: [] } };
+  },
 
   getDevices: (branchId?: string) =>
     api.get("/device/dropdown", {

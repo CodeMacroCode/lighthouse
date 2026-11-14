@@ -71,29 +71,12 @@ export default function DashboardLayout({
     <TooltipProvider delayDuration={0}>
       <SidebarProvider defaultOpen={true}>
         {SHOW_SIDEBAR_SECTIONS.includes(activeSection) && <AppSidebar />}
-        <SidebarInset className="overflow-auto md:overflow-auto flex flex-col h-screen">
-          <header className="sticky top-0 z-20 flex h-14 md:h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear overflow-hidden bg-background border-b">
-            <div className="flex items-center gap-2 px-2 md:px-4 min-w-0 relative z-20">
-              {SHOW_SIDEBAR_SECTIONS.includes(activeSection) && (
-                <>
-                  <SidebarTrigger className="-ml-1 shrink-0 cursor-pointer" />
-                  <Separator
-                    orientation="vertical"
-                    className="mr-2 data-[orientation=vertical]:h-4 shrink-0"
-                  />
-                </>
-              )}
-
-              <div className="min-w-0 flex-1">
-                <Breadcrumb />
-              </div>
-            </div>
-            <div className="absolute inset-0 z-10">
-              <Navbar />
-            </div>
+        <SidebarInset className="overflow-x-clip overflow-y-auto flex flex-col h-screen w-full min-w-0">
+          <header className="sticky top-0 z-30 shrink-0 w-full h-14 md:h-16 bg-primary border-b border-blue-600/20">
+            <Navbar showSidebarTrigger={SHOW_SIDEBAR_SECTIONS.includes(activeSection)} />
           </header>
 
-          <main className="pt-2 md:pt-4 px-2 md:px-4 overflow-auto md:overflow-auto h-full">
+          <main className="pt-2 md:pt-4 px-2 sm:px-3 md:px-4 overflow-x-clip overflow-y-auto flex-1 h-full w-full max-w-full">
             <FCMHandler />
             {children}
           </main>

@@ -1,10 +1,16 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": {
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
-      "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
+      "computedHash": "a7c81a25c7ea1972f7049cd0282545c72ae92237c1b45ba7b1370fab498f5f9b"
+    },
+    "hallmark": {
+      "source": "Nutlope/hallmark",
+      "sourceType": "github",
+      "skillPath": "skills/hallmark/SKILL.md",
+      "computedHash": "e5d4ee5cf0af2dcc81a23ef49b587fbfd71236ff9f9df9da12d3bf347e26e572"
     }
   }
 }

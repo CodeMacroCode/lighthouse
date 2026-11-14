@@ -411,10 +411,10 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-auto p-0 z-[9999]" align="start">
-        <div className="flex">
-          <div className="border-r p-4 w-48">
-            <div className="space-y-1">
+      <PopoverContent className="w-auto p-0 z-[9999] max-w-[95vw]" align="start">
+        <div className="flex flex-col sm:flex-row max-h-[85vh] overflow-y-auto">
+          <div className="border-b sm:border-b-0 sm:border-r p-3 sm:p-4 w-full sm:w-48 shrink-0">
+            <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
               {presets.map((preset) => (
                 <Button
                   key={preset.label}
