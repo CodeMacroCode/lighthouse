@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loginUser } from "@/services/userService";
 import Image from "next/image";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -150,7 +150,7 @@ export default function LoginPage() {
 
       {/* Floating Center Card Container */}
       <div className="relative z-10 w-full max-w-4xl mx-auto">
-        <main className="w-full bg-brand-card text-foreground rounded-3xl shadow-2xl shadow-stone-900/25 overflow-hidden grid grid-cols-1 md:grid-cols-2">
+        <main className="w-full bg-white text-foreground rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
           {/* Left Column: Crisp Art Window */}
           <div className="relative min-h-[260px] md:min-h-[580px] w-full overflow-hidden bg-brand-cream">
             <Image
@@ -163,45 +163,43 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Right Column: Editorial Sign-in Form */}
-          <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-6">
+          {/* Right Column: High-Contrast Editorial Sign-in Form */}
+          <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-6 bg-white">
             <div>
-              {/* Back navigation */}
-              <div className="flex items-center justify-between mb-6">
-                <button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="inline-flex items-center gap-1.5 text-xs text-foreground/60 hover:text-foreground active:opacity-75 transition-colors duration-150 font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange rounded-xs"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-                  <span>Back</span>
-                </button>
-                <span className="text-[11px] font-medium text-foreground/50">
+              {/* Header with Term Indicator (Back button removed) */}
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-semibold text-brand-orange uppercase tracking-wide">
+                  Staff &amp; Faculty Portal
+                </span>
+                <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full border border-border">
                   AY 2026/2027
                 </span>
               </div>
 
-              {/* Title & Tagline */}
+              {/* Title */}
               <div className="space-y-1">
-                <p className="text-xs font-medium text-foreground/60">
-                  Login to
+                <p className="text-xs font-medium text-muted-foreground">
+                  Sign in to
                 </p>
-                <h1 className="text-2xl sm:text-3xl lg:text-[34px] font-serif font-normal text-foreground leading-[1.15] tracking-tight">
+                <h1 className="text-2xl sm:text-3xl lg:text-[34px] font-serif font-bold text-foreground leading-[1.15] tracking-tight">
                   Where Knowledge Comes Alive
                 </h1>
+                <p className="text-xs text-muted-foreground pt-1">
+                  Enter your operational credentials to access your administrative dashboard.
+                </p>
               </div>
 
               {/* Form Component */}
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-3.5 mt-6"
+                  className="space-y-4 mt-6"
                 >
                   {form.formState.errors.root && (
                     <div
                       role="alert"
                       aria-live="polite"
-                      className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium flex items-center gap-2 animate-in fade-in"
+                      className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium flex items-center gap-2 animate-in fade-in"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -225,17 +223,17 @@ export default function LoginPage() {
                     control={form.control}
                     name="username"
                     render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="sr-only">
-                          Enter Email
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-xs font-semibold text-foreground">
+                          Username or Email
                         </FormLabel>
                         <FormControl>
-                          <div className="bg-brand-input rounded-xl px-3.5 py-1 border border-transparent focus-within:border-brand-orange focus-within:bg-white transition-colors duration-150">
+                          <div className="bg-card rounded-xl px-3.5 py-1 border-2 border-border focus-within:border-brand-orange focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-orange/15 transition-colors duration-150 shadow-xs">
                             <Input
-                              placeholder="Enter email"
+                              placeholder="e.g. name@lighthouse-learning.com"
                               autoComplete="username"
                               {...field}
-                              className="h-10 bg-transparent border-0 text-sm text-foreground focus-visible:outline-none focus-visible:ring-0 placeholder:text-foreground/45 shadow-none p-0"
+                              className="h-10 bg-transparent border-0 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground shadow-none p-0"
                               disabled={isLoading}
                             />
                           </div>
@@ -250,18 +248,27 @@ export default function LoginPage() {
                     control={form.control}
                     name="password"
                     render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="sr-only">
-                          Enter Password
-                        </FormLabel>
+                      <FormItem className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="text-xs font-semibold text-foreground">
+                            Password
+                          </FormLabel>
+                          <button
+                            type="button"
+                            onClick={() => setShowResetPassword(true)}
+                            className="text-xs font-semibold text-brand-orange hover:text-brand-orange-hover hover:underline transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange rounded-xs"
+                          >
+                            Forgot password?
+                          </button>
+                        </div>
                         <FormControl>
-                          <div className="bg-brand-input rounded-xl px-3.5 py-1 border border-transparent focus-within:border-brand-orange focus-within:bg-white transition-colors duration-150 flex items-center justify-between">
+                          <div className="bg-card rounded-xl px-3.5 py-1 border-2 border-border focus-within:border-brand-orange focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-orange/15 transition-colors duration-150 shadow-xs flex items-center justify-between">
                             <Input
                               type={showPassword ? "text" : "password"}
-                              placeholder="Enter password"
+                              placeholder="Enter your password"
                               autoComplete="current-password"
                               {...field}
-                              className="h-10 bg-transparent border-0 text-sm text-foreground focus-visible:outline-none focus-visible:ring-0 placeholder:text-foreground/45 shadow-none p-0 pr-2"
+                              className="h-10 bg-transparent border-0 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground shadow-none p-0 pr-2"
                               disabled={isLoading}
                             />
                             <button
@@ -270,7 +277,7 @@ export default function LoginPage() {
                                 showPassword ? "Hide password" : "Show password"
                               }
                               onClick={() => setShowPassword(!showPassword)}
-                              className="text-muted-foreground hover:text-foreground active:opacity-75 p-1 rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange shrink-0"
+                              className="text-muted-foreground hover:text-foreground active:opacity-75 p-1 rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange shrink-0 cursor-pointer"
                             >
                               {showPassword ? (
                                 <EyeOff className="w-4 h-4" aria-hidden="true" />
@@ -285,8 +292,8 @@ export default function LoginPage() {
                     )}
                   />
 
-                  {/* Controls: Remember Me + Having Trouble */}
-                  <div className="flex items-center justify-between pt-1">
+                  {/* Controls: Remember Me */}
+                  <div className="flex items-center justify-between pt-0.5">
                     <FormField
                       control={form.control}
                       name="rememberMe"
@@ -299,25 +306,18 @@ export default function LoginPage() {
                               className="h-4 w-4 rounded-sm border-border data-[state=checked]:bg-brand-orange data-[state=checked]:border-brand-orange focus-visible:ring-2 focus-visible:ring-brand-orange"
                             />
                           </FormControl>
-                          <FormLabel className="text-xs font-normal text-muted-foreground cursor-pointer select-none">
-                            Keep me signed in
+                          <FormLabel className="text-xs font-medium text-foreground/80 cursor-pointer select-none">
+                            Keep me signed in for 30 days
                           </FormLabel>
                         </FormItem>
                       )}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowResetPassword(true)}
-                      className="text-xs font-medium text-muted-foreground hover:text-foreground active:opacity-75 transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange rounded-xs"
-                    >
-                      Having trouble?
-                    </button>
                   </div>
 
-                  {/* Submit Button */}
-                  <Button
+                  {/* High-Contrast Bold Submit Button */}
+                  <button
                     type="submit"
-                    className="w-full h-11 text-sm font-semibold bg-brand-orange hover:bg-brand-orange-hover active:bg-brand-orange-hover active:scale-[0.99] text-white rounded-xl transition-colors duration-150 mt-3 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-orange"
+                    className="w-full h-12 text-sm font-bold bg-brand-orange hover:bg-brand-orange-hover active:scale-[0.99] text-white rounded-xl transition-colors duration-150 mt-4 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-md hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-orange flex items-center justify-center whitespace-nowrap"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -328,40 +328,33 @@ export default function LoginPage() {
                     ) : (
                       <span>Sign in</span>
                     )}
-                  </Button>
+                  </button>
                 </form>
               </Form>
             </div>
 
-            {/* Bottom Institutional Brand Footer */}
-            <div className="pt-4 border-t border-border/40 flex items-center justify-between gap-3">
+            {/* Bottom Institutional Brand Footer with High-Contrast Navy Pill */}
+            <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="bg-brand-navy rounded-md px-2.5 py-1.5 flex items-center shrink-0">
+                <div className="bg-brand-navy rounded-lg px-3 py-2 flex items-center shrink-0 shadow-xs">
                   <Image
                     src="/image.png"
                     alt="Lighthouse Learning"
-                    width={110}
-                    height={18}
-                    className="h-4 w-auto object-contain"
+                    width={120}
+                    height={20}
+                    className="h-5 w-auto object-contain"
                     priority
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[11px] font-semibold text-foreground/80 leading-tight">
+                  <span className="text-[11px] font-bold text-foreground leading-tight">
                     Lighthouse Learning
                   </span>
-                  <span className="text-[10px] text-foreground/50 leading-tight">
+                  <span className="text-[10px] text-muted-foreground leading-tight">
                     Where Knowledge Comes Alive
                   </span>
                 </div>
               </div>
-
-              <a
-                href="mailto:support@lighthouse-learning.com"
-                className="text-[11px] text-foreground/50 hover:text-foreground active:opacity-75 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange rounded-xs shrink-0"
-              >
-                IT Support
-              </a>
             </div>
           </div>
         </main>
