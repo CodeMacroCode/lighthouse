@@ -10,6 +10,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -45,6 +46,11 @@
   --color-brand-navy: var(--color-brand-navy);
   --color-brand-navy-deep: var(--color-brand-navy-deep);
   --color-brand-surface: var(--color-brand-surface);
+  --color-brand-cream: var(--color-brand-cream);
+  --color-brand-cream-dark: var(--color-brand-cream-dark);
+  --color-brand-peach: var(--color-brand-peach);
+  --color-brand-card: var(--color-brand-card);
+  --color-brand-input: var(--color-brand-input);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -61,6 +67,11 @@
   --color-brand-navy: #013571;
   --color-brand-navy-deep: #00224d;
   --color-brand-surface: #f8fafc;
+  --color-brand-cream: #f5f0e8;
+  --color-brand-cream-dark: #e8e0d4;
+  --color-brand-peach: #f2c18d;
+  --color-brand-card: #fdfcf9;
+  --color-brand-input: #f2efe9;
 
   /* Surfaces & Ink (Daylight Canvas & Deep Obsidian) */
   --background: oklch(98.8% 0.003 250); /* #f8fafc soft daylight ground */
