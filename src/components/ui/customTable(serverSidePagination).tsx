@@ -28,6 +28,7 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
@@ -116,6 +117,7 @@ export function useCustomTable<
   getRowId = (row: T) =>
     (row as any)._id ||
     (row as any).id ||
+    (row as any).caseId ||
     (row as any).deviceId ||
     (row as any).key,
   enableMultiSelect = false,
@@ -211,6 +213,12 @@ export function useCustomTable<
   const table = useReactTable({
     data,
     columns: tableColumns,
+    getRowId: (row: any, relativeIndex: number) => {
+      const custom = getRowId ? getRowId(row) : undefined;
+      return custom != null && custom !== ""
+        ? String(custom)
+        : `row-p${pagination.pageIndex}-${relativeIndex}`;
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualSorting,
@@ -275,38 +283,59 @@ export function useCustomTable<
     ? table.getSelectedRowModel().rows.map((row) => getRowId(row.original as T))
     : [];
 
-  // Use data as dependency since table object is stable
-  const rows = useMemo(() => table.getRowModel().rows, [data, table]);
+  const rows = table.getRowModel().rows;
 
-  // Mobile Infinite Scrolling state (ref-based accumulation to completely eliminate state update loops)
+  // Mobile Infinite Scrolling state via ref accumulation (zero setState in useEffect)
   const accumulatedRowsRef = useRef<typeof rows>(rows);
-  const lastLoadedPageRef = useRef(0);
+  const lastLoadedPageRef = useRef<number>(0);
+  const isFetchingNextPageRef = useRef(false);
 
   if (pagination.pageIndex === 0) {
     accumulatedRowsRef.current = rows;
     lastLoadedPageRef.current = 0;
+    isFetchingNextPageRef.current = false;
   } else if (pagination.pageIndex > lastLoadedPageRef.current) {
     lastLoadedPageRef.current = pagination.pageIndex;
+    isFetchingNextPageRef.current = false;
     const seen = new Set(
-      accumulatedRowsRef.current.map((r) => getRowId(r.original as T))
+      accumulatedRowsRef.current.map((r: any, idx: number) => {
+        const id = getRowId(r.original as T);
+        return id != null && id !== "" ? String(id) : r.id || String(idx);
+      })
     );
-    const newRows = rows.filter((r) => !seen.has(getRowId(r.original as T)));
+    const newRows = rows.filter((r: any, idx: number) => {
+      const id = getRowId(r.original as T);
+      const key = id != null && id !== "" ? String(id) : r.id || String(idx);
+      return !seen.has(key);
+    });
     accumulatedRowsRef.current = [...accumulatedRowsRef.current, ...newRows];
   }
 
-  const mobileDisplayRows = pagination.pageIndex === 0 ? rows : accumulatedRowsRef.current;
+  const mobileDisplayRows =
+    pagination.pageIndex === 0 ? rows : accumulatedRowsRef.current;
 
   useEffect(() => {
+    // Only activate mobile infinite scrolling on mobile viewports (< 768px)
+    if (typeof window !== "undefined" && window.innerWidth >= 768) {
+      return;
+    }
+
     const sentinel = mobileSentinelRef.current;
     if (!sentinel) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !loading) {
+        if (
+          entries[0].isIntersecting &&
+          hasNextPage &&
+          !loading &&
+          !isFetchingNextPageRef.current
+        ) {
+          isFetchingNextPageRef.current = true;
           goToPage(pagination.pageIndex + 1);
         }
       },
-      { rootMargin: "300px" }
+      { rootMargin: "200px" }
     );
 
     observer.observe(sentinel);
@@ -364,35 +393,53 @@ export function useCustomTable<
             }}
           >
             <Table>
-              <TableHeader className="sticky top-0 bg-[#0c235c] z-20">
+              <TableHeader className="sticky top-0 bg-primary z-20 shadow-xs">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="border-b">
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        className="bg-[#0c235c] text-white px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium uppercase tracking-wider border-r last:border-r-0"
-                        style={{
-                          width: header.id === "serialNumber" ? "60px" : "auto",
-                          minWidth:
-                            header.id === "serialNumber" ? "60px" : "auto",
-                        }}
-                      >
-                        {header.isPlaceholder ? null : (
-                          <div
-                            className={`flex items-center justify-center gap-1 w-full ${header.column.getCanSort()
-                              ? "cursor-pointer select-none"
-                              : ""
-                              }`}
-                            onClick={header.column.getToggleSortingHandler()}
-                          >
-                            <span className="whitespace-nowrap">
+                  <TableRow key={headerGroup.id} className="border-b border-white/10">
+                    {headerGroup.headers.map((header) => {
+                      const headerMeta = header.column.columnDef.meta as any;
+                      const headerWrapConfig = enableColumnWrapping
+                        ? headerMeta?.wrapConfig
+                        : undefined;
+                      const headerWrapStyles = getWrapStyles(headerWrapConfig);
+                      const headMinWidth =
+                        header.id === "serialNumber"
+                          ? "60px"
+                          : headerMeta?.minWidth ||
+                            headerWrapStyles?.minWidth ||
+                            "auto";
+                      const headWidth =
+                        header.id === "serialNumber"
+                          ? "60px"
+                          : headerMeta?.width ||
+                            headerWrapStyles?.width ||
+                            headMinWidth;
+
+                      return (
+                        <TableHead
+                          key={header.id}
+                          className="bg-primary text-white px-2 py-2 sm:px-3 sm:py-3 text-xs sm:text-sm font-semibold border-r border-white/10 last:border-r-0 overflow-hidden"
+                          style={{
+                            width: headWidth,
+                            minWidth: headMinWidth,
+                          }}
+                        >
+                          {header.isPlaceholder ? null : (
+                            <div
+                              className={`flex items-center justify-center gap-1.5 w-full min-w-0 ${header.column.getCanSort()
+                                ? "cursor-pointer select-none"
+                                : ""
+                                }`}
+                              onClick={header.column.getToggleSortingHandler()}
+                            >
+                            <span className="text-center break-words whitespace-normal leading-tight">
                               {flexRender(
                                 header.column.columnDef.header,
                                 header.getContext()
                               )}
                             </span>
                             {header.column.getCanSort() && (
-                              <span className="ml-1">
+                              <span className="ml-1 shrink-0">
                                 {header.column.getIsSorted() === "desc" ? (
                                   <ArrowDown className="h-4 w-4" />
                                 ) : header.column.getIsSorted() === "asc" ? (
@@ -405,8 +452,9 @@ export function useCustomTable<
                           </div>
                         )}
                       </TableHead>
-                    ))}
-                  </TableRow>
+                    );
+                  })}
+                </TableRow>
                 ))}
               </TableHeader>
               {loading ? (
@@ -503,19 +551,27 @@ export function useCustomTable<
                             const wrapClasses = getWrapClasses(wrapOption);
                             const wrapStyles = getWrapStyles(wrapConfig);
 
+                            const meta = cell.column.columnDef.meta as any;
+                            const cellMinWidth =
+                              cell.column.id === "serialNumber"
+                                ? "60px"
+                                : meta?.minWidth ||
+                                  wrapStyles?.minWidth ||
+                                  "auto";
+                            const cellWidth =
+                              cell.column.id === "serialNumber"
+                                ? "60px"
+                                : meta?.width ||
+                                  wrapStyles?.width ||
+                                  cellMinWidth;
+
                             return (
                               <TableCell
                                 key={cell.id}
-                                className="px-2 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm border-r last:border-r-0 text-center"
+                                className="px-2 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm border-r last:border-r-0 text-center overflow-hidden min-w-0"
                                 style={{
-                                  width:
-                                    cell.column.id === "serialNumber"
-                                      ? "60px"
-                                      : "auto",
-                                  minWidth:
-                                    cell.column.id === "serialNumber"
-                                      ? "60px"
-                                      : "auto",
+                                  width: cellWidth,
+                                  minWidth: cellMinWidth,
                                   ...wrapStyles,
                                 }}
                               >
@@ -555,7 +611,7 @@ export function useCustomTable<
 
         {/* Mobile Cards View */}
         <div className="block md:hidden space-y-3">
-          {loading && pagination.pageIndex === 0 ? (
+          {loading && pagination.pageIndex === 0 && mobileDisplayRows.length === 0 ? (
             <div className="space-y-3">
               {Array.from({ length: Math.min(pagination.pageSize, 5) }).map((_, i) => (
                 <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-3 animate-pulse">
@@ -577,7 +633,7 @@ export function useCustomTable<
             </div>
           ) : (
             <>
-              {mobileDisplayRows.map((row) => {
+              {mobileDisplayRows.map((row, index) => {
                 const rowData = row.original as T;
                 const rowId = getRowId(rowData);
                 const isSelected = selectedRowId !== null && rowId === selectedRowId;
@@ -607,17 +663,21 @@ export function useCustomTable<
 
                 const primaryCell = candidateCells[0];
                 const detailCells = candidateCells.slice(1);
+                const uniqueCardKey =
+                  rowId != null && rowId !== ""
+                    ? String(rowId)
+                    : (row.id || `mobile-card-${index}`);
 
                 return (
                   <div
-                    key={row.id}
+                    key={uniqueCardKey}
                     className={cn(
                       "bg-white rounded-xl border border-slate-200 shadow-2xs p-4 space-y-3 transition-colors",
                       enableRowClick && onRowClick
                         ? "cursor-pointer active:scale-[0.99] hover:border-slate-300"
                         : "",
                       isSelected
-                        ? "ring-2 ring-[#0c235c] border-[#0c235c] bg-blue-50/20"
+                        ? "ring-2 ring-primary border-primary bg-slate-50"
                         : "",
                       getRowClassName ? getRowClassName(rowData, isSelected) : ""
                     )}
@@ -630,12 +690,12 @@ export function useCustomTable<
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         {serialCell && (
                           <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-bold shrink-0">
-                            #{row.index + 1}
+                            #{index + 1}
                           </span>
                         )}
                         {primaryCell && (
-                          <div className="font-bold text-sm text-[#0c235c] truncate">
-                            {flexRender(primaryCell.column.columnDef.cell, primaryCell.getContext())}
+                          <div className="font-bold text-sm text-slate-900 truncate">
+                            {flexRender(primaryCell.column.columnDef.cell as any, primaryCell.getContext())}
                           </div>
                         )}
                       </div>
@@ -656,19 +716,58 @@ export function useCustomTable<
                             typeof headerContent === "string"
                               ? headerContent
                               : typeof headerContent === "function"
-                              ? flexRender(headerContent, cell.getContext())
+                              ? flexRender(headerContent, cell.getContext() as any)
                               : cell.column.id;
+
+                          const isDescriptionOrLongField =
+                            [
+                              "briefDescription",
+                              "description",
+                              "immediateActionTaken",
+                              "pendingAction",
+                              "remarks",
+                            ].includes(cell.column.id) ||
+                            (typeof headerLabel === "string" &&
+                              headerLabel.toLowerCase().includes("description"));
+
+                          const cellRawValue =
+                            (rowData as any)?.[cell.column.id] ||
+                            (cell.column.id === "briefDescription"
+                              ? (rowData as any)?.description
+                              : undefined);
+
+                          const hasMultiLineContent =
+                            isDescriptionOrLongField &&
+                            cellRawValue &&
+                            cellRawValue !== "N/A" &&
+                            String(cellRawValue).trim().length > 0;
+
+                          if (hasMultiLineContent) {
+                            return (
+                              <div
+                                key={cell.id}
+                                className="py-2 border-b border-slate-50 last:border-0 space-y-1.5"
+                              >
+                                <span className="text-slate-500 font-medium text-[11px] block">
+                                  {headerLabel}
+                                </span>
+                                <div className="text-left font-normal text-slate-800 break-words bg-slate-50/80 p-2.5 rounded-lg border border-slate-100 text-xs leading-relaxed whitespace-normal">
+                                  {flexRender(cell.column.columnDef.cell as any, cell.getContext())}
+                                </div>
+                              </div>
+                            );
+                          }
 
                           return (
                             <div
                               key={cell.id}
-                              className="flex items-center justify-between gap-3 py-1 border-b border-slate-50 last:border-0"
+                              className="flex items-start justify-between gap-3 py-1 border-b border-slate-50 last:border-0"
                             >
-                              <span className="text-slate-500 font-medium text-[11px] uppercase tracking-tight shrink-0">
+                              <span className="text-slate-500 font-medium text-[11px] shrink-0 pt-0.5">
                                 {headerLabel}
                               </span>
                               <div className="text-right font-medium text-slate-800 break-words max-w-[65%]">
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                {flexRender(cell.column.columnDef.cell as any, cell.getContext())}
                               </div>
                             </div>
                           );
@@ -679,7 +778,7 @@ export function useCustomTable<
                     {/* Card Actions Footer */}
                     {actionCell && (
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2 flex-wrap">
-                        {flexRender(actionCell.column.columnDef.cell, actionCell.getContext())}
+                        {flexRender(actionCell.column.columnDef.cell as any, actionCell.getContext())}
                       </div>
                     )}
                   </div>
@@ -688,16 +787,18 @@ export function useCustomTable<
 
               {/* Mobile Sentinel & Infinite Scroll Status */}
               {hasNextPage && (
-                <div ref={mobileSentinelRef} className="py-3 text-center">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-medium shadow-2xs">
-                    <span className="w-2 h-2 rounded-full bg-[#0c235c] animate-pulse" />
-                    {loading ? "Loading more records..." : "Scroll for more"}
+                <div ref={mobileSentinelRef} className="py-4 text-center">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-medium shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    {loading || isFetchingNextPageRef.current
+                      ? "Loading more records..."
+                      : "Scroll for more"}
                   </div>
                 </div>
               )}
 
               {!hasNextPage && mobileDisplayRows.length > 0 && (
-                <div className="py-3 text-center text-xs text-slate-400 font-medium">
+                <div className="py-4 text-center text-xs text-slate-400 font-medium">
                   Showing all {totalCount || mobileDisplayRows.length} records
                 </div>
               )}
@@ -729,17 +830,20 @@ export function useCustomTable<
             <div className="flex items-center space-x-2">
               <p className="text-xs sm:text-sm font-medium hidden sm:block">Rows per page</p>
               <p className="text-xs font-medium sm:hidden">Rows</p>
-              <select
-                value={isAllSelected ? "All" : pagination.pageSize.toString()}
-                onChange={(e) => changePageSize(e.target.value)}
-                className="h-8 rounded-md border border-input bg-background px-2 text-xs font-medium cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-ring"
-              >
-                {pageSizeOptions.map((pageSize) => (
-                  <option key={pageSize} value={pageSize.toString()}>
-                    {pageSize === "All" ? (totalCount > 0 ? `All (${totalCount})` : "All") : pageSize}
-                  </option>
-                ))}
-              </select>
+              <div className="relative inline-flex items-center">
+                <select
+                  value={isAllSelected ? "All" : pagination.pageSize.toString()}
+                  onChange={(e) => changePageSize(e.target.value)}
+                  className="h-8 appearance-none rounded-md border border-input bg-background pl-2.5 pr-7 text-xs font-medium cursor-pointer hover:bg-slate-50 focus:outline-hidden focus:ring-1 focus:ring-ring transition-colors"
+                >
+                  {pageSizeOptions.map((pageSize) => (
+                    <option key={pageSize} value={pageSize.toString()}>
+                      {pageSize === "All" ? (totalCount > 0 ? `All (${totalCount})` : "All") : pageSize}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
             </div>
 
             <div className="flex items-center space-x-1 sm:space-x-2">

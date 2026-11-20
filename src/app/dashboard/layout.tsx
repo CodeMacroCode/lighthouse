@@ -71,8 +71,8 @@ export default function DashboardLayout({
     <TooltipProvider delayDuration={0}>
       <SidebarProvider defaultOpen={true}>
         {SHOW_SIDEBAR_SECTIONS.includes(activeSection) && <AppSidebar />}
-        <SidebarInset className="overflow-x-clip overflow-y-auto flex flex-col h-screen w-full min-w-0">
-          <header className="sticky top-0 z-30 shrink-0 w-full h-14 md:h-16 bg-primary border-b border-blue-600/20">
+        <SidebarInset className="overflow-x-clip overflow-y-auto flex flex-col h-screen w-full min-w-0 bg-[#f8fafc]">
+          <header className="sticky top-0 z-30 shrink-0 w-full h-14 md:h-16 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
             <Navbar showSidebarTrigger={SHOW_SIDEBAR_SECTIONS.includes(activeSection)} />
           </header>
 

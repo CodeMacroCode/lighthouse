@@ -2,8 +2,7 @@
 
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
-import { getMessaging, deleteToken } from "firebase/messaging";
-import { app } from "@/util/firebase"; // or wherever your Firebase app is initialized
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import Cookies from "js-cookie";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
@@ -13,64 +12,58 @@ export function LogoutButton() {
   const [isLoading, setIsLoading] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
-  const handleLogout = async () => {
+  const handleLogout = async (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isLoading) return;
+
     setIsLoading(true);
+    console.log("🚪 [LogoutButton] Initiating logout sequence...");
+
     try {
-      /**delete fcm token */
+      // 1. Immediately call backend POST /auth/logout and clear auth stores
+      console.log("📡 [LogoutButton] Calling authStore.logout()...");
+      await logout();
+      console.log("✅ [LogoutButton] Logout finished successfully");
+    } catch (err) {
+      console.error("❌ [LogoutButton] Logout error:", err);
+    }
 
-      // Get the messaging instance
-      const messaging = getMessaging(app);
-
-      // Delete the FCM token
-      const isDeleted = await deleteToken(messaging);
-      console.log(
-        isDeleted ? "🗑️ FCM token deleted" : "⚠️ FCM token not deleted"
-      );
-
-      // Unregister Firebase service workers
-      if ("serviceWorker" in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        for (const reg of regs) {
-          await reg.unregister();
-        }
-      }
-
-      //  Clear Firebase IndexedDB
-      indexedDB.deleteDatabase("firebase-messaging-database");
-      indexedDB.deleteDatabase("firebase-messaging-database-v2");
-      indexedDB.deleteDatabase("firebase-installations-database");
-
-      localStorage.removeItem("fcm_token");
-
-      // Clear persistent stores
+    // 2. Auxiliary cleanup (non-blocking)
+    try {
       useNotificationStore.getState().clearNotifications();
+      localStorage.removeItem("fcm_token");
       localStorage.removeItem("ct-notifications");
       localStorage.removeItem("device-store");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("token");
 
-      /** delete fmc token */
-      logout(); // clear state + token
-      // console.log("TOKEN: ", localStorage.getItem("token"))
-      window.location.href = "/login";
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("userId");
+        Cookies.remove("token");
+        Cookies.remove("token", { path: "/" });
+        Cookies.remove("refreshToken");
+        Cookies.remove("refreshToken", { path: "/" });
+      }
+    } catch (_) {}
 
-    } catch (error) {
-      console.error("❌ Error deleting FCM token:", error);
-      // Still logout even if token deletion fails
-      logout();
-      window.location.href = "/login";
-    } finally {
-      // We don't set loading to false here because we're redirecting
-      // if we did, it might flash before the redirect happens
-    }
+    // 3. Navigate to login
+    window.location.href = "/login";
   };
 
   return (
     <>
       {isLoading && <LogoutLoader />}
-      <span onClick={handleLogout} className="cursor-pointer ml-2 w-full flex items-center gap-3">
-        <LogOut /> Logout
-      </span>
+      <DropdownMenuItem
+        onSelect={handleLogout}
+        onClick={handleLogout}
+        className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50 flex items-center gap-2.5 w-full py-2 px-2.5 font-medium"
+      >
+        <LogOut className="h-4 w-4 shrink-0" />
+        <span>Logout</span>
+      </DropdownMenuItem>
     </>
   );
 }

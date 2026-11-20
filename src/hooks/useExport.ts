@@ -40,6 +40,10 @@ interface ExportConfig {
   };
   /** Optional nested table configuration */
   nestedTable?: NestedTableConfig;
+  styles?: Record<string, any>;
+  headStyles?: Record<string, any>;
+  columnStyles?: Record<string | number, any>;
+  margin?: { top?: number; right?: number; bottom?: number; left?: number };
 }
 
 export const useExport = () => {
@@ -126,11 +130,11 @@ export const useExport = () => {
 
       // Table data
       const tableHeaders = columns.map((col) => col.header);
-      const tableRows = data.map((item) =>
+      const tableRows = data.map((item: any) =>
         columns.map((col) => {
           const value = col.key.includes(".")
-            ? col.key.split(".").reduce((obj, key) => obj?.[key], item)
-            : item[col.key];
+            ? col.key.split(".").reduce((obj: any, key: string) => obj?.[key], item)
+            : item?.[col.key];
           return col.formatter
             ? col.formatter(value, item) // 👈 pass the whole row too
             : value?.toString() || "--";
@@ -147,19 +151,27 @@ export const useExport = () => {
           fontSize: 8,
           cellPadding: 2,
           halign: "center",
+          valign: "middle",
           lineColor: CONFIG.colors.border,
           lineWidth: 0.1,
+          overflow: "linebreak",
+          ...config.styles,
         },
         headStyles: {
           fillColor: CONFIG.colors.primary,
           textColor: 255,
           fontStyle: "bold",
+          fontSize: 8,
+          halign: "center",
+          valign: "middle",
+          ...config.headStyles,
         },
+        columnStyles: config.columnStyles,
         alternateRowStyles: {
           fillColor: CONFIG.colors.background,
         },
         tableWidth: "auto",
-        margin: { left: 15, right: 15 },
+        margin: config.margin || { left: 15, right: 15 },
         didDrawPage: () => {
           if (doc.getCurrentPageInfo().pageNumber > 1) {
             doc.setFontSize(12);

@@ -1,5 +1,6 @@
 import { api } from "../apiService";
 import { PREK_ROLES, PrekRole } from "@/constants/roles";
+import { resetPassword } from "../userService";
 
 export interface PreKUser {
   _id: string;
@@ -25,8 +26,11 @@ export interface PreKUser {
 export interface GetUsersParams {
   role?: string;
   zone?: string;
+  cluster?: string;
   status?: string;
   search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc" | string;
   page?: number;
   limit?: number | string;
 }
@@ -93,7 +97,7 @@ export const userService = {
   },
 
   // POST /auth/reset-password (Self-service public reset)
-  selfResetPassword: async (data: { username: string; newPassword: string; email?: string }): Promise<any> => {
-    return await api.post<any>("/reset-password", data);
+  selfResetPassword: async (data: { username: string; newPassword: string }): Promise<any> => {
+    return await resetPassword(data.username, data.newPassword);
   },
 };

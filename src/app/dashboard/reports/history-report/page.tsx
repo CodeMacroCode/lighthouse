@@ -695,7 +695,7 @@ function HistoryReportContent() {
         {/* Sliding Menu Trigger */}
         <div>
           <Button
-            className="fixed top-[225px] right-0 z-[9999] rounded-l-full rounded-r-none w-[68px] bg-[#0c235c] cursor-pointer shadow-[var(--shadow-panel)]"
+            className="fixed top-[225px] right-0 z-[9999] rounded-l-full rounded-r-none w-[68px] bg-primary cursor-pointer shadow-[var(--shadow-panel)]"
             onClick={() => setIsSidebarOpen(true)}
           >
             <Menu />
@@ -737,7 +737,7 @@ function HistoryReportContent() {
                 <div>
                   <div
                     onClick={handleMapExpand}
-                    className="h-3 w-full bg-[#0c235c] relative flex items-center justify-center hover:cursor-pointer"
+                    className="h-3 w-full bg-primary relative flex items-center justify-center hover:cursor-pointer"
                   >
                     <div className="flex flex-col items-center bg-[#d7a901] w-[100px]">
                       <svg
@@ -830,7 +830,7 @@ function HistoryReportContent() {
                 <div>
                   <div
                     onClick={handleMapExpand}
-                    className="h-3 w-full bg-[#0c235c] relative flex items-center justify-center hover:cursor-pointer"
+                    className="h-3 w-full bg-primary relative flex items-center justify-center hover:cursor-pointer"
                   >
                     <div className="flex flex-col items-center bg-[#d7a901] w-[100px]">
                       <svg

@@ -64,8 +64,8 @@ export function AuthHydrator() {
                         </AlertDialogHeader>
                         <AlertDialogFooter className="mt-4 sm:justify-center">
                             <AlertDialogAction
-                                onClick={() => {
-                                    logout();
+                                onClick={async () => {
+                                    await logout();
                                     window.location.href = "/login";
                                 }}
                                 className="min-w-[120px] bg-red-600 text-white hover:bg-red-700"

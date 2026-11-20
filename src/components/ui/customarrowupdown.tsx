@@ -9,16 +9,17 @@ type CustomArrowUpDownProps = {
 
 export function CustomArrowUpDown({
   direction = false,
-  size = 20,
+  size = 16,
   className = "",
 }: CustomArrowUpDownProps) {
-  const upColor = direction === "asc" ? "#000000" : "#dbeafe";
-  const downColor = direction === "desc" ? "#000000" : "#dbeafe";
+  const upColor = direction === "asc" ? "#ffffff" : "rgba(255, 255, 255, 0.4)";
+  const downColor = direction === "desc" ? "#ffffff" : "rgba(255, 255, 255, 0.4)";
 
   return (
     <svg
+      aria-hidden="true"
       xmlns="http://www.w3.org/2000/svg"
-      className={cn("lucide-arrow-up-down", className)}
+      className={cn("lucide-arrow-up-down focus-visible:outline-none", className)}
       width={size}
       height={size}
       viewBox="0 0 24 24"

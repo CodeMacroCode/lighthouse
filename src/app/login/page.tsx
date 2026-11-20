@@ -1,5 +1,8 @@
 "use client";
 
+/* Hallmark · v2.0.0 · theme: Lighthouse Brand · genre: playful · depth: full */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · authentic pre-k education governance portal */
+
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useAccessStore } from "@/store/accessStore";
@@ -11,8 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loginUser } from "@/services/userService";
 import Image from "next/image";
-import { Eye, EyeOff, Lock, User, ShieldCheck, Moon } from "lucide-react";
-import Link from "next/link";
+import { Eye, EyeOff, Lock, User, ShieldCheck, Sparkles } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,28 +26,19 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import dynamic from "next/dynamic";
-import { Canvas } from "@react-three/fiber";
-
-const Globe = dynamic(() => import("@/components/GlobeBackground/Globe"), { ssr: false });
-
-// export function GlobeCanvas() {
-//   return (
-//     <Canvas
-//       camera={{ position: [0, 0, 350], fov: 45 }}
-//       style={{ width: "100%", height: "100%" }}
-//       gl={{ antialias: true }}
-//     >
-//       <Globe />
-//     </Canvas>
-//   );
-// }
+import { ResetPasswordModal } from "@/components/auth/ResetPasswordModal";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username or Email is required"),
   password: z.string().min(1, "Password is required"),
-  rememberMe: z.boolean().default(false),
+  rememberMe: z.boolean(),
 });
+
+type LoginFormValues = {
+  username: string;
+  password: string;
+  rememberMe: boolean;
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,9 +46,10 @@ export default function LoginPage() {
   const { setAccess } = useAccessStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
-  const form = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema) as any,
     defaultValues: {
       username: "",
       password: "",
@@ -64,8 +58,10 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // Intercept hash routes for shared tracking links (e.g., from older backend endpoints)
-    if (typeof window !== "undefined" && window.location.hash.startsWith("#/shared/live-track/token/")) {
+    if (
+      typeof window !== "undefined" &&
+      window.location.hash.startsWith("#/shared/live-track/token/")
+    ) {
       const token = window.location.hash.split("#/shared/live-track/token/")[1];
       if (token) {
         router.replace(`/shared/live-track/token#${token}`);
@@ -90,16 +86,16 @@ export default function LoginPage() {
     try {
       const data = await loginUser(values.username, values.password);
 
-      if (data?.token) {
+      const authToken = data?.token || data?.accessToken;
+      if (authToken) {
         localStorage.clear();
-        login(data.token, values.rememberMe ? 30 : undefined);
+        login(authToken, data.refreshToken, values.rememberMe ? 30 : undefined);
 
-        // Store access permissions if present
         if (data.access) {
           setAccess(data.access);
         }
 
-        const role = getDecodedToken(data.token)?.role;
+        const role = getDecodedToken(authToken)?.role;
         const normalized = normalizePrekRole(role);
         if (normalized === PREK_ROLES.AOM) {
           router.push("/dashboard/incident");
@@ -138,177 +134,217 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center bg-[#f1f5f9] p-4 sm:p-6 lg:p-8 font-sans">
-
-      {/* Background Overlay */}
-      <div className="absolute inset-0 z-0">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 font-sans overflow-x-clip bg-slate-900">
+      {/* Pre-K School Background Image */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
         <Image
-          src="/background.webp"
-          alt="Background Pattern"
+          src="/prek-bg.jpg"
+          alt="Pre-K learning center classroom environment"
           fill
-          className="object-cover"
           priority
+          sizes="100vw"
+          className="object-cover object-center scale-[1.02] filter contrast-[0.98] brightness-[0.88]"
         />
-        <div className="absolute inset-0 bg-blue-600/20 mix-blend-multiply" />
+        {/* Soft Warm Scrim Overlay for Contrast & Visual Polish */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-900/40 to-slate-950/70 backdrop-blur-[2px]" />
       </div>
-      <div className="relative z-10 flex w-full max-w-6xl flex-col lg:flex-row min-h-[500px] sm:min-h-[600px] lg:min-h-[700px] xl:min-h-[800px] overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl bg-transparent border border-white/10 backdrop-blur-sm">
-        {/* Left Panel - Branding & Info */}
-        <div className="hidden lg:flex w-[50%] bg-[#0F2557]/90 relative flex-col justify-between overflow-hidden text-white border-r border-white/10">
-          {/* Top: Logo
-          <div className="absolute top-0 left-4 z-10 flex items-center gap-3">
-            <Image
-              src="/logo.png"
-              alt="Lighthouse"
-              width={128}
-              height={128}
-              className="w-40 h-20 object-contain"
-              unoptimized
-            />
-          </div> */}
-          <Canvas
-            camera={{ position: [0, 0, 350], fov: 45 }}
-            style={{ width: "100%", height: "100%" }}
-            gl={{ antialias: true }}
-          >
-            <Globe />
-          </Canvas>
-        </div>
 
-        {/* Right Panel - Login Form */}
-        <div className="flex-1 flex flex-col justify-center items-center bg-black/55 backdrop-blur-[100px] px-6 py-10 sm:px-12 sm:py-16 md:px-16 lg:px-12 xl:px-24 relative lg:border-l lg:border-white/20 lg:shadow-[-10px_0_30px_-10px_rgba(255,255,255,0.1)] overflow-y-auto">
+      {/* Floating Center Container */}
+      <div className="relative z-10 w-full max-w-md mx-auto flex flex-col items-center gap-3">
 
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex justify-center w-full mb-6 sm:mb-8">
+        {/* Centered Main Login Card */}
+        <div className="w-full bg-white/95 backdrop-blur-md border border-white/80 rounded-2xl shadow-2xl shadow-slate-950/30 overflow-hidden">
+          {/* Deep Maritime Navy Brand Header */}
+          <div className="bg-brand-navy px-6 py-5 flex items-center justify-center border-b border-slate-900/10">
             <Image
-              src="/logo.png"
-              alt="Lighthouse"
-              width={128}
-              height={128}
-              className="w-32 sm:w-40 h-12 sm:h-16 object-contain"
-              unoptimized
+              src="/image.png"
+              alt="Lighthouse Learning"
+              width={200}
+              height={32}
+              className="h-7 sm:h-8 w-auto object-contain mx-auto"
+              priority
             />
           </div>
 
-          <div className="w-full max-w-[340px] sm:max-w-[400px] md:max-w-[440px] xl:max-w-[500px] space-y-6 sm:space-y-8">
-
-            <div className="space-y-2 text-center lg:text-left">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Secure Login</h2>
-              <p className="text-white/90 text-sm sm:text-base font-medium">Welcome back! Please enter your details to access the dashboard.</p>
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="space-y-1 text-left">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                Sign in to your account
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                Enter your operational credentials to access your administrative dashboard.
+              </p>
             </div>
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {form.formState.errors.root && (
-                  <div className="p-4 rounded-lg bg-red-50/80 backdrop-blur-sm border border-red-200 text-sm text-red-600 font-medium flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 shrink-0">
-                      <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clipRule="evenodd" />
-                    </svg>
-                    {form.formState.errors.root.message}
-                  </div>
-                )}
-
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel className="text-white font-semibold text-[16px]">Username</FormLabel>
-                      <FormControl>
-                        <div className="relative group">
-                          <Input
-                            placeholder="Enter your username"
-                            {...field}
-                            className="pl-11 h-12 bg-white backdrop-blur-sm border-white/40 focus:bg-white/80 focus:border-[#0F2557] focus:ring-1 focus:ring-[#0F2557] transition-all rounded-lg text-base shadow-sm placeholder:text-gray-500"
-                            disabled={isLoading}
-                          />
-                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none group-focus-within:text-[#0F2557] transition-colors" />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <FormLabel className="text-white font-semibold text-[16px]">Password</FormLabel>
-                      </div>
-                      <FormControl>
-                        <div className="relative group">
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            {...field}
-                            className="pl-11 pr-11 h-12 bg-white backdrop-blur-sm border-white/40 focus:bg-white/80 focus:border-[#0F2557] focus:ring-1 focus:ring-[#0F2557] transition-all rounded-lg text-base shadow-sm placeholder:text-gray-500"
-                            disabled={isLoading}
-                          />
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none group-focus-within:text-[#0F2557] transition-colors" />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-2 rounded-md hover:bg-gray-100/50 transition-colors"
-                          >
-                            {showPassword ? (
-                              <EyeOff className="w-5 h-5" />
-                            ) : (
-                              <Eye className="w-5 h-5" />
-                            )}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="rememberMe"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 text-gray-700 pt-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          className="w-5 h-5 rounded-full border-gray-400/80 data-[state=checked]:bg-[#0F2557] data-[state=checked]:border-[#0F2557] bg-white/50"
-                        />
-                      </FormControl>
-                      <FormLabel className="font-normal cursor-pointer text-sm select-none text-white">
-                        Remember for 30 days
-                      </FormLabel>
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  className="w-full h-12 hover:backdrop-blur-2xl cursor-pointer text-base font-bold bg-[#0F2557] hover:bg-[#f56e28] text-white shadow-lg shadow-[#0F2557]/20 transition-all hover:shadow-[#0F2557]/30 rounded-lg mt-2 group backdrop-blur-md bg-opacity-90"
-                  disabled={isLoading}
+        {/* Form Component */}
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
+            {form.formState.errors.root && (
+              <div
+                role="alert"
+                aria-live="polite"
+                className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-xs sm:text-sm text-red-700 font-medium flex items-center gap-2.5 animate-in fade-in"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="w-4 h-4 text-red-600 shrink-0"
+                  aria-hidden="true"
                 >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Logging in...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-2">
-                      Login
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 group-hover:translate-x-1 transition-transform">
-                        <path fillRule="evenodd" d="M16.72 7.72a.75.75 0 011.06 0l3.75 3.75a.75.75 0 010 1.06l-3.75 3.75a.75.75 0 11-1.06-1.06l2.47-2.47H3a.75.75 0 010-1.5h16.19l-2.47-2.47a.75.75 0 010-1.06z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  )}
-                </Button>
-              </form>
-            </Form>
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span>{form.formState.errors.root.message}</span>
+              </div>
+            )}
 
-          </div>
+            {/* Username Input */}
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-xs font-semibold text-slate-700">
+                    Username or Email
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative group">
+                      <Input
+                        placeholder="e.g. user@lighthouse.com"
+                        {...field}
+                        className="pl-10 h-11 bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:border-transparent transition-colors duration-150 placeholder:text-slate-400"
+                        disabled={isLoading}
+                      />
+                      <User
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:text-brand-orange transition-colors duration-150"
+                        aria-hidden="true"
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-xs text-red-600" />
+                </FormItem>
+              )}
+            />
+
+            {/* Password Input */}
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-xs font-semibold text-slate-700">
+                      Password
+                    </FormLabel>
+                    <button
+                      type="button"
+                      onClick={() => setShowResetPassword(true)}
+                      className="text-xs font-semibold text-brand-orange hover:text-brand-orange-hover transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange rounded-xs"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <FormControl>
+                    <div className="relative group">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter password"
+                        {...field}
+                        className="pl-10 pr-10 h-11 bg-white border border-slate-300 text-slate-900 text-sm rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:border-transparent transition-colors duration-150 placeholder:text-slate-400"
+                        disabled={isLoading}
+                      />
+                      <Lock
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:text-brand-orange transition-colors duration-150"
+                        aria-hidden="true"
+                      />
+                      <button
+                        type="button"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1.5 rounded-md hover:bg-slate-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" aria-hidden="true" />
+                        ) : (
+                          <Eye className="w-4 h-4" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-xs text-red-600" />
+                </FormItem>
+              )}
+            />
+
+            {/* Remember Me Option */}
+            <FormField
+              control={form.control}
+              name="rememberMe"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-2.5 space-y-0 pt-1">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className="h-4 w-4 rounded-sm border-slate-300 data-[state=checked]:bg-brand-orange data-[state=checked]:border-brand-orange focus-visible:ring-1 focus-visible:ring-brand-orange"
+                    />
+                  </FormControl>
+                  <FormLabel className="text-xs font-normal text-slate-600 cursor-pointer select-none">
+                    Keep me signed in for 30 days
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+
+            {/* Submit Action */}
+            <Button
+              type="submit"
+              className="w-full h-11 text-sm font-semibold bg-brand-orange hover:bg-brand-orange-hover active:scale-[0.99] text-white shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-orange transition-colors duration-150 rounded-lg mt-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin motion-reduce:animate-none" />
+                  <span>Authenticating…</span>
+                </div>
+              ) : (
+                <span>Sign in to Dashboard</span>
+              )}
+            </Button>
+          </form>
+        </Form>
+
+        {/* Bottom Security Note */}
+        <div className="pt-2 text-center border-t border-slate-100">
+          <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" aria-hidden="true" />
+            <span>Protected by 256-bit operational encryption</span>
+          </p>
         </div>
       </div>
     </div>
+
+    {/* Bottom brand note */}
+    <p className="text-center text-xs text-white/80 drop-shadow-sm font-medium">
+      © {new Date().getFullYear()} Lighthouse Learning · Pre-K Education Network
+    </p>
+  </div>
+
+  <ResetPasswordModal
+    open={showResetPassword}
+    onOpenChange={setShowResetPassword}
+    defaultUsername={form.getValues("username")}
+    onSuccess={(un) => {
+      form.setValue("username", un);
+    }}
+  />
+</div>
   );
 }

@@ -1,5 +1,5 @@
 import axios from "axios";
-import Cookies from "js-cookie";
+import { getStoredAccessToken, handleTokenRefresh } from "./tokenRefresh";
 
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL + "/api",
@@ -10,7 +10,7 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = getStoredAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
@@ -23,11 +23,20 @@ axiosInstance.interceptors.request.use(
 
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // You can log out the user or redirect to login page
-      console.warn("Unauthorized. Redirecting to login...");
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Auto-refresh access token on 401 Unauthorized
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/auth/login") &&
+      !originalRequest.url?.includes("/auth/refresh-token")
+    ) {
+      return handleTokenRefresh(originalRequest, axiosInstance);
     }
+
     return Promise.reject(error);
   }
 );

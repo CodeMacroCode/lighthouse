@@ -48,6 +48,9 @@ import {
   Shield,
   ShieldAlert,
   LayoutDashboard,
+  History,
+  Globe,
+  Layers,
 } from "lucide-react";
 import { GiGps, GiReceiveMoney } from "react-icons/gi";
 import Image from "next/image";
@@ -108,6 +111,13 @@ const iconMap: Record<string, any> = {
   "Incident": ShieldAlert,
   "Safety and Audit": Shield,
   "Analytics Dashboard": LayoutDashboard,
+  "Audit Trail": History,
+  "Audit Logs": History,
+  "User Management": Users,
+  "Users": Users,
+  "Zone": Globe,
+  "Cluster": Layers,
+  "School Master": School,
 };
 
 // Access permission mapping for Master section
@@ -165,44 +175,44 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           if (normalized === PREK_ROLES.CENTRAL || role === "superAdmin") {
             return [
               { title: "Analytics Dashboard", url: "/dashboard/analytics" },
-              { title: "National Head", url: "/dashboard/users/school-master" },
-              { title: "Business Manager (BM)", url: "/dashboard/users/branch-master" },
-              { title: "Regional Safety Officer (RSO)", url: "/dashboard/users/user-access" },
-              { title: "Area Operations Manager (AOM)", url: "/dashboard/users/coordinator" },
+              { title: "User Management", url: "/dashboard/users" },
+              { title: "Zone", url: "/dashboard/zone" },
+              { title: "Cluster", url: "/dashboard/cluster" },
+              { title: "School Master", url: "/dashboard/school-master" },
               { title: "Incident", url: "/dashboard/incident" },
-              { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
+              { title: "Audit Trail", url: "/dashboard/audit-logs" },
             ];
           } else if (normalized === PREK_ROLES.NATIONAL_HEAD || role === "school") {
             return [
               { title: "Analytics Dashboard", url: "/dashboard/analytics" },
-              { title: "National Head", url: "/dashboard/users/school-master" },
-              { title: "Business Manager (BM)", url: "/dashboard/users/branch-master" },
-              { title: "Regional Safety Officer (RSO)", url: "/dashboard/users/user-access" },
-              { title: "Area Operations Manager (AOM)", url: "/dashboard/users/coordinator" },
+              { title: "Zone", url: "/dashboard/zone" },
+              { title: "Cluster", url: "/dashboard/cluster" },
+              { title: "School Master", url: "/dashboard/school-master" },
               { title: "Incident", url: "/dashboard/incident" },
-              { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
             ];
           } else if (normalized === PREK_ROLES.RSO || role === "branchGroup") {
             return [
               { title: "Analytics Dashboard", url: "/dashboard/analytics" },
-              { title: "Business Manager (BM)", url: "/dashboard/users/branch-master" },
-              { title: "Area Operations Manager (AOM)", url: "/dashboard/users/coordinator" },
+              { title: "User Management", url: "/dashboard/users" },
+              { title: "Cluster", url: "/dashboard/cluster" },
+              { title: "School Master", url: "/dashboard/school-master" },
               { title: "Incident", url: "/dashboard/incident" },
-              { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
             ];
           } else if (normalized === PREK_ROLES.BM || role === "branch") {
             return [
               { title: "Analytics Dashboard", url: "/dashboard/analytics" },
-              { title: "Area Operations Manager (AOM)", url: "/dashboard/users/coordinator" },
+              { title: "User Management", url: "/dashboard/users" },
+              { title: "School Master", url: "/dashboard/school-master" },
               { title: "Incident", url: "/dashboard/incident" },
-              { title: "Safety and Audit", url: "/dashboard/safety-and-audit" },
             ];
           } else if (normalized === PREK_ROLES.AOM || role === "parent") {
             return [
+              { title: "School Master", url: "/dashboard/school-master" },
               { title: "Incident", url: "/dashboard/incident" }
             ];
           }
           return [
+            { title: "School Master", url: "/dashboard/school-master" },
             { title: "Incident", url: "/dashboard/incident" }
           ];
         default:
@@ -281,18 +291,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <Sidebar
         collapsible="icon"
         {...props}
-        className="border-r border-blue-600/20 transition-all duration-300 ease-in-out bg-primary h-screen"
+        className="border-r border-white/10 transition-all duration-300 ease-in-out bg-primary h-screen"
       >
         {/* Header - Fixed Height */}
-        <SidebarHeader className="border-b border-blue-600/20 bg-primary h-[60px] flex items-center justify-between px-3 transition-all duration-300 ease-in-out">
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
-              LH
-            </div>
-            {!isCollapsed && (
-              <span className="font-bold text-white text-base tracking-tight truncate">
-                Lighthouse
-              </span>
+        <SidebarHeader className="border-b border-white/10 bg-primary h-[60px] flex items-center justify-between px-3.5 transition-all duration-300 ease-in-out">
+          <div className="flex items-center gap-2 min-w-0">
+            {isCollapsed ? (
+              <div className="h-8 w-8 rounded-lg bg-white/10 border border-white/15 shrink-0 flex items-center justify-center p-1">
+                <Image
+                  src="/image.png"
+                  alt="Lighthouse"
+                  width={28}
+                  height={10}
+                  className="w-full h-auto object-contain"
+                  priority
+                />
+              </div>
+            ) : (
+              <div className="flex items-center min-w-0 py-1">
+                <Image
+                  src="/image.png"
+                  alt="Lighthouse Learning"
+                  width={150}
+                  height={24}
+                  className="h-5.5 sm:h-6 w-auto object-contain"
+                  priority
+                />
+              </div>
             )}
           </div>
           {isMobile && (
@@ -309,13 +334,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarHeader>
 
         {/* Scrollable Content - Animated */}
-        <SidebarContent className="bg-primary px-2 py-2 transition-all duration-300 ease-in-out">
+        <SidebarContent className="bg-primary px-2.5 py-2.5 transition-all duration-300 ease-in-out">
           {isLoading || !userRole || sidebarData.length === 0 ? (
             <div className="flex flex-col gap-2 p-2">
               {[...Array(6)].map((_, i) => (
                 <Skeleton
                   key={i}
-                  className="h-10 w-full rounded bg-blue-300/60 transition-all duration-300"
+                  className="h-10 w-full rounded bg-white/10 transition-all duration-300"
                   style={{ animationDelay: `${i * 50}ms` }}
                 />
               ))}
@@ -323,30 +348,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           ) : (
             <SidebarGroup className="p-0">
               {/* Group Label with Fade Animation */}
-              <SidebarGroupLabel className="px-2 py-2 text-xs font-bold uppercase tracking-wider text-white group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:scale-90 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:py-0 transition-all duration-300 ease-out overflow-hidden">
+              <SidebarGroupLabel className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400/90 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:scale-90 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:py-0 transition-all duration-300 ease-out overflow-hidden">
                 {activeSection || "Menu"}
               </SidebarGroupLabel>
 
-              <SidebarSeparator className="bg-blue-600/20 my-1 group-data-[collapsible=icon]:opacity-0 transition-all duration-200" />
+              <SidebarSeparator className="bg-white/10 my-1 group-data-[collapsible=icon]:opacity-0 transition-all duration-200" />
 
-              <SidebarGroupContent className="mt-4">
-                <SidebarMenu className="gap-0.5">
+              <SidebarGroupContent className="mt-3">
+                <SidebarMenu className="gap-1">
                   {filteredData.length === 0 ? (
-                    <div className="px-3 py-8 text-center text-sm text-white/60 group-data-[collapsible=icon]:hidden transition-all duration-300">
+                    <div className="px-3 py-8 text-center text-sm text-slate-400 group-data-[collapsible=icon]:hidden transition-all duration-300">
                       No results
                     </div>
                   ) : (
                     filteredData.map((item, index) => {
                       const Icon = iconMap[item.title] || FileText;
-                      const isActive = pathname === item.url;
+                      const isActive =
+                        pathname === item.url ||
+                        (item.url === "/dashboard/users" &&
+                          pathname.startsWith("/dashboard/users"));
 
                       return (
                         <SidebarMenuItem
                           key={item.title}
                           className="animate-in fade-in slide-in-from-left-2 fill-mode-both"
                           style={{
-                            animationDelay: `${index * 30}ms`,
-                            animationDuration: "300ms",
+                            animationDelay: `${index * 25}ms`,
+                            animationDuration: "250ms",
                           }}
                         >
                           <SidebarMenuButton
@@ -354,14 +382,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             isActive={isActive}
                             tooltip={item.title}
                             className={`
-                              group/button relative transition-all duration-200
+                              group/button relative transition-all duration-200 rounded-lg h-10 px-3
                               ${isActive
-                                ? "bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700"
-                                : "text-white hover:bg-blue-500/30 hover:text-white font-medium"
+                                ? "bg-white/10 text-white font-semibold shadow-xs border border-white/10 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-amber-400 before:rounded-r"
+                                : "text-slate-400 hover:text-white hover:bg-white/5 font-medium"
                               }
-                              rounded-lg h-11
-                              group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11
-                              group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:mb-2
+                              group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10
+                              group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:mb-1.5
                             `}
                           >
                             <Link
@@ -371,27 +398,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                 e.preventDefault();
                                 handleItemSelect(item.url);
                               }}
-                              className="flex items-center gap-3 w-full px-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 transition-all duration-200"
+                              className="flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 transition-all duration-200"
                             >
-                              {/* Icon with rotate animation on collapse */}
+                              {/* Icon with smooth subtle scale on collapse */}
                               <Icon
                                 className={`
-                                  h-7 w-7 flex-shrink-0 transition-all duration-300
-                                  group-hover/button:scale-110 group-hover/button:rotate-3
-                                  group-data-[collapsible=icon]:rotate-0 group-data-[collapsible=icon]:scale-150
-                                  ${isActive ? "text-black" : "text-white"}
+                                  h-5 w-5 flex-shrink-0 transition-transform duration-200 ${isActive ? "text-amber-400" : "text-slate-300"}
+                                  group-hover/button:scale-105
+                                  group-data-[collapsible=icon]:scale-125
                                 `}
                               />
                               {/* Text with slide and fade animation */}
                               <span
                                 title={item.title}
-                                className="flex-1 truncate text-sm transition-all duration-300 ease-out group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:translate-x-2 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:hidden"
+                                className="flex-1 truncate text-xs sm:text-sm tracking-tight transition-all duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:hidden"
                               >
                                 {item.title}
                               </span>
-                              {/* Active indicator with pulse */}
+                              {/* Active indicator */}
                               {isActive && (
-                                <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:top-1 group-data-[collapsible=icon]:right-1 group-data-[collapsible=icon]:h-2 group-data-[collapsible=icon]:w-2 transition-all duration-200" />
+                                <div className="h-1.5 w-1.5 rounded-full bg-white group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:top-1 group-data-[collapsible=icon]:right-1" />
                               )}
                             </Link>
                           </SidebarMenuButton>

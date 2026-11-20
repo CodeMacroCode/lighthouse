@@ -104,7 +104,12 @@ export function CustomTable<TData extends RowData>({
 }: CustomTableProps<TData>) {
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: pageSizeArray[0],
+    pageSize:
+      typeof pageSizeArray[0] === "number"
+        ? pageSizeArray[0]
+        : pageSizeArray[0] === "All"
+        ? 999999
+        : 20,
   });
   const [sorting, setSorting] = useState<SortingState>([]);
   const [internalColumnVisibility, setInternalColumnVisibility] =
@@ -144,9 +149,11 @@ export function CustomTable<TData extends RowData>({
   //   setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   // }, [data]);
 
-  // Handle "All" option - when pageSize equals data length, show all rows
-  const isShowingAll = pagination.pageSize >= finalData.length;
-  const pageCount = isShowingAll ? 1 : Math.ceil(finalData.length / pagination.pageSize);
+  // Handle "All" option - when pageSize equals 999999 (or >= 999999), show all rows
+  const isShowingAll = pagination.pageSize >= 999999;
+  const pageCount = isShowingAll
+    ? 1
+    : Math.max(1, Math.ceil(finalData.length / pagination.pageSize));
   const paginatedData = isShowingAll
     ? finalData
     : finalData.slice(
@@ -159,7 +166,7 @@ export function CustomTable<TData extends RowData>({
     header: () => <div className="text-center w-full">S.No.</div>,
     cell: ({ row }) => {
       const serialNumber =
-        pagination.pageIndex * pagination.pageSize + row.index + 1;
+        (isShowingAll ? 0 : pagination.pageIndex * pagination.pageSize) + row.index + 1;
       return (
         <div className="text-center w-full font-medium">{serialNumber}</div>
       );
@@ -324,8 +331,8 @@ export function CustomTable<TData extends RowData>({
   const paddingTop = virtualRows[0]?.start || 0;
   const paddingBottom = totalSize - (virtualRows.at(-1)?.end || 0);
 
-  const getColumnStyle = (col: unknown) => {
-    const meta = col.columnDef?.meta || {};
+  const getColumnStyle = (col: any) => {
+    const meta = col?.columnDef?.meta || {};
     const baseWidth = meta.minWidth || (isMobile ? 80 : 100);
     const maxWidth = meta.maxWidth || 2000;
     return {
@@ -375,37 +382,55 @@ export function CustomTable<TData extends RowData>({
         >
           <div style={{ width: tableWidth, minWidth: totalMinWidth + "px" }}>
             {/* Header */}
-            <div className="sticky top-0 z-20 bg-primary border-b">
+            <div className="sticky top-0 z-20 bg-primary border-b border-white/10">
               {table.getHeaderGroups().map((hg) => (
                 <div key={hg.id} className="flex">
-                  {hg.headers.map((header) => (
-                    <div
-                      key={header.id}
-                      className="flex items-center px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium uppercase tracking-wider border-r last:border-r-0 text-white"
-                      style={getColumnStyle(header.column)}
-                    >
-                      <div
-                        className={`flex items-center justify-center gap-1 w-full ${header.column.getCanSort()
-                          ? "cursor-pointer select-none"
-                          : ""
-                          }`}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        <span className="whitespace-nowrap">
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                        </span>
-                        {header.column.getCanSort() && (
-                          <CustomArrowUpDown
-                            direction={header.column.getIsSorted()}
+                  {hg.headers.map((header) => {
+                    const headerMeta = (header.column.columnDef.meta || {}) as any;
+                    const headerAlign = headerMeta.headerAlign || "center";
+                    const justifyClass =
+                      headerAlign === "left"
+                        ? "justify-start text-left"
+                        : headerAlign === "right"
+                          ? "justify-end text-right"
+                          : "justify-center text-center";
+                    const textClass =
+                      headerAlign === "left"
+                        ? "text-left"
+                        : headerAlign === "right"
+                          ? "text-right"
+                          : "text-center";
 
-                          />
-                        )}
+                    return (
+                      <div
+                        key={header.id}
+                        className="flex items-center px-2 py-2 sm:px-3 sm:py-3 text-xs sm:text-sm font-semibold border-r border-white/10 last:border-r-0 text-white overflow-hidden"
+                        style={getColumnStyle(header.column)}
+                      >
+                        <div
+                          className={`flex items-center ${justifyClass} gap-1.5 w-full min-w-0 ${header.column.getCanSort()
+                            ? "cursor-pointer select-none"
+                            : ""
+                            }`}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <span className={`${textClass} break-words whitespace-normal leading-tight`}>
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                          </span>
+                          {header.column.getCanSort() && (
+                            <span className="shrink-0">
+                              <CustomArrowUpDown
+                                direction={header.column.getIsSorted()}
+                              />
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -443,24 +468,41 @@ export function CustomTable<TData extends RowData>({
                       key={row.id}
                       className="flex border-b hover:bg-muted/50 min-h-[48px]"
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <div
-                          key={cell.id}
-                          className="flex items-center px-2 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm border-r last:border-r-0"
-                          style={getColumnStyle(cell.column)}
-                        >
-                          <div className="w-full text-center">
-                            <div className="break-words whitespace-normal leading-relaxed">
-                              {cell.column.id === "serialNumber"
-                                ? flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext()
-                                )
-                                : renderCellContent(cell.getValue())}
+                      {row.getVisibleCells().map((cell) => {
+                        const cellMeta = (cell.column.columnDef.meta || {}) as any;
+                        const cellAlign = cellMeta.align || "center";
+                        const alignClass =
+                          cellAlign === "left"
+                            ? "text-left"
+                            : cellAlign === "right"
+                              ? "text-right"
+                              : "text-center";
+
+                        return (
+                          <div
+                            key={cell.id}
+                            className={`flex items-center px-2 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm border-r last:border-r-0 overflow-hidden min-w-0 ${
+                              cellAlign === "left"
+                                ? "justify-start"
+                                : cellAlign === "right"
+                                  ? "justify-end"
+                                  : "justify-center"
+                            }`}
+                            style={getColumnStyle(cell.column)}
+                          >
+                            <div className={`w-full ${alignClass}`}>
+                              <div className="break-words whitespace-normal leading-relaxed">
+                                {cell.column.id === "serialNumber"
+                                  ? flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext()
+                                  )
+                                  : renderCellContent(cell.getValue())}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   );
                 })}
@@ -477,7 +519,7 @@ export function CustomTable<TData extends RowData>({
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-3 animate-pulse">
+                <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-3 animate-pulse motion-reduce:animate-none">
                   <div className="flex justify-between items-center">
                     <Skeleton className="h-5 w-24 rounded" />
                     <Skeleton className="h-5 w-16 rounded" />
@@ -517,7 +559,7 @@ export function CustomTable<TData extends RowData>({
                           </span>
                         )}
                         {primaryColumn && (
-                          <div className="font-bold text-sm text-[#0c235c] truncate">
+                          <div className="font-bold text-sm text-slate-900 truncate">
                             {renderCellContent(primaryVal)}
                           </div>
                         )}
@@ -543,7 +585,7 @@ export function CustomTable<TData extends RowData>({
                               key={col.id || (col as any).accessorKey || headerLabel}
                               className="flex items-center justify-between gap-3 py-1 border-b border-slate-50 last:border-0"
                             >
-                              <span className="text-slate-500 font-medium text-[11px] uppercase tracking-tight shrink-0">
+                              <span className="text-slate-500 font-medium text-[11px] shrink-0">
                                 {headerLabel}
                               </span>
                               <div className="text-right font-medium text-slate-800 break-words max-w-[65%]">
@@ -569,8 +611,8 @@ export function CustomTable<TData extends RowData>({
               {hasMoreMobile && (
                 <div ref={mobileSentinelRef} className="py-3 text-center">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-medium shadow-2xs">
-                    <span className="w-2 h-2 rounded-full bg-[#0c235c] animate-pulse" />
-                    Loading more...
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    Loading more…
                   </div>
                 </div>
               )}

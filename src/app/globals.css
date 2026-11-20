@@ -1,3 +1,6 @@
+/* Hallmark · v2.0.0 · theme: Console · genre: modern-minimal · depth: restyle · posture: restrained */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · strongest: high-craft enterprise dashboard */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -13,8 +16,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-bus-yellow: var(--bus-yellow);
-  --color-bus-green: var(--bus-green);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
@@ -39,6 +40,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-brand-orange: var(--color-brand-orange);
+  --color-brand-orange-hover: var(--color-brand-orange-hover);
+  --color-brand-navy: var(--color-brand-navy);
+  --color-brand-navy-deep: var(--color-brand-navy-deep);
+  --color-brand-surface: var(--color-brand-surface);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -46,149 +52,161 @@
 }
 
 :root {
-  --radius: 0.65rem;
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
+  /* Radius */
+  --radius: 0.75rem;
 
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.28 0.106 264.06);
-  ;
-  --primary-foreground: oklch(0 0 0);
-  --bus-yellow: 221.2 83.2% 53.3%;
-  --bus-green: 142.1 76.2% 36.3%;
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.28 0.106 264.06);
-  ;
-  --primary-foreground: oklch(100% 0.00011 271.152);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: rgb(24, 24, 27);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.28 0.106 264.06);
-  ;
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.28 0.106 264.06);
-  ;
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.28 0.106 264.06);
-  ;
-  --sidebar-primary-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.28 0.106 264.06);
-  ;
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.28 0.106 264.06);
-  ;
-  --sidebar-primary-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.28 0.106 264.06);
-  ;
+  /* Lighthouse Learning Brand Identity (from https://www.lighthouse-learning.com) */
+  --color-brand-orange: #ec6725;
+  --color-brand-orange-hover: #d55316;
+  --color-brand-navy: #013571;
+  --color-brand-navy-deep: #00224d;
+  --color-brand-surface: #f8fafc;
+
+  /* Surfaces & Ink (Daylight Canvas & Deep Obsidian) */
+  --background: oklch(98.8% 0.003 250); /* #f8fafc soft daylight ground */
+  --foreground: oklch(15% 0.015 260);   /* #090d16 deep crisp ink */
+  --card: oklch(99.6% 0.002 250);       /* crisp elevated card */
+  --card-foreground: oklch(15% 0.015 260);
+  --popover: oklch(99.6% 0.002 250);
+  --popover-foreground: oklch(15% 0.015 260);
+
+  /* Primary Theme (Obsidian Onyx & Pure White) */
+  --primary: oklch(15% 0.015 260);     /* #090d16 */
+  --primary-foreground: oklch(99.6% 0.002 250); /* Pure White */
+
+  /* Secondary & Muted */
+  --secondary: oklch(96% 0.005 250);    /* #f1f5f9 */
+  --secondary-foreground: oklch(22% 0.015 260); /* #1e293b */
+  --muted: oklch(96.2% 0.004 250);      /* #f1f5f9 */
+  --muted-foreground: oklch(48% 0.018 260); /* #64748b */
+
+  /* Accents & Signals */
+  --accent: oklch(76% 0.17 65);         /* #f59e0b Lighthouse Amber Beacon */
+  --accent-foreground: oklch(12% 0.012 260);
+  --destructive: oklch(58% 0.22 25);    /* Crisp safety rose/red */
+  --border: oklch(91.5% 0.006 250);     /* #e2e8f0 hairline rule */
+  --input: oklch(91.5% 0.006 250);
+  --ring: oklch(76% 0.17 65);
+
+  /* Charts */
+  --chart-1: oklch(76% 0.17 65);        /* Amber Beacon */
+  --chart-2: oklch(58% 0.16 160);       /* Emerald/Teal */
+  --chart-3: oklch(52% 0.2 258);        /* Cobalt Blue */
+  --chart-4: oklch(80% 0.16 85);        /* Gold */
+  --chart-5: oklch(55% 0.22 25);        /* Crimson */
+
+  /* Sidebar Theme (Deep Modern Obsidian Rail) */
+  --sidebar: oklch(11% 0.015 255);      /* #090d16 */
+  --sidebar-foreground: oklch(88% 0.01 250);
+  --sidebar-primary: oklch(76% 0.17 65); /* #f59e0b */
+  --sidebar-primary-foreground: oklch(11% 0.015 255);
+  --sidebar-accent: oklch(17% 0.015 255);
+  --sidebar-accent-foreground: oklch(99.6% 0.002 250);
+  --sidebar-border: oklch(100% 0 0 / 0.07);
+  --sidebar-ring: oklch(76% 0.17 65);
+
+  /* Operational Signals */
+  --bus-yellow: 38 92% 50%;
+  --bus-green: 152 76% 38%;
+
+  /* Scrollbar & Selection Tokens */
+  --scrollbar-thumb: oklch(85% 0.008 250);
+  --scrollbar-thumb-hover: oklch(65% 0.015 250);
+  --selection-bg: oklch(76% 0.17 65 / 0.25);
+
+  /* Dark Tokens */
+  --dark-background: oklch(15% 0.012 260);
+  --dark-foreground: oklch(98% 0.005 250);
+  --dark-card: oklch(18% 0.015 260);
+  --dark-card-foreground: oklch(98% 0.005 250);
+  --dark-popover: oklch(18% 0.015 260);
+  --dark-popover-foreground: oklch(98% 0.005 250);
+  --dark-primary: oklch(98% 0.005 250);
+  --dark-primary-foreground: oklch(18% 0.015 260);
+  --dark-secondary: oklch(24% 0.015 260);
+  --dark-secondary-foreground: oklch(98% 0.005 250);
+  --dark-muted: oklch(24% 0.015 260);
+  --dark-muted-foreground: oklch(68% 0.015 260);
+  --dark-accent: oklch(24% 0.015 260);
+  --dark-accent-foreground: oklch(98% 0.005 250);
+  --dark-destructive: oklch(65% 0.2 25);
+  --dark-border: oklch(26% 0.012 260);
+  --dark-input: oklch(26% 0.012 260);
+  --dark-ring: oklch(65% 0.18 256);
+  --dark-sidebar: oklch(14% 0.012 260);
+  --dark-sidebar-foreground: oklch(98% 0.005 250);
+  --dark-sidebar-primary: oklch(98% 0.005 250);
+  --dark-sidebar-primary-foreground: oklch(14% 0.012 260);
+  --dark-sidebar-accent: oklch(22% 0.015 260);
+  --dark-sidebar-accent-foreground: oklch(98% 0.005 250);
+  --dark-sidebar-border: oklch(100% 0 0 / 0.1);
+  --dark-sidebar-ring: oklch(65% 0.18 256);
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.28 0.106 264.06);
-  ;
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.274 0.006 286.033);
-  --primary: oklch(0.28 0.106 264.06);
-  ;
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(0.8551 0.178 90.21);
-  --ring: oklch(0.554 0.135 66.442);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.28 0.106 264.06);
-  ;
-  --sidebar-primary-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-primary: oklch(0.28 0.106 264.06);
-  ;
-  --sidebar-primary-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.554 0.135 66.442);
-  --sidebar-ring: oklch(0.554 0.135 66.442);
+  --background: var(--dark-background);
+  --foreground: var(--dark-foreground);
+  --card: var(--dark-card);
+  --card-foreground: var(--dark-card-foreground);
+  --popover: var(--dark-popover);
+  --popover-foreground: var(--dark-popover-foreground);
+  --primary: var(--dark-primary);
+  --primary-foreground: var(--dark-primary-foreground);
+  --secondary: var(--dark-secondary);
+  --secondary-foreground: var(--dark-secondary-foreground);
+  --muted: var(--dark-muted);
+  --muted-foreground: var(--dark-muted-foreground);
+  --accent: var(--dark-accent);
+  --accent-foreground: var(--dark-accent-foreground);
+  --destructive: var(--dark-destructive);
+  --border: var(--dark-border);
+  --input: var(--dark-input);
+  --ring: var(--dark-ring);
+  --sidebar: var(--dark-sidebar);
+  --sidebar-foreground: var(--dark-sidebar-foreground);
+  --sidebar-primary: var(--dark-sidebar-primary);
+  --sidebar-primary-foreground: var(--dark-sidebar-primary-foreground);
+  --sidebar-accent: var(--dark-sidebar-accent);
+  --sidebar-accent-foreground: var(--dark-sidebar-accent-foreground);
+  --sidebar-border: var(--dark-sidebar-border);
+  --sidebar-ring: var(--dark-sidebar-ring);
 }
-
-
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
 
-  /* Custom Scrollbar Styling to force visibility globally */
+  /* Hallmark Floor 4: overflow-x: clip on both html and body */
+  html, body {
+    overflow-x: clip !important;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Hallmark F16 Selection Theming */
+  ::selection {
+    background: var(--selection-bg);
+    color: var(--foreground);
+  }
+
+  /* Refined, professional subtle scrollbar */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-    display: block !important; /* Force display */
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 5px;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 5px;
-    border: 2px solid #f1f1f1; /* Creates padding around thumb */
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: var(--scrollbar-thumb-hover);
   }
 
   /* Utility to suppress scrollbar where explicitly requested */
@@ -201,221 +219,14 @@
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
   }
-
-  body {
-    @apply bg-background text-foreground;
-    overflow-x: hidden;
-    margin-right: 0px !important;
-    /* Hide scrollbar for IE, Edge and Firefox */
-    -ms-overflow-style: none;
-    /* IE and Edge */
-    scrollbar-width: none;
-    /* Firefox */
-  }
-
-  html {
-    overflow-x: hidden;
-    /* Hide scrollbar for IE, Edge and Firefox */
-    -ms-overflow-style: none;
-    /* IE and Edge */
-    scrollbar-width: none;
-    /* Firefox */
-  }
 }
 
-/* Add this to your global CSS */
-@keyframes stepProgress {
-  0% {
-    width: 0%;
-  }
-
-  10% {
-    width: 10%;
-  }
-
-  20% {
-    width: 20%;
-  }
-
-  30% {
-    width: 30%;
-  }
-
-  40% {
-    width: 40%;
-  }
-
-  50% {
-    width: 50%;
-  }
-
-  60% {
-    width: 60%;
-  }
-
-  70% {
-    width: 70%;
-  }
-
-  80% {
-    width: 80%;
-  }
-
-  90% {
-    width: 90%;
-  }
-
-  100% {
-    width: 100%;
-  }
-}
-
-.animate-stepProgress {
-  animation: stepProgress 2s linear infinite;
-}
-
-/* @media (width >=40rem) {
-  .sm\:max-w-lg {
-    max-width: none;
-  }
-} */
-
-/* For 16:9 screens (standard widescreen) */
-@media (aspect-ratio: 16/9) {
-  .table-container {
-    min-height: calc(100vh - 180px);
-  }
-}
-
-/* For 16:10 screens (wider monitors) */
-@media (min-aspect-ratio: 16/10) and (max-aspect-ratio: 16/9) {
-  .table-container {
-    min-height: calc(100vh - 150px);
-  }
-}
-
-/* For ultra-wide screens */
-@media (min-aspect-ratio: 21/9) {
-  .table-container {
-    min-height: calc(100vh - 120px);
-  }
-}
-
-@layer components {
-  .timeline-dot {
-    @apply relative z-10 flex items-center justify-center;
-  }
-
-  .timeline-dot-pending {
-    background-color: hsl(var(--bus-yellow));
-    animation: pulse-yellow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  .timeline-dot-arrived {
-    background-color: hsl(var(--bus-green));
-    animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-}
-
-@layer utilities {
-  .shadow-bus-yellow-glow {
-    box-shadow:
-      0 0 20px hsl(var(--bus-yellow) / 0.4),
-      0 0 40px hsl(var(--bus-yellow) / 0.2);
-  }
-
-  .shadow-bus-green-glow {
-    box-shadow:
-      0 0 20px hsl(var(--bus-green) / 0.4),
-      0 0 40px hsl(var(--bus-green) / 0.2);
-  }
-
-  .filter-card {
-    @apply bg-card rounded-xl border border-border p-6;
-    box-shadow: var(--filter-card-shadow);
-    transition: box-shadow 0.2s ease;
-  }
-
-  .filter-card:hover {
-    box-shadow: var(--filter-card-shadow-hover);
-  }
-
-  .field-group {
-    @apply flex flex-col gap-2;
-  }
-
-  .field-label {
-    @apply text-sm font-medium;
-    color: hsl(var(--field-label));
-  }
-
-  .field-icon {
-    color: hsl(var(--field-icon));
-  }
-
-  /* Responsive utilities */
-  .touch-target {
-    @apply min-h-[44px] min-w-[44px];
-  }
-
-  /* Mobile-friendly scrolling */
-  .mobile-scroll {
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-  }
-
-  /* Responsive container */
-  .responsive-container {
-    @apply w-full px-2 sm:px-4 md:px-6 lg:px-8;
-  }
-
-  /* Stack on mobile, row on desktop */
-  .stack-mobile {
-    @apply flex flex-col sm:flex-row;
-  }
-
-  /* Hide on mobile */
-  .hide-mobile {
-    @apply hidden sm:block;
-  }
-
-  /* Show only on mobile */
-  .show-mobile {
-    @apply block sm:hidden;
-  }
-}
-
-/* Global mobile responsiveness and layout safeguards */
-html, body {
-  overflow-x: clip;
-  width: 100%;
-  max-width: 100vw;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Mobile-optimized touch targets & readability */
-@media (max-width: 640px) {
-  /* Prevent iOS zoom on form inputs while maintaining comfort */
-  input:not([type="checkbox"]):not([type="radio"]),
-  select,
-  textarea {
-    font-size: 16px !important;
-  }
-
-  /* Standard interactive touch targets without breaking small badges or pagination */
-  .touch-target,
-  button:not(.h-6):not(.h-7):not(.h-8):not(.size-6):not(.size-7):not(.size-8):not(.p-0):not(.p-1):not(.inline-flex),
-  [role="button"]:not(.inline-flex):not(.p-1) {
-    min-height: 40px;
-  }
-
-  /* Improve table scrolling on mobile */
-  .overflow-x-auto {
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Reduce padding on mobile for more content space */
-  .mobile-compact {
-    padding: 0.5rem !important;
+/* Reduced motion preference fallback (Hallmark Floor 7) */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

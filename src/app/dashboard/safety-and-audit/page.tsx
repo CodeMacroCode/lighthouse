@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { auditService } from "@/services/api/auditService";
 import { useAuthStore } from "@/store/authStore";
@@ -44,6 +44,19 @@ import { useSchoolDropdown, useBranchDropdown } from "@/hooks/useDropdown";
 import { PREK_ROLES, normalizePrekRole } from "@/constants/roles";
 import { Combobox } from "@/components/ui/combobox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import SearchComponent from "@/components/ui/SearchOnlydata";
+import { ColumnVisibilitySelector } from "@/components/column-visibility-selector";
+import ResponseLoader from "@/components/ResponseLoader";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
 import { getAuditColumns } from "@/components/columns/columns";
@@ -436,7 +449,7 @@ export default function SafetyAndAuditPage() {
   const isSuperAdmin = prekRole === PREK_ROLES.CENTRAL || user?.role === "superAdmin";
   const isSchool = prekRole === PREK_ROLES.NATIONAL_HEAD || user?.role === "school";
   const isBranchGroup = prekRole === PREK_ROLES.RSO || user?.role === "branchGroup";
-  const [view, setView] = useState<"conduct" | "history">("conduct");
+  const [isConductModalOpen, setIsConductModalOpen] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -464,8 +477,19 @@ export default function SafetyAndAuditPage() {
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
       }),
-    enabled: view === "history",
   });
+
+  const [filteredAudits, setFilteredAudits] = useState<Audit[]>([]);
+
+  useEffect(() => {
+    if (auditListData?.data) {
+      setFilteredAudits(auditListData.data);
+    }
+  }, [auditListData?.data]);
+
+  const handleSearchResults = useCallback((results: any[]) => {
+    setFilteredAudits(results);
+  }, []);
 
   const auditColumns = React.useMemo(
     () =>
@@ -479,16 +503,16 @@ export default function SafetyAndAuditPage() {
     [],
   );
 
-  const { tableElement: auditTable } = useCustomTable({
-    data: auditListData?.data || [],
+  const { table, tableElement: auditTable } = useCustomTable({
+    data: filteredAudits,
     columns: auditColumns,
     pagination,
-    totalCount: auditListData?.total || 0,
+    totalCount: auditListData?.total || filteredAudits.length,
     loading: isAuditListLoading,
     onPaginationChange: setPagination,
     pageSizeOptions: [10, 20, 50, "All"],
     showSerialNumber: true,
-    maxHeight: "calc(100vh - 350px)",
+    maxHeight: "calc(100vh - 240px)",
   });
 
   // Fetch schools for superAdmin
@@ -560,6 +584,7 @@ export default function SafetyAndAuditPage() {
     },
     onSuccess: (response: any) => {
       if (response.success && response.data) {
+        setIsConductModalOpen(false);
         setAuditData(response.data);
         toast.success("Audit started successfully!");
       }
@@ -606,7 +631,7 @@ export default function SafetyAndAuditPage() {
     onSuccess: () => {
       toast.success("Audit finalized successfully!", {
         description: "Inspection report has been generated.",
-        style: { background: "#0c235c", color: "#fff" },
+        style: { background: "#0f233a", color: "#fff" },
       });
       setTimeout(() => {
         clearAuditData();
@@ -663,7 +688,6 @@ export default function SafetyAndAuditPage() {
     }
 
     setAllSectionsData(newSectionsData);
-    setView("conduct");
     setActiveSection("A");
     toast.info(
       `Resuming draft audit for ${audit.branchName || audit.schoolName}`,
@@ -730,205 +754,161 @@ export default function SafetyAndAuditPage() {
     }
   };
 
+  const handleStartAudit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    createAuditMutation.mutate();
+  };
+
   // If no audit is in progress, show the selection view
   if (!auditId) {
     return (
-      <main className="flex flex-col p-6 animate-in fade-in duration-500 max-w-6xl mx-auto w-full">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-gray-100">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tight text-[#0c235c]">
-              Safety & Audit
-            </h1>
-            <p className="text-muted-foreground text-sm font-medium">
-              Compliance monitoring & safety inspections
-            </p>
-          </div>
-          <div className="flex bg-gray-100/80 p-1.5 rounded-2xl backdrop-blur-sm border border-gray-200/50">
-            {!isSchool && (
-              <Button
-                variant={view === "conduct" ? "default" : "ghost"}
-                className={
-                  view === "conduct"
-                    ? "bg-[#0c235c] text-white rounded-xl shadow-md hover:bg-[#0c235c]/90 transition-all px-6"
-                    : "rounded-xl text-gray-500 hover:text-[#0c235c] hover:bg-white/50 px-6"
-                }
-                onClick={() => setView("conduct")}
-              >
-                <ClipboardCheck className="mr-2 h-4 w-4" />
-                Conduct Audit
-              </Button>
-            )}
+      <main className="p-4 animate-in fade-in duration-300">
+        <ResponseLoader
+          isLoading={isAuditListLoading || createAuditMutation.isPending}
+        />
+
+        <header className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
+          <section className="flex flex-wrap items-center gap-3">
+            <SearchComponent
+              data={auditListData?.data || []}
+              displayKey={["schoolName", "branchName", "status", "result"]}
+              onResults={handleSearchResults}
+              placeholder="Search audits..."
+              className="w-full sm:w-[280px] md:w-[320px]"
+            />
+            <ColumnVisibilitySelector
+              columns={table?.getAllColumns?.() || []}
+              buttonVariant="outline"
+              buttonSize="default"
+            />
             <Button
-              variant={view === "history" ? "default" : "ghost"}
-              className={
-                view === "history"
-                  ? "bg-[#0c235c] text-white rounded-xl shadow-md hover:bg-[#0c235c]/90 transition-all px-6"
-                  : "rounded-xl text-gray-500 hover:text-[#0c235c] hover:bg-white/50 px-6"
-              }
-              onClick={() => setView("history")}
+              variant="outline"
+              size="sm"
+              onClick={() => refetchAudits()}
+              className="h-9 px-3 gap-2 text-xs font-semibold bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-2xs cursor-pointer"
             >
-              <History className="mr-2 h-4 w-4" />
-              Audit History
+              <RefreshCcw
+                className={`h-3.5 w-3.5 ${isAuditListLoading ? "animate-spin" : ""}`}
+              />
+              Sync Records
             </Button>
+          </section>
+
+          {!isSchool && (
+            <Dialog open={isConductModalOpen} onOpenChange={setIsConductModalOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="default"
+                  className="text-white cursor-pointer bg-slate-900 hover:bg-slate-800 h-9 px-4 text-xs font-semibold shadow-xs"
+                >
+                  <ClipboardCheck className="mr-2 h-4 w-4 text-amber-400" />
+                  Conduct Audit
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+                <form onSubmit={handleStartAudit} className="space-y-4">
+                  <DialogHeader>
+                    <DialogTitle>New Inspection Session</DialogTitle>
+                    <DialogDescription>
+                      Initialize an official safety audit protocol for your assigned inspection location.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="grid gap-3 pt-2">
+                    {isSuperAdmin ? (
+                      <>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="school-select" className="text-xs font-semibold text-slate-700">
+                            Target Region
+                          </Label>
+                          <Combobox
+                            items={schoolItems}
+                            value={selectedSchoolId}
+                            onValueChange={(val) => {
+                              setSelectedSchoolId(val || "");
+                              setSelectedBranchId("");
+                            }}
+                            placeholder="Select region..."
+                            searchPlaceholder="Search regions..."
+                            emptyMessage={isSchoolsLoading ? "Synchronizing…" : "No regions found."}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="branch-select" className="text-xs font-semibold text-slate-700">
+                            Target School
+                          </Label>
+                          <Combobox
+                            items={branchItems}
+                            value={selectedBranchId}
+                            onValueChange={(val) => setSelectedBranchId(val || "")}
+                            placeholder="Select school..."
+                            searchPlaceholder="Search schools..."
+                            emptyMessage={
+                              !selectedSchoolId
+                                ? "Select a region first"
+                                : isBranchesLoading
+                                  ? "Syncing…"
+                                  : "No schools found."
+                            }
+                            disabled={!selectedSchoolId || isBranchesLoading}
+                          />
+                        </div>
+                      </>
+                    ) : isBranchGroup ? (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="branch-select" className="text-xs font-semibold text-slate-700">
+                          Target School / Branch
+                        </Label>
+                        <Combobox
+                          items={branchItems}
+                          value={selectedBranchId}
+                          onValueChange={(val) => setSelectedBranchId(val || "")}
+                          placeholder="Select branch..."
+                          searchPlaceholder="Search branches..."
+                          emptyMessage={isBranchesLoading ? "Synchronizing…" : "No branches found."}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <DialogFooter className="pt-2">
+                    <DialogClose asChild>
+                      <Button type="button" variant="outline">
+                        Cancel
+                      </Button>
+                    </DialogClose>
+                    <Button
+                      type="submit"
+                      className="text-white bg-slate-900 hover:bg-slate-800 cursor-pointer"
+                      disabled={
+                        createAuditMutation.isPending ||
+                        (isSuperAdmin && (!selectedSchoolId || !selectedBranchId)) ||
+                        (isBranchGroup && !selectedBranchId)
+                      }
+                    >
+                      {createAuditMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin text-amber-400" />
+                          Initializing...
+                        </>
+                      ) : (
+                        "Commence Inspection Protocol"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
+        </header>
+
+        {/* Table Wrapper */}
+        <div className="mb-4 relative">
+          <div className="custom-table-container">
+            {auditTable}
           </div>
         </div>
 
-        {view === "conduct" ? (
-          <div className="flex flex-col items-center justify-center min-h-[400px]">
-            <Card className="w-full max-w-md border-none shadow-2xl bg-white rounded-3xl overflow-hidden ring-1 ring-black/5">
-              <CardHeader className="text-center space-y-2 pt-8">
-                <div className="mx-auto bg-blue-50 p-4 rounded-2xl w-fit shadow-inner">
-                  <ClipboardCheck className="h-10 w-10 text-[#0c235c]" />
-                </div>
-                <CardTitle className="text-2xl font-black text-[#0c235c]">
-                  New Inspection
-                </CardTitle>
-                <CardDescription className="text-gray-500 max-w-xs mx-auto font-medium">
-                  Initialize a new safety audit protocol for your assigned
-                  location.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center pb-10 pt-4 px-8 space-y-6">
-                {isSuperAdmin ? (
-                  <>
-                    <div className="w-full space-y-2.5">
-                      <Label
-                        htmlFor="school-select"
-                        className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1"
-                      >
-                        Select Region
-                      </Label>
-                      <Combobox
-                        items={schoolItems}
-                        value={selectedSchoolId}
-                        onValueChange={(val) => {
-                          setSelectedSchoolId(val || "");
-                          setSelectedBranchId(""); // Reset branch when school changes
-                        }}
-                        placeholder="Select region..."
-                        searchPlaceholder="Search regions..."
-                        emptyMessage={
-                          isSchoolsLoading
-                            ? "Synchronizing..."
-                            : "No regions found."
-                        }
-                        className="w-full border-gray-100 shadow-sm rounded-xl h-12"
-                      />
-                    </div>
-                    <div className="w-full space-y-2.5">
-                      <Label
-                        htmlFor="branch-select"
-                        className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1"
-                      >
-                        Select School
-                      </Label>
-                      <Combobox
-                        items={branchItems}
-                        value={selectedBranchId}
-                        onValueChange={(val) => setSelectedBranchId(val || "")}
-                        placeholder="Select school..."
-                        searchPlaceholder="Search schools..."
-                        emptyMessage={
-                          !selectedSchoolId
-                            ? "Select a region first"
-                            : isBranchesLoading
-                              ? "Syncing..."
-                              : "No schools found."
-                        }
-                        disabled={!selectedSchoolId || isBranchesLoading}
-                        className="w-full border-gray-100 shadow-sm rounded-xl h-12"
-                      />
-                    </div>
-                  </>
-                ) : isBranchGroup ? (
-                  <div className="w-full space-y-2.5">
-                    <Label
-                      htmlFor="branch-select"
-                      className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1"
-                    >
-                      Inspection Target (Branch)
-                    </Label>
-                    <Combobox
-                      items={branchItems}
-                      value={selectedBranchId}
-                      onValueChange={(val) => setSelectedBranchId(val || "")}
-                      placeholder="Select branch..."
-                      searchPlaceholder="Search branches..."
-                      emptyMessage={
-                        isBranchesLoading
-                          ? "Synchronizing..."
-                          : "No branches found."
-                      }
-                      className="w-full border-gray-100 shadow-sm rounded-xl h-12"
-                    />
-                  </div>
-                ) : null}
-
-                <Button
-                  size="lg"
-                  className="w-full bg-[#0c235c] hover:bg-[#0c235c]/90 text-white font-black py-7 rounded-2xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
-                  onClick={() => createAuditMutation.mutate()}
-                  disabled={
-                    createAuditMutation.isPending ||
-                    (isSuperAdmin &&
-                      (!selectedSchoolId || !selectedBranchId)) ||
-                    (isBranchGroup && !selectedBranchId)
-                  }
-                >
-                  {createAuditMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      INITIALIZING SESSION...
-                    </>
-                  ) : (
-                    "BEGIN INSPECTION"
-                  )}
-                </Button>
-                <div className="mt-8 px-4 py-2 bg-blue-50/50 rounded-full flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-blue-600/70 uppercase tracking-widest">
-                    Logged:{" "}
-                    <span className="text-blue-800">
-                      {user?.role || "Inspector"}
-                    </span>
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
-            <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="bg-amber-100 p-2 rounded-lg">
-                  <ScrollText className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-900">
-                    Audit Records
-                  </p>
-                  <p className="text-xs text-gray-500 font-medium">
-                    {auditListData?.total || 0} inspections found
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetchAudits()}
-                className="rounded-xl gap-2 bg-white hover:bg-gray-50 border-gray-200 text-gray-600 font-bold h-10 px-4"
-              >
-                <RefreshCcw
-                  className={`h-4 w-4 ${isAuditListLoading ? "animate-spin" : ""}`}
-                />
-                Sync Records
-              </Button>
-            </div>
-            <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl overflow-hidden border border-gray-100 p-3 sm:p-4 md:p-6">
-              {auditTable}
-            </div>
-          </div>
-        )}
         <ViewAuditDetails
           isOpen={isViewOpen}
           onClose={() => setIsViewOpen(false)}
@@ -940,49 +920,51 @@ export default function SafetyAndAuditPage() {
 
   // Otherwise, show the Audit Form view
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <header className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-widest">
-            <ShieldCheck className="h-4 w-4" />
-            Active Session
+    <div className="max-w-4xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-3 duration-500 motion-reduce:animate-none">
+      <header className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-200/80">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">
+              Audit Inspection
+            </h1>
+            <span className="inline-flex items-center gap-1.5 text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-0.5 rounded-full font-semibold text-xs">
+              <ShieldCheck className="h-3.5 w-3.5 text-amber-600" />
+              Active inspection protocol
+            </span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#0c235c]">
-            Audit Inspection
-          </h1>
-          <p className="text-[9px] md:text-[10px] font-mono text-muted-foreground bg-gray-100 px-2 py-0.5 rounded w-fit">
-            ID: {auditId}
+          <p className="text-xs font-medium text-slate-500 bg-slate-100 border border-slate-200/60 px-2.5 py-0.5 rounded-md w-fit">
+            Audit ID: <span className="font-mono tabular-nums">{auditId}</span>
           </p>
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="rounded-xl h-9 text-red-600 border-red-100 hover:bg-red-50 hover:text-red-700 transition-colors text-xs"
+          className="rounded-xl h-9 text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 transition-colors text-xs font-medium cursor-pointer"
           onClick={handleCancelAudit}
         >
-          <XCircle className="h-3.5 w-3.5 mr-2" />
+          <XCircle className="h-3.5 w-3.5 mr-1.5" />
           Cancel Audit
         </Button>
       </header>
 
-      <div className="sticky top-0 z-20 bg-[#f9fafb]/80 backdrop-blur-md pb-4 pt-2 -mx-4 px-4 border-b border-gray-100 mb-6 md:mb-8">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md pb-3 pt-2 -mx-4 px-4 border-b border-slate-200/80 mb-6 md:mb-8 shadow-2xs">
         <ScrollArea className="w-full whitespace-nowrap">
           <Tabs
             value={activeSection}
             onValueChange={setActiveSection}
             className="w-full"
           >
-            <TabsList className="inline-flex h-12 md:h-14 items-center justify-start rounded-2xl bg-gray-100/50 p-1 w-auto min-w-full">
+            <TabsList className="inline-flex h-12 md:h-13 items-center justify-start rounded-2xl bg-slate-100/90 border border-slate-200/60 p-1 w-auto min-w-full gap-1">
               {SECTION_KEYS.map((key) => {
                 const Icon = SECTIONS_CONFIG[key].icon;
                 return (
                   <TabsTrigger
                     key={key}
                     value={key}
-                    className="rounded-xl px-4 md:px-6 h-10 md:h-12 font-black text-[10px] md:text-xs uppercase tracking-tighter data-[state=active]:bg-[#0c235c] data-[state=active]:text-white transition-all gap-2"
+                    className="rounded-xl px-4 md:px-5 h-10 md:h-11 font-semibold text-[11px] md:text-xs data-[state=active]:bg-slate-900 data-[state=active]:text-white shadow-xs transition-colors gap-2 text-slate-600 hover:text-slate-900 cursor-pointer"
                   >
                     <Icon className="w-3 md:w-3.5 h-3 md:h-3.5" />
-                    SEC {key}
+                    Section {key}
                   </TabsTrigger>
                 );
               })}
@@ -993,15 +975,15 @@ export default function SafetyAndAuditPage() {
       </div>
 
       <section className="space-y-6 md:space-y-8 pb-32">
-        <div className="flex items-center gap-3 md:gap-4 pb-4 border-b-2 border-blue-600/10">
-          <div className="bg-[#0c235c] text-white h-8 w-8 md:h-10 md:w-10 flex items-center justify-center rounded-xl md:rounded-2xl text-base md:text-lg font-black shadow-lg animate-in zoom-in-50 duration-500">
+        <div className="flex items-center gap-3 md:gap-4 pb-4 border-b border-slate-200/80">
+          <div className="bg-slate-900 text-white h-9 w-9 md:h-11 md:w-11 flex items-center justify-center rounded-xl md:rounded-2xl text-base md:text-lg font-bold shadow-xs animate-in zoom-in-50 duration-400 motion-reduce:animate-none">
             {activeSection}
           </div>
           <div>
-            <h2 className="text-lg md:text-xl font-bold text-[#0c235c] leading-tight">
+            <h2 className="text-lg md:text-xl font-bold text-slate-900 leading-tight tracking-tight">
               {currentConfig.title}
             </h2>
-            <p className="text-[10px] md:text-xs text-muted-foreground font-medium">
+            <p className="text-xs text-slate-500 font-medium">
               Weighted Impact: {currentConfig.weight}
             </p>
           </div>
@@ -1011,28 +993,28 @@ export default function SafetyAndAuditPage() {
           {activeParams.map((param, index) => (
             <Card
               key={param.name}
-              className="overflow-hidden border-none shadow-xl bg-white/60 backdrop-blur-md rounded-2xl md:rounded-3xl transition-all duration-300 hover:shadow-2xl hover:bg-white"
+              className="overflow-hidden border border-slate-200/80 shadow-sm bg-white rounded-2xl md:rounded-3xl transition-colors duration-200 hover:border-slate-300 hover:shadow-md"
             >
-              <CardHeader className="pb-3 md:pb-4 pt-5 md:pt-6 px-4 md:px-6 bg-linear-to-r from-blue-50/50 to-transparent">
+              <CardHeader className="pb-3 md:pb-4 pt-4 md:pt-5 px-5 md:px-6 bg-slate-50/70 border-b border-slate-100">
                 <div className="space-y-1.5 cursor-default">
                   <div className="flex items-start md:items-center justify-between gap-3">
-                    <CardTitle className="text-sm md:text-base font-bold text-[#0c235c] leading-snug">
+                    <CardTitle className="text-sm md:text-base font-bold text-slate-900 leading-snug">
                       {param.name}
                     </CardTitle>
                     {param.isCritical && (
-                      <span className="flex items-center gap-1 shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[9px] md:text-[10px] font-bold text-red-700 uppercase tracking-tighter shadow-sm animate-pulse h-fit">
-                        <AlertTriangle className="h-2.5 w-2.5 md:h-3 md:w-3" />
+                      <span className="flex items-center gap-1 shrink-0 rounded-full bg-rose-50 border border-rose-200/60 px-2.5 py-0.5 text-[11px] font-semibold text-rose-700 shadow-2xs h-fit">
+                        <AlertTriangle className="h-3 w-3" />
                         Critical
                       </span>
                     )}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-4 md:p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 md:gap-12 items-stretch">
+              <CardContent className="p-5 md:p-7">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 md:gap-10 items-stretch">
                   {/* Parameter Score Side */}
                   <div className="space-y-3 md:space-y-4 flex flex-col">
-                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 block pb-0.5 md:pb-1">
+                    <Label className="text-xs font-semibold text-slate-600 block pb-0.5">
                       Scoring Methodology
                     </Label>
                     <RadioGroup
@@ -1040,7 +1022,7 @@ export default function SafetyAndAuditPage() {
                       onValueChange={(val) =>
                         handleParameterChange(index, "score", parseInt(val))
                       }
-                      className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3 flex-1"
+                      className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 md:gap-3 flex-1"
                     >
                       {[0, 1, 2].map((s) => (
                         <div key={s} className="flex">
@@ -1051,26 +1033,33 @@ export default function SafetyAndAuditPage() {
                           />
                           <Label
                             htmlFor={`score-${index}-${s}`}
-                            className="flex flex-row sm:flex-col items-center justify-start sm:justify-center flex-1 rounded-xl md:rounded-2xl border-2 border-gray-100 bg-white p-3 sm:p-4 hover:bg-blue-50 peer-data-[state=checked]:border-[#0c235c] peer-data-[state=checked]:bg-[#0c235c] peer-data-[state=checked]:text-white transition-all cursor-pointer shadow-sm text-left sm:text-center min-h-[56px] sm:min-h-[110px] gap-3 sm:gap-0"
+                            className={`flex flex-row sm:flex-col items-center justify-start sm:justify-center flex-1 rounded-xl md:rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs text-left sm:text-center min-h-[56px] sm:min-h-[105px] gap-3 sm:gap-1.5
+                              ${s === 0
+                                ? "peer-data-[state=checked]:border-rose-500 peer-data-[state=checked]:bg-rose-500 peer-data-[state=checked]:text-white"
+                                : s === 1
+                                  ? "peer-data-[state=checked]:border-amber-500 peer-data-[state=checked]:bg-amber-500 peer-data-[state=checked]:text-slate-950"
+                                  : "peer-data-[state=checked]:border-emerald-600 peer-data-[state=checked]:bg-emerald-600 peer-data-[state=checked]:text-white"
+                              }
+                            `}
                           >
-                            <span className="text-xl sm:text-2xl font-black sm:mb-1.5 w-8 sm:w-auto text-center">
+                            <span className="text-xl sm:text-2xl font-black sm:mb-1 w-8 sm:w-auto text-center font-sans">
                               {s}
                             </span>
                             <span
-                              className={
-                                (s === 0
-                                  ? "text-red-400"
+                              className={`text-[10px] font-bold leading-tight text-center
+                                ${s === 0
+                                  ? "text-rose-600 peer-data-[state=checked]:text-white"
                                   : s === 1
-                                    ? "text-amber-400"
-                                    : "text-emerald-400") +
-                                " text-[9px] font-black uppercase tracking-[0.05em] leading-tight peer-data-[state=checked]:text-white/90"
-                              }
+                                    ? "text-amber-700 peer-data-[state=checked]:text-slate-950"
+                                    : "text-emerald-700 peer-data-[state=checked]:text-white"
+                                }
+                              `}
                             >
                               {s === 0
                                 ? "Not available"
                                 : s === 1
-                                  ? "Needs improvement"
-                                  : "Fully complied & implemented"}
+                                  ? "Needs work"
+                                  : "Fully complied"}
                             </span>
                           </Label>
                         </div>
@@ -1080,13 +1069,13 @@ export default function SafetyAndAuditPage() {
 
                   {/* Observations Side */}
                   <div className="space-y-3 md:space-y-4 flex flex-col">
-                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 block pb-0.5 md:pb-1">
+                    <Label className="text-xs font-semibold text-slate-600 block pb-0.5">
                       Inspector Observations
                     </Label>
                     <div className="flex-1">
                       <Textarea
-                        placeholder="Detail observations..."
-                        className="h-full min-h-[100px] md:min-h-[110px] rounded-xl md:rounded-2xl bg-white border-gray-100 focus:ring-[#0c235c] transition-all resize-none text-xs md:text-[13px] p-4 md:p-5 shadow-inner leading-relaxed"
+                        placeholder="Detail observations and specific evidence..."
+                        className="h-full min-h-[100px] md:min-h-[105px] rounded-xl md:rounded-2xl bg-slate-50/50 border border-slate-200 focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-400/20 transition-colors resize-none text-xs md:text-sm p-4 leading-relaxed shadow-2xs"
                         value={formData[index]?.remark || ""}
                         onChange={(e) =>
                           handleParameterChange(index, "remark", e.target.value)
@@ -1101,33 +1090,27 @@ export default function SafetyAndAuditPage() {
         </div>
       </section>
 
-      <div className="fixed bottom-0 left-0 right-0 md:left-auto md:w-[calc(100%-256px)] bg-white/10 backdrop-blur-xl border-t border-white/20 p-4 md:p-6 z-30 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-        <div className="max-w-4xl mx-auto flex justify-between items-center bg-white/40 p-1.5 md:p-2 rounded-[2rem] md:rounded-[2.5rem] border border-white/50 shadow-inner">
-          <div className="hidden sm:flex text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400 pl-8 items-center gap-2">
-            <ShieldAlert className="h-4 w-4" />
-            Audit Protocol{" "}
-            {new Date()
-              .toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              })
-              .replace(/\//g, ".")}
+      {/* Floating Bottom Progress & Action Dock */}
+      <div className="fixed bottom-4 left-4 right-4 md:left-64 md:right-8 z-30 pointer-events-none flex justify-center">
+        <div className="pointer-events-auto w-full max-w-4xl bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-lg p-3 sm:px-6 flex items-center justify-between gap-4">
+          <div className="hidden sm:flex text-xs font-semibold text-slate-600 items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-amber-500" />
+            Inspection Protocol Live
           </div>
-          <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             {currentConfig.isOptional && (
               <Button
                 variant="outline"
                 size="lg"
-                className="flex-1 sm:flex-none rounded-4xl px-4 md:px-8 bg-white/50 hover:bg-white text-gray-500 font-bold h-12 md:h-14 border-gray-100 transition-all text-[10px] md:text-xs tracking-widest shadow-sm"
+                className="rounded-xl px-5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 font-semibold h-11 border border-slate-200/60 transition-colors text-xs tracking-wide shadow-2xs cursor-pointer"
                 onClick={() => handleNextSection(activeSection)}
               >
-                SKIP
+                Skip
               </Button>
             )}
             <Button
               size="lg"
-              className="flex-1 sm:flex-none rounded-4xl px-8 md:px-16 bg-[#0c235c] hover:bg-[#0c235c]/90 text-white font-black h-12 md:h-14 shadow-2xl hover:scale-105 active:scale-95 transition-all text-xs md:text-sm tracking-widest"
+              className="flex-1 sm:flex-none rounded-xl px-8 bg-slate-900 hover:bg-slate-800 text-white font-semibold h-11 shadow-xs transition-colors active:scale-[0.99] text-xs sm:text-sm cursor-pointer"
               disabled={
                 saveSectionMutation.isPending || finalizeAuditMutation.isPending
               }
@@ -1136,17 +1119,17 @@ export default function SafetyAndAuditPage() {
               {saveSectionMutation.isPending ||
               finalizeAuditMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 md:h-5 md:w-5 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-amber-400" />
                   {finalizeAuditMutation.isPending
-                    ? "FINALIZING..."
-                    : "RECORDING..."}
+                    ? "Finalizing..."
+                    : "Recording..."}
                 </>
               ) : (
                 <span className="flex items-center gap-2">
                   {activeSection === SECTION_KEYS[SECTION_KEYS.length - 1]
-                    ? "SAVE & FINALIZE"
-                    : "SAVE SECTION"}
-                  <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
+                    ? "Save & Finalize"
+                    : "Save Section"}
+                  <ChevronRight className="h-4 w-4" />
                 </span>
               )}
             </Button>

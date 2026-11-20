@@ -24,12 +24,12 @@ import { ColumnVisibilitySelector } from "@/components/column-visibility-selecto
 import { FloatingMenu } from "@/components/floatingMenu";
 import ResponseLoader from "@/components/ResponseLoader";
 import { Alert } from "@/components/Alert";
-import DateRangeFilter from "@/components/ui/DateRangeFilter";
 import { useSchoolData } from "@/hooks/useSchoolData";
 import { useBranchData } from "@/hooks/useBranchData";
 import { useExport } from "@/hooks/useExport";
 import { api } from "@/services/apiService";
 import { userService } from "@/services/api/userService";
+import { zoneService, ZoneItem } from "@/services/api/zoneService";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   type ColumnDef,
@@ -37,7 +37,7 @@ import {
   useReactTable,
   getCoreRowModel,
 } from "@tanstack/react-table";
-import { ChevronDown, X, Edit, Trash2, EyeOff, Eye, LogIn } from "lucide-react";
+import { ChevronDown, X, Edit, Trash2, EyeOff, Eye, LogIn, AlertCircle, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import SearchComponent from "@/components/ui/SearchOnlydata";
 import { Combobox } from "@/components/ui/combobox";
@@ -50,12 +50,14 @@ import { useAuthStore } from "@/store/authStore";
 import { useAccessStore } from "@/store/accessStore";
 import { useRouter } from "next/navigation";
 import { getDecodedToken } from "@/lib/jwt";
+import { PREK_ROLES, normalizePrekRole } from "@/constants/roles";
 
 interface BranchGroupAccess {
   _id: string;
   username: string;
   password: string;
   mobileNo: string;
+  email?: string;
   branchGroupName: string;
   regionHeadName?: string;
   schoolId?: { _id: string; schoolName: string };
@@ -422,6 +424,13 @@ export default function UserAccessPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { login: authLogin } = useAuthStore();
+  const user = useAuthStore((state) => state.decodedToken);
+  const normalizedRole = normalizePrekRole(user?.role);
+  const isCentral =
+    normalizedRole === PREK_ROLES.CENTRAL ||
+    user?.role === "superAdmin" ||
+    user?.role === "central" ||
+    user?.role === "Central";
   const { setAccess } = useAccessStore();
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [branchGroupsData, setBranchGroupsData] = useState<BranchGroupAccess[]>(
@@ -444,13 +453,6 @@ export default function UserAccessPage() {
   const [editSelectedSchool, setEditSelectedSchool] = useState<string | null>(
     null
   );
-  const [dateRange, setDateRange] = useState<{
-    start: Date | null;
-    end: Date | null;
-  }>({
-    start: null,
-    end: null,
-  });
   const [globalFilter, setGlobalFilter] = useState("");
   const { data: schoolData } = useSchoolData();
   const { data: branchDataFromHook } = useBranchData();
@@ -461,30 +463,120 @@ export default function UserAccessPage() {
   const [showAddPassword, setShowAddPassword] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
 
+  const [editZone, setEditZone] = useState("");
+  const [availableZones, setAvailableZones] = useState<ZoneItem[]>([]);
+  const [isLoadingZones, setIsLoadingZones] = useState(false);
+  const zonesLoadedRef = useRef(false);
+
+  const fetchZonesOnDemand = useCallback(async () => {
+    if (zonesLoadedRef.current || isLoadingZones) return;
+    setIsLoadingZones(true);
+    try {
+      const res = await zoneService.getZones({ isActive: true });
+      if (res?.data && Array.isArray(res.data)) {
+        setAvailableZones(res.data);
+        zonesLoadedRef.current = true;
+      }
+    } catch (err) {
+      console.warn("Could not load zones:", err);
+    } finally {
+      setIsLoadingZones(false);
+    }
+  }, [isLoadingZones]);
+
+  // Form state for adding new RSO
+  const initialAddForm = {
+    branchGroupName: "",
+    regionHeadName: "",
+    username: "",
+    email: "",
+    password: "",
+    mobileNo: "",
+  };
+  const [addForm, setAddForm] = useState(initialAddForm);
+  const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({});
+  const [addFormServerError, setAddFormServerError] = useState<string | null>(null);
+
+  const rsoAddZoneItems = useMemo(() => {
+    const list = availableZones.map((z) => ({
+      value: z.name,
+      label: `${z.name} ${z.code ? `(${z.code})` : ""}`.trim(),
+    }));
+    if (
+      addForm.branchGroupName &&
+      !list.some((i) => i.value.toLowerCase() === addForm.branchGroupName.toLowerCase())
+    ) {
+      list.unshift({
+        value: addForm.branchGroupName,
+        label: addForm.branchGroupName,
+      });
+    }
+    return list;
+  }, [availableZones, addForm.branchGroupName]);
+
+  const rsoEditZoneItems = useMemo(() => {
+    const list = availableZones.map((z) => ({
+      value: z.name,
+      label: `${z.name} ${z.code ? `(${z.code})` : ""}`.trim(),
+    }));
+    if (
+      editZone &&
+      !list.some((i) => i.value.toLowerCase() === editZone.toLowerCase())
+    ) {
+      list.unshift({
+        value: editZone,
+        label: editZone,
+      });
+    }
+    return list;
+  }, [availableZones, editZone]);
+
+  const handleAddInputChange = (field: keyof typeof initialAddForm, value: string) => {
+    setAddForm((prev) => ({ ...prev, [field]: value }));
+    if (addFormErrors[field]) {
+      setAddFormErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+    if (addFormServerError) {
+      setAddFormServerError(null);
+    }
+  };
+
   // Handle "Login" - superAdmin logs in as a group user
   const handleLoginAs = async (username: string, password: string, id: string) => {
+    if (!isCentral) {
+      toast.error("Only Central administrators have authority to Login As.");
+      return;
+    }
     setLoginAsLoading(id);
     try {
       Cookies.remove("token");
       localStorage.clear();
 
       const data = await loginUser(username, password);
-      if (data?.token) {
-        authLogin(data.token);
+      const authToken = data?.token || data?.accessToken;
+      if (authToken) {
+        authLogin(authToken, data.refreshToken);
         if (data.access) {
           setAccess(data.access);
         }
         toast.success(`Logged in as ${username}`);
-        const loginAsRole = getDecodedToken(data.token)?.role;
-        if (loginAsRole === "branchGroup") {
-          window.location.replace("/dashboard/users/branch-master");
-        } else if (loginAsRole === "parent") {
-          window.location.replace("/dashboard/incident");
-        } else if (loginAsRole === "branch") {
-          window.location.replace("/dashboard/users/branch-master");
-        } else {
-          window.location.replace("/dashboard/users/school-master");
+        const decoded = getDecodedToken(authToken);
+        const normRole = normalizePrekRole(decoded?.role);
+        let targetUrl = "/dashboard/users?tab=bm";
+        if (normRole === PREK_ROLES.AOM) {
+          targetUrl = "/dashboard/incident";
+        } else if (normRole === PREK_ROLES.BM) {
+          targetUrl = "/dashboard/users?tab=aom";
+        } else if (normRole === PREK_ROLES.RSO || normRole === PREK_ROLES.NATIONAL_HEAD) {
+          targetUrl = "/dashboard/users?tab=bm";
+        } else if (normRole === PREK_ROLES.CENTRAL) {
+          targetUrl = "/dashboard/users?tab=national-head";
         }
+        window.location.replace(targetUrl);
       } else {
         toast.error("Login failed: Invalid server response");
       }
@@ -511,8 +603,15 @@ export default function UserAccessPage() {
       if (Array.isArray(list)) {
         const mapped = list.map((u: any) => ({
           ...u,
-          name: u.name || u.username,
           _id: u._id || u.id,
+          name: u.name || u.username,
+          branchGroupName: u.zone || u.branchGroupName || "N/A",
+          regionHeadName: u.name || u.regionHeadName || "N/A",
+          zone: u.zone || u.branchGroupName || "N/A",
+          mobileNo: u.mobileNo || u.phone || "N/A",
+          email: u.email || "N/A",
+          isActive: u.isActive !== undefined ? u.isActive : (u.Active ?? true),
+          Active: u.isActive !== undefined ? u.isActive : (u.Active ?? true),
           branches: u.centres || u.branches || [],
         }));
         setBranchGroupsData(mapped);
@@ -536,66 +635,44 @@ export default function UserAccessPage() {
   useEffect(() => {
     let filtered = [...branchGroupsData];
 
-    // Apply date range filter
-    if (dateRange.start || dateRange.end) {
-      filtered = filtered.filter((item) => {
-        if (!item.createdAt) return false;
-        const itemDate = new Date(item.createdAt);
-        let startMatch = true;
-        let endMatch = true;
-
-        if (dateRange.start) {
-          const startOfDay = new Date(dateRange.start);
-          startOfDay.setHours(0, 0, 0, 0);
-          startMatch = itemDate >= startOfDay;
-        }
-
-        if (dateRange.end) {
-          const endOfDay = new Date(dateRange.end);
-          endOfDay.setHours(23, 59, 59, 999);
-          endMatch = itemDate <= endOfDay;
-        }
-
-        return startMatch && endMatch;
-      });
-    }
-
     // Apply search filter
     if (globalFilter.trim()) {
       const searchTerm = globalFilter.toLowerCase();
       filtered = filtered.filter(
         (item) =>
           item.username?.toLowerCase().includes(searchTerm) ||
+          item.name?.toLowerCase().includes(searchTerm) ||
+          item.zone?.toLowerCase().includes(searchTerm) ||
+          item.email?.toLowerCase().includes(searchTerm) ||
           item.branchGroupName?.toLowerCase().includes(searchTerm) ||
+          item.regionHeadName?.toLowerCase().includes(searchTerm) ||
           item.mobileNo?.toLowerCase().includes(searchTerm) ||
           item.schoolId?.schoolName?.toLowerCase().includes(searchTerm)
       );
     }
 
     setFilteredData(filtered);
-  }, [branchGroupsData, dateRange, globalFilter]);
+  }, [branchGroupsData, globalFilter]);
 
   // Handle search
   const handleSearchResults = useCallback((results: BranchGroupAccess[]) => {
     setFilteredData(results);
   }, []);
 
-  const handleDateRangeChange = useCallback(
-    (start: Date | null, end: Date | null) => {
-      setDateRange({ start, end });
-    },
-    []
-  );
-
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (newBranchGroup: any) => {
+      if (!isCentral) {
+        throw new Error("Access Restricted: Only Central administrators have authority for user administration.");
+      }
       return await userService.createUser({
-        name: newBranchGroup.name || newBranchGroup.username,
+        name: newBranchGroup.name || newBranchGroup.regionHeadName || newBranchGroup.username,
         username: newBranchGroup.username,
         password: newBranchGroup.password,
         email: newBranchGroup.email,
+        phone: newBranchGroup.mobileNo,
         role: "RSO",
+        zone: newBranchGroup.zone || newBranchGroup.branchGroupName,
         centres: newBranchGroup.branches || [],
         ...newBranchGroup,
       });
@@ -603,17 +680,39 @@ export default function UserAccessPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branchGroups"] });
       setIsAddDialogOpen(false);
+      setAddForm(initialAddForm);
+      setAddFormErrors({});
+      setAddFormServerError(null);
       setSelectedBranches([]);
       setSelectedSchool(null);
+      toast.success("Regional Safety Officer added successfully");
       fetchBranchGroups();
     },
-    onError: (err: any) =>
-      setError(err.response?.data?.message || "Failed to add user group"),
+    onError: (err: any) => {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to add user group";
+      setAddFormServerError(msg);
+      setError(msg);
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return await userService.updateUser(id, data);
+      if (!isCentral) {
+        throw new Error("Access Restricted: Only Central administrators have authority for user administration.");
+      }
+      return await userService.updateUser(id, {
+        name: data.name || data.regionHeadName || data.username,
+        username: data.username,
+        password: data.password,
+        email: data.email,
+        phone: data.mobileNo,
+        zone: data.branchGroupName,
+        ...data,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branchGroups"] });
@@ -621,6 +720,7 @@ export default function UserAccessPage() {
       setEditTarget(null);
       setEditSelectedBranches([]);
       setEditSelectedSchool(null);
+      toast.success("Regional Safety Officer updated successfully");
       fetchBranchGroups();
     },
     onError: (err: any) =>
@@ -629,6 +729,9 @@ export default function UserAccessPage() {
 
   const updateBranchesMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      if (!isCentral) {
+        throw new Error("Access Restricted: Only Central administrators have authority for user administration.");
+      }
       return await userService.updateUser(id, data);
     },
     onSuccess: () => {
@@ -642,6 +745,9 @@ export default function UserAccessPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!isCentral) {
+        throw new Error("Access Restricted: Only Central administrators have authority for user administration.");
+      }
       return await userService.deleteUser(id);
     },
     onSuccess: () => {
@@ -655,19 +761,27 @@ export default function UserAccessPage() {
 
   const deactivateMutation = useMutation({
     mutationFn: async (branchGroup: any) => {
+      if (!isCentral) {
+        throw new Error("Access Restricted: Only Central administrators can activate or deactivate users.");
+      }
       const token = localStorage.getItem("token");
-      return await authAxios.put(
-        `/user/deactivate/${branchGroup._id}`,
-        {
-          Active: !branchGroup.Active,
-          userRole: branchGroup.role,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
+      const currentActive = branchGroup.isActive !== undefined ? branchGroup.isActive : (branchGroup.Active ?? true);
+      try {
+        return await userService.updateUserStatus(branchGroup._id, !currentActive);
+      } catch {
+        return await authAxios.put(
+          `/user/deactivate/${branchGroup._id}`,
+          {
+            Active: !currentActive,
+            userRole: branchGroup.role || "RSO",
           },
-        }
-      );
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["branchGroups"] });
@@ -735,33 +849,127 @@ export default function UserAccessPage() {
     setEditSelectedBranches([]);
   };
 
+  const validateAddForm = () => {
+    const errors: Record<string, string> = {};
+
+    // Zone
+    if (!addForm.branchGroupName.trim()) {
+      errors.branchGroupName = "Zone is required";
+    }
+
+    // Regional Safety Officer Name
+    if (!addForm.regionHeadName.trim()) {
+      errors.regionHeadName = "Regional Safety Officer (RSO) name is required";
+    }
+
+    // Username
+    const username = addForm.username.trim();
+    if (!username) {
+      errors.username = "Username is required";
+    } else if (username.length < 3) {
+      errors.username = "Username must be at least 3 characters";
+    } else if (/\s/.test(username)) {
+      errors.username = "Username cannot contain spaces";
+    } else if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+      errors.username =
+        "Username can only contain letters, numbers, underscores, dots, or hyphens";
+    }
+
+    // Email ID
+    const email = addForm.email.trim();
+    if (!email) {
+      errors.email = "Email ID is required";
+    } else if (
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+    ) {
+      errors.email = "Please enter a valid email address (e.g. name@domain.com)";
+    }
+
+    // Password
+    if (!addForm.password) {
+      errors.password = "Password is required";
+    } else if (addForm.password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    }
+
+    // Mobile Number
+    const mobileNo = addForm.mobileNo.trim();
+    if (!mobileNo) {
+      errors.mobileNo = "Mobile number is required";
+    } else if (!/^[0-9]{10}$/.test(mobileNo)) {
+      errors.mobileNo = "Mobile number must be a valid 10-digit number";
+    }
+
+    return errors;
+  };
+
   const handleAddUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    if (!isCentral) {
+      toast.error("Access Restricted: Only Central administrators have authority for user administration.");
+      return;
+    }
+    setAddFormServerError(null);
+
+    const validationErrors = validateAddForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setAddFormErrors(validationErrors);
+      return;
+    }
+
+    setAddFormErrors({});
+
     const newBranchGroup = {
-      username: formData.get("username") as string,
-      password: formData.get("password") as string,
-      mobileNo: formData.get("mobileNo") as string,
+      username: addForm.username.trim(),
+      password: addForm.password,
+      mobileNo: addForm.mobileNo.trim(),
+      email: addForm.email.trim().toLowerCase(),
       schoolId: selectedSchool,
-      branchGroupName: formData.get("branchGroupName") as string,
-      regionHeadName: formData.get("regionHeadName") as string,
+      branchGroupName: addForm.branchGroupName.trim(),
+      regionHeadName: addForm.regionHeadName.trim(),
+      name: addForm.regionHeadName.trim(),
+      zone: addForm.branchGroupName.trim(),
       AssignedBranch: selectedBranches,
+      branches: selectedBranches,
     };
-    await createMutation.mutateAsync(newBranchGroup);
+
+    try {
+      await createMutation.mutateAsync(newBranchGroup);
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to add Regional Safety Officer";
+      setAddFormServerError(msg);
+    }
   };
 
   const handleEditUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!isCentral) {
+      toast.error("Access Restricted: Only Central administrators have authority for user administration.");
+      return;
+    }
     if (!editTarget) return;
     const formData = new FormData(e.currentTarget);
+    const selectedRegion = editZone.trim() || ((formData.get("branchGroupName") as string)?.trim());
+    if (!selectedRegion) {
+      toast.error("Please select a Zone");
+      return;
+    }
     const updatedBranchGroup = {
-      username: formData.get("username") as string,
+      username: (formData.get("username") as string)?.trim(),
       password: formData.get("password") as string,
-      mobileNo: formData.get("mobileNo") as string,
+      mobileNo: (formData.get("mobileNo") as string)?.trim(),
+      email: (formData.get("email") as string)?.trim().toLowerCase(),
       schoolId: editSelectedSchool || editTarget.schoolId?._id,
-      branchGroupName: formData.get("branchGroupName") as string,
-      regionHeadName: formData.get("regionHeadName") as string,
+      branchGroupName: selectedRegion,
+      regionHeadName: (formData.get("regionHeadName") as string)?.trim(),
+      name: (formData.get("regionHeadName") as string)?.trim(),
+      zone: selectedRegion,
       AssignedBranch: editSelectedBranches,
+      branches: editSelectedBranches,
     };
     await updateMutation.mutateAsync({
       id: editTarget._id,
@@ -769,16 +977,27 @@ export default function UserAccessPage() {
     });
   };
 
-  const handleDelete = () =>
+  const handleDelete = () => {
+    if (!isCentral) {
+      toast.error("Access Restricted: Only Central administrators have authority for user administration.");
+      return;
+    }
     deleteTarget && deleteMutation.mutate(deleteTarget._id);
+  };
 
   // Reset forms
   useEffect(() => {
     if (!isAddDialogOpen) {
+      setAddForm(initialAddForm);
+      setAddFormErrors({});
+      setAddFormServerError(null);
       setSelectedBranches([]);
       setSelectedSchool(null);
+      setShowAddPassword(false);
+    } else {
+      fetchZonesOnDemand();
     }
-  }, [isAddDialogOpen]);
+  }, [isAddDialogOpen, fetchZonesOnDemand]);
 
   useEffect(() => {
     if (editTarget && isEditDialogOpen) {
@@ -787,20 +1006,18 @@ export default function UserAccessPage() {
           ? editTarget.AssignedBranch.map((b) => b._id)
           : []
       );
-      setEditSelectedBranches(
-        editTarget.AssignedBranch
-          ? editTarget.AssignedBranch.map((b) => b._id)
-          : []
-      );
       setEditSelectedSchool(editTarget.schoolId?._id || null);
+      setEditZone(editTarget.branchGroupName || editTarget.zone || "");
+      fetchZonesOnDemand();
     }
-  }, [editTarget, isEditDialogOpen]);
+  }, [editTarget, isEditDialogOpen, fetchZonesOnDemand]);
 
   useEffect(() => {
     if (!isEditDialogOpen) {
       setEditSelectedBranches([]);
       setEditSelectedSchool(null);
       setEditTarget(null);
+      setEditZone("");
     }
   }, [isEditDialogOpen]);
 
@@ -818,128 +1035,148 @@ export default function UserAccessPage() {
   const columns: ColumnDef<BranchGroupAccess, CellContent>[] = useMemo(
     () => [
       {
-        header: "Region Name",
+        header: "Zone",
         accessorFn: (row: BranchGroupAccess) => ({
           type: "custom",
           render: () => (
             <div className="flex items-center gap-2 w-full">
-              <span className="truncate flex-1">{row.branchGroupName || "N/A"}</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleLoginAs(row.username, row.password, row._id);
-                    }}
-                    disabled={loginAsLoading === row._id}
-                    className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-200/80 hover:bg-gray-300 dark:bg-gray-600/60 dark:hover:bg-gray-500 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
-                  >
-                    {loginAsLoading === row._id ? (
-                      <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <LogIn className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  Login as {row.branchGroupName}
-                </TooltipContent>
-              </Tooltip>
+              <span className="font-semibold text-slate-900 whitespace-normal break-words flex-1 leading-snug">
+                {row.zone || row.branchGroupName || "N/A"}
+              </span>
+              {isCentral && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLoginAs(row.username, row.password, row._id);
+                      }}
+                      disabled={loginAsLoading === row._id}
+                      className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-200/80 hover:bg-gray-300 dark:bg-gray-600/60 dark:hover:bg-gray-500 flex items-center justify-center transition-colors duration-200 cursor-pointer shadow-sm hover:shadow-md"
+                    >
+                      {loginAsLoading === row._id ? (
+                        <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin motion-reduce:animate-none" />
+                      ) : (
+                        <LogIn className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    Login as {row.name || row.zone || row.username}
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
           ),
         }),
-        meta: { flex: 1, minWidth: 180, maxWidth: 250 },
+        meta: { flex: 1.2, minWidth: 180, maxWidth: 280 },
       },
       {
         header: "Regional Safety Officer (RSO)",
         accessorFn: (row: BranchGroupAccess) => ({
           type: "text",
-          value: row.regionHeadName || "N/A",
-          render: () => row.regionHeadName || "N/A",
+          value: row.name || row.regionHeadName || "N/A",
+          render: () => row.name || row.regionHeadName || "N/A",
         }),
-        meta: { flex: 1, minWidth: 200, maxWidth: 300 },
+        meta: { flex: 1.3, minWidth: 260, maxWidth: 360 },
       },
       {
-        header: "UserName",
+        header: "Email",
         accessorFn: (row: BranchGroupAccess) => ({
           type: "text",
-          value: row.username || "N/A",
-          render: () => row.username || "N/A",
+          value: row.email || "N/A",
+          render: () => row.email || "N/A",
         }),
-        meta: { flex: 1, minWidth: 180, maxWidth: 250 },
+        meta: { flex: 1.1, minWidth: 180, maxWidth: 260 },
       },
+      ...(isCentral
+        ? [
+            {
+              header: "Username",
+              accessorFn: (row: BranchGroupAccess) => ({
+                type: "text",
+                value: row.username || "N/A",
+                render: () => row.username || "N/A",
+              }),
+              meta: { flex: 1, minWidth: 140, maxWidth: 200 },
+            },
+            {
+              header: "Password",
+              accessorFn: (row: BranchGroupAccess) => ({
+                type: "custom",
+                render: () => {
+                  const PasswordView = () => {
+                    const [show, setShow] = React.useState(false);
+                    const { decodedToken } = useAuthStore();
+                    const isSuperSupport = decodedToken?.username === "supersupport";
+                    const password = row.password || "N/A";
 
-      // {
-      //   header: "Password",
-      //   accessorFn: (row) => ({
-      //     type: "text",
-      //     value: row.password || "N/A",
-      //     render: () => row.password || "N/A",
-      //   }),
-      //   meta: { flex: 1, minWidth: 150, maxWidth: 200 },
-      // },
-      {
-        header: "Password",
-        accessorFn: (row: BranchGroupAccess) => ({
-          type: "custom",
-          render: () => {
-            // Inline component WITH hooks allowed here
-            const PasswordView = () => {
-              const [show, setShow] = React.useState(false);
-              const { decodedToken } = useAuthStore();
-              const isSuperSupport = decodedToken?.username === "supersupport";
-              const password = row.password || "N/A";
+                    return (
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="font-mono">
+                          {show && !isSuperSupport ? password : "•".repeat(password?.length || 8)}
+                        </span>
 
-              return (
-                <div className="flex items-center justify-center gap-2">
-                  <span className="font-mono">
-                    {show && !isSuperSupport ? password : "•".repeat(password?.length || 8)}
-                  </span>
+                        {!isSuperSupport && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShow((prev) => !prev);
+                            }}
+                            className="p-1 hover:bg-gray-200 rounded cursor-pointer"
+                          >
+                            {show ? (
+                              <EyeOff className="h-4 w-4 text-gray-700" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-gray-700" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  };
 
-                  {!isSuperSupport && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShow((prev) => !prev);
-                      }}
-                      className="p-1 hover:bg-gray-200 rounded cursor-pointer"
-                    >
-                      {show ? (
-                        <EyeOff className="h-4 w-4 text-gray-700" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-700" />
-                      )}
-                    </button>
-                  )}
-                </div>
-              );
-            };
-
-            return <PasswordView />;
-          },
-        }),
-        meta: { flex: 1, minWidth: 150, maxWidth: 200 },
-      },
-
+                  return <PasswordView />;
+                },
+              }),
+              meta: { flex: 1, minWidth: 150, maxWidth: 200 },
+            },
+          ]
+        : []),
       {
         header: "Mobile No",
         accessorFn: (row: BranchGroupAccess) => ({
           type: "text",
-          value: row.mobileNo || "N/A",
-          render: () => row.mobileNo || "N/A",
+          value: row.mobileNo || row.phone || "N/A",
+          render: () => row.mobileNo || row.phone || "N/A",
         }),
-        meta: { flex: 1, minWidth: 150, maxWidth: 200 },
+        meta: { flex: 0.9, minWidth: 130, maxWidth: 180 },
       },
       {
-        header: "National Head",
-        accessorFn: (row: BranchGroupAccess) => ({
-          type: "text",
-          value: row.schoolId?.schoolName || "N/A",
-          render: () => row.schoolId?.schoolName || "N/A",
-        }),
-        meta: { flex: 1, minWidth: 200, maxWidth: 300 },
+        header: "Status",
+        accessorFn: (row: BranchGroupAccess) => {
+          const isAct = row.isActive !== undefined ? row.isActive : (row.Active ?? true);
+          const isLck = !!row.isLocked;
+          return {
+            type: "custom",
+            render: () => (
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  isLck
+                    ? "bg-amber-100 text-amber-800 border border-amber-200"
+                    : isAct
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-slate-100 text-slate-600 border border-slate-200"
+                }`}
+              >
+                {isLck ? "Locked" : isAct ? "Active" : "Inactive"}
+              </span>
+            ),
+          };
+        },
+        meta: { flex: 0.8, minWidth: 100, maxWidth: 140 },
       },
       {
         header: "Registration Date",
@@ -953,113 +1190,60 @@ export default function UserAccessPage() {
               ? new Date(row.createdAt).toLocaleDateString("en-GB")
               : "N/A",
         }),
-        meta: { flex: 1, minWidth: 250, maxWidth: 300 },
+        meta: { flex: 0.9, minWidth: 140, maxWidth: 200 },
       },
-      {
-        header: "Assigned Business Manager",
-        accessorFn: (row: BranchGroupAccess) => {
-          // console.log("Branches:", branchOptions);
-          // console.log("Row:", row);
-          // // Filter branches that belong to this row's school
-          // const schoolFilteredBranches = (branchOptions || [])
-          //   .filter((b) => b.schoolId === row.schoolId?._id)
-          //   .map((b) => ({
-          //     label: b.branchName,
-          //     value: b._id,
-          //   }));
-          const assignedOnly = (row.AssignedBranch || []).map((b) => ({
-            label: b.branchName,
-            value: b._id,
-          }));
-
-          return {
-            type: "custom",
-            value: (
-              <TableBranchDropdown
-                assignedBranches={row.AssignedBranch || []}
-                branchOptions={assignedOnly}
-                onBranchesUpdate={(branchIds) =>
-                  handleTableBranchesUpdate(row._id, branchIds)
-                }
-                userId={row._id}
-              />
-            ),
-            render: () => (
-              <TableBranchDropdown
-                assignedBranches={row.AssignedBranch || []}
-                branchOptions={assignedOnly}
-                onBranchesUpdate={(branchIds) =>
-                  handleTableBranchesUpdate(row._id, branchIds)
-                }
-                userId={row._id}
-              />
-            ),
-          };
-        },
-        meta: { flex: 1, minWidth: 280 },
-      },
-
-      {
-        header: "Action",
-        accessorFn: (row: BranchGroupAccess) => ({
-          type: "group",
-          items: [
+      ...(isCentral
+        ? [
             {
-              type: "button",
-              label: "Edit",
-              onClick: () => {
-                setEditTarget(row);
-                setIsEditDialogOpen(true);
+              header: "Action",
+              accessorFn: (row: BranchGroupAccess) => {
+                const isAct = row.isActive !== undefined ? row.isActive : (row.Active ?? true);
+                return {
+                  type: "group",
+                  items: [
+                    {
+                      type: "button",
+                      label: "Edit",
+                      onClick: () => {
+                        setEditTarget(row);
+                        setEditZone(row.branchGroupName || row.zone || "");
+                        fetchZonesOnDemand();
+                        setIsEditDialogOpen(true);
+                      },
+                      className:
+                        "cursor-pointer flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-md text-xs transition-colors",
+                    },
+                    {
+                      type: "button",
+                      label: "Delete",
+                      onClick: () => handleDeleteClick(row),
+                      className:
+                        "bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded-md cursor-pointer text-xs transition-colors duration-200",
+                    },
+                    {
+                      type: "button",
+                      label: isAct ? "Deactivate" : "Activate",
+                      onClick: () => deactivateMutation.mutate(row),
+                      className: `text-xs font-semibold py-1 px-3 rounded-full cursor-pointer transition-colors ${
+                        isAct
+                          ? "bg-amber-500 hover:bg-amber-600 text-white"
+                          : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                      }`,
+                      disabled: deactivateMutation.isPending,
+                    },
+                  ],
+                };
               },
-              className:
-                "cursor-pointer flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-md text-sm transition-colors",
+              meta: {
+                minWidth: 260,
+                maxWidth: 320,
+                width: 280,
+              },
             },
-            {
-              type: "button",
-              label: "Delete",
-              onClick: () => handleDeleteClick(row),
-              className:
-                "bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded-md cursor-pointer transition-colors duration-200",
-            },
-            {
-              type: "button",
-              label: (row as any).Active ? "Deactivate" : "Activate",
-              onClick: () => deactivateMutation.mutate(row),
-              className: `${(row as any).Active
-                ? "bg-red-100 text-red-700 hover:bg-red-200"
-                : "bg-green-100 text-green-700 hover:bg-green-200"
-                } cursor-pointer w-24`,
-              disabled: deactivateMutation.isPending,
-            },
-          ],
-          render: () => (
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setEditTarget(row);
-                  setIsEditDialogOpen(true);
-                }}
-                className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-md text-sm"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => setDeleteTarget(row)}
-                className="cursor-pointer bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded-md text-sm"
-              >
-                Delete
-              </button>
-            </div>
-          ),
-        }),
-        meta: {
-          minWidth: 280,
-          maxWidth: 320,
-          width: 300,
-        },
-      },
+          ]
+        : []),
     ],
-    [branchOptions, handleTableBranchesUpdate]
+    [loginAsLoading, deactivateMutation.isPending, isCentral]
   );
 
   // Create table instance for column visibility
@@ -1072,25 +1256,33 @@ export default function UserAccessPage() {
   });
 
   const filteredBranches = useMemo(() => {
-    if (!selectedSchool) return [];
+    if (selectedSchool) {
+      return (
+        branchDataFromHook
+          ?.filter((b) => b.schoolId?._id === selectedSchool)
+          .map((b) => ({ label: b.branchName, value: b._id })) || []
+      );
+    }
     return (
-      branchDataFromHook
-        ?.filter((b) => b.schoolId?._id === selectedSchool)
-        .map((b) => ({ label: b.branchName, value: b._id })) || []
+      branchDataFromHook?.map((b) => ({ label: b.branchName, value: b._id })) || []
     );
   }, [selectedSchool, branchDataFromHook]);
 
   const filteredEditBranches = useMemo(() => {
-    if (!editSelectedSchool) return [];
+    if (editSelectedSchool) {
+      return (
+        branchDataFromHook
+          ?.filter((b) => b.schoolId?._id === editSelectedSchool)
+          .map((b) => ({ label: b.branchName, value: b._id })) || []
+      );
+    }
     return (
-      branchDataFromHook
-        ?.filter((b) => b.schoolId?._id === editSelectedSchool)
-        .map((b) => ({ label: b.branchName, value: b._id })) || []
+      branchDataFromHook?.map((b) => ({ label: b.branchName, value: b._id })) || []
     );
   }, [editSelectedSchool, branchDataFromHook]);
 
   return (
-    <main className="p-4">
+    <main className="p-4 sm:p-6 flex flex-col space-y-4 animate-in fade-in duration-300">
       <ResponseLoader
         isLoading={
           isLoading ||
@@ -1106,26 +1298,22 @@ export default function UserAccessPage() {
         </div>
       )}
 
-      <header className="flex items-center justify-between mb-4">
-        <section className="flex space-x-4">
+      <header className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <section className="flex flex-wrap items-center gap-2 sm:gap-3">
           <SearchComponent
             data={branchGroupsData}
             displayKey={[
+              "name",
               "username",
+              "zone",
+              "email",
               "branchGroupName",
               "regionHeadName",
               "mobileNo",
-              "schoolId.schoolName",
             ]}
             onResults={handleSearchResults}
-            className="w-[300px]"
+            className="w-full sm:w-[240px] md:w-[300px]"
           />
-          <div>
-            <DateRangeFilter
-              onDateRangeChange={handleDateRangeChange}
-              title="Search by Registration Date"
-            />
-          </div>
           <ColumnVisibilitySelector
             columns={table.getAllColumns()}
             columnVisibility={columnVisibility}
@@ -1135,108 +1323,207 @@ export default function UserAccessPage() {
           />
         </section>
 
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="default" className="text-white cursor-pointer">Add Region</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleAddUser} className="space-y-4">
-              <DialogHeader>
-                <DialogTitle>Add Region</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-3">
-                <Label htmlFor="branchGroupName">Region</Label>
-                <Input
-                  id="branchGroupName"
-                  name="branchGroupName"
-                  placeholder="Enter regional head name"
-                  required
-                />
-                <Label htmlFor="regionHeadName">Regional Safety Officer (RSO) Name</Label>
-                <Input
-                  id="regionHeadName"
-                  name="regionHeadName"
-                  placeholder="Enter regional head name"
-                  required
-                />
-                <Label htmlFor="username">UserName</Label>
-                <Input
-                  id="username"
-                  name="username"
-                  placeholder="Enter username"
-                  required
-                />
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showAddPassword ? "text" : "password"}
-                    placeholder="Enter password"
-                    className="pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowAddPassword(!showAddPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                  >
-                    {showAddPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
+        {isCentral && (
+          <Dialog
+            open={isAddDialogOpen}
+            onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (open) fetchZonesOnDemand();
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="default" className="text-white cursor-pointer gap-2">
+                <Plus className="h-4 w-4" /> Add Regional Safety Officer
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
+              <form onSubmit={handleAddUser} className="space-y-4" noValidate>
+                <DialogHeader>
+                  <DialogTitle>Add Regional Safety Officer (RSO)</DialogTitle>
+                </DialogHeader>
 
-                <Label htmlFor="mobileNo">Mobile No</Label>
-                <Input
-                  id="mobileNo"
-                  name="mobileNo"
-                  placeholder="Enter mobile no"
-                  required
-                />
-
-                <Label htmlFor="schoolId">Select National Head</Label>
-                <Combobox
-                  items={schoolOptions}
-                  value={selectedSchool || undefined}
-                  onValueChange={handleSchoolChange}
-                  placeholder="Select National Head"
-                  searchPlaceholder="Search National Head..."
-                  emptyMessage="No National Head found"
-                />
-
-                <Label htmlFor="assignedBranches">Assigned Business Manager</Label>
-                <BranchDropdown
-                  selectedBranches={selectedBranches}
-                  branchOptions={filteredBranches}
-                  onBranchToggle={handleBranchToggle}
-                  onSelectAll={handleSelectAll}
-                />
-                {selectedBranches.length > 0 && (
-                  <div className="text-sm text-gray-600">
-                    Selected: {selectedBranches.length} Business Managers
+                {/* Direct In-Form Server / Submission Error */}
+                {addFormServerError && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2.5 animate-in fade-in duration-200">
+                    <AlertCircle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-xs text-red-800">Error</p>
+                      <p className="text-xs text-red-600 mt-0.5">{addFormServerError}</p>
+                    </div>
                   </div>
                 )}
 
+                <div className="grid gap-3">
+                  {/* Zone */}
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="branchGroupName" className="text-xs font-semibold text-slate-700">
+                      Zone <span className="text-red-500">*</span>
+                    </Label>
+                    <Combobox
+                      items={rsoAddZoneItems}
+                      value={addForm.branchGroupName}
+                      onValueChange={(val) => handleAddInputChange("branchGroupName", val || "")}
+                      placeholder={isLoadingZones ? "Loading zones..." : "Select zone"}
+                      searchPlaceholder="Search zone..."
+                      emptyMessage={isLoadingZones ? "Loading zones..." : "No zones found."}
+                      onOpenChange={(open) => {
+                        if (open) fetchZonesOnDemand();
+                      }}
+                      className={addFormErrors.branchGroupName ? "border-red-500 focus-visible:ring-red-500/20 bg-red-50/20 w-full" : "w-full"}
+                    />
+                    {addFormErrors.branchGroupName && (
+                      <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-0.5 animate-in fade-in duration-150">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        {addFormErrors.branchGroupName}
+                      </p>
+                    )}
+                  </div>
 
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button type="submit" className="text-white cursor-pointer" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Saving..." : "Save Group"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+                  {/* Regional Safety Officer (RSO) Name */}
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="regionHeadName" className="text-xs font-semibold text-slate-700">
+                      Regional Safety Officer (RSO) Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="regionHeadName"
+                      name="regionHeadName"
+                      value={addForm.regionHeadName}
+                      onChange={(e) => handleAddInputChange("regionHeadName", e.target.value)}
+                      placeholder="e.g. Rajesh Kumar"
+                      className={addFormErrors.regionHeadName ? "border-red-500 focus-visible:ring-red-500/20 bg-red-50/20" : ""}
+                    />
+                    {addFormErrors.regionHeadName && (
+                      <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-0.5 animate-in fade-in duration-150">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        {addFormErrors.regionHeadName}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Username & Email ID */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="username" className="text-xs font-semibold text-slate-700">
+                        Username <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="username"
+                        name="username"
+                        value={addForm.username}
+                        onChange={(e) => handleAddInputChange("username", e.target.value)}
+                        placeholder="e.g. rso_north"
+                        className={addFormErrors.username ? "border-red-500 focus-visible:ring-red-500/20 bg-red-50/20" : ""}
+                      />
+                      {addFormErrors.username && (
+                        <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-0.5 animate-in fade-in duration-150">
+                          <AlertCircle className="h-3 w-3 shrink-0" />
+                          {addFormErrors.username}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="email" className="text-xs font-semibold text-slate-700">
+                        Email ID <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={addForm.email}
+                        onChange={(e) => handleAddInputChange("email", e.target.value)}
+                        placeholder="e.g. rso.north@lighthouse.com"
+                        className={addFormErrors.email ? "border-red-500 focus-visible:ring-red-500/20 bg-red-50/20" : ""}
+                      />
+                      {addFormErrors.email && (
+                        <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-0.5 animate-in fade-in duration-150">
+                          <AlertCircle className="h-3 w-3 shrink-0" />
+                          {addFormErrors.email}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Password & Mobile No */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="password" className="text-xs font-semibold text-slate-700">
+                        Password <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          name="password"
+                          type={showAddPassword ? "text" : "password"}
+                          value={addForm.password}
+                          onChange={(e) => handleAddInputChange("password", e.target.value)}
+                          placeholder="Min. 6 characters"
+                          className={`pr-10 ${addFormErrors.password ? "border-red-500 focus-visible:ring-red-500/20 bg-red-50/20" : ""}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAddPassword(!showAddPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+                        >
+                          {showAddPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                      {addFormErrors.password && (
+                        <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-0.5 animate-in fade-in duration-150">
+                          <AlertCircle className="h-3 w-3 shrink-0" />
+                          {addFormErrors.password}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="mobileNo" className="text-xs font-semibold text-slate-700">
+                        Mobile No <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="mobileNo"
+                        name="mobileNo"
+                        type="tel"
+                        value={addForm.mobileNo}
+                        onChange={(e) => handleAddInputChange("mobileNo", e.target.value)}
+                        placeholder="10-digit number"
+                        maxLength={10}
+                        className={addFormErrors.mobileNo ? "border-red-500 focus-visible:ring-red-500/20 bg-red-50/20" : ""}
+                      />
+                      {addFormErrors.mobileNo && (
+                        <p className="text-xs text-red-500 font-medium flex items-center gap-1 mt-0.5 animate-in fade-in duration-150">
+                          <AlertCircle className="h-3 w-3 shrink-0" />
+                          {addFormErrors.mobileNo}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter className="gap-2 sm:gap-0 pt-2">
+                  <DialogClose asChild>
+                    <Button variant="outline" type="button">Cancel</Button>
+                  </DialogClose>
+                  <Button
+                    type="submit"
+                    className="text-white cursor-pointer bg-blue-600 hover:bg-blue-700"
+                    disabled={createMutation.isPending}
+                  >
+                    {createMutation.isPending ? "Saving..." : "Save RSO"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </header>
 
       {/* Table Wrapper - Remove overflow constraints that might cut off dropdowns */}
-      <div className="mb-4 relative">
+      <section className="flex-1 min-h-0 pt-2 relative">
         <div className="custom-table-container">
           <CustomTable
             data={filteredData || []}
@@ -1251,15 +1538,21 @@ export default function UserAccessPage() {
             isLoading={isLoading}
           />
         </div>
-      </div>
+      </section>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (open) fetchZonesOnDemand();
+        }}
+      >
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           {editTarget && (
             <form onSubmit={handleEditUser} className="space-y-4">
               <DialogHeader>
-                <DialogTitle>Edit Region Info</DialogTitle>
+                <DialogTitle>Edit Regional Safety Officer (RSO)</DialogTitle>
               </DialogHeader>
               <div className="grid gap-3">
                 <Label htmlFor="edit-username">UserName</Label>
@@ -1270,13 +1563,36 @@ export default function UserAccessPage() {
                   required
                 />
 
-                <Label htmlFor="edit-branchGroupName">Region</Label>
+                <Label htmlFor="edit-email">Email ID</Label>
                 <Input
-                  id="edit-branchGroupName"
-                  name="branchGroupName"
-                  defaultValue={editTarget.branchGroupName}
-                  required
+                  id="edit-email"
+                  name="email"
+                  type="email"
+                  defaultValue={editTarget.email && editTarget.email !== "N/A" ? editTarget.email : ""}
+                  placeholder="Enter email ID"
                 />
+
+                <div className="grid gap-1.5">
+                  <Label htmlFor="edit-branchGroupName">Zone <span className="text-red-500">*</span></Label>
+                  <input
+                    type="hidden"
+                    id="edit-branchGroupName"
+                    name="branchGroupName"
+                    value={editZone}
+                  />
+                  <Combobox
+                    items={rsoEditZoneItems}
+                    value={editZone}
+                    onValueChange={(val) => setEditZone(val || "")}
+                    placeholder={isLoadingZones ? "Loading zones..." : "Select zone"}
+                    searchPlaceholder="Search zone..."
+                    emptyMessage={isLoadingZones ? "Loading zones..." : "No zones found."}
+                    onOpenChange={(open) => {
+                      if (open) fetchZonesOnDemand();
+                    }}
+                    className="w-full"
+                  />
+                </div>
 
                 <Label htmlFor="edit-regionHeadName">Regional Safety Officer (RSO) Name</Label>
                 <Input
@@ -1317,31 +1633,6 @@ export default function UserAccessPage() {
                   defaultValue={editTarget.mobileNo || ""}
                   required
                 />
-
-                <Label htmlFor="edit-schoolId">National Head</Label>
-                <Combobox
-                  items={schoolOptions}
-                  value={editSelectedSchool || undefined}
-                  onValueChange={handleEditSchoolChange}
-                  placeholder="Select National Head"
-                  searchPlaceholder="Search National Head..."
-                  emptyMessage="No National Head found"
-                />
-
-                <Label htmlFor="edit-assignedBranches">Assigned Business Manager</Label>
-                <BranchDropdown
-                  selectedBranches={editSelectedBranches}
-                  branchOptions={filteredEditBranches}
-                  onBranchToggle={handleEditBranchToggle}
-                  onSelectAll={handleEditSelectAll}
-                />
-                {editSelectedBranches.length > 0 && (
-                  <div className="text-sm text-gray-600">
-                    Selected: {editSelectedBranches.length} Business Managers
-                  </div>
-                )}
-
-
               </div>
               <DialogFooter>
                 <Button

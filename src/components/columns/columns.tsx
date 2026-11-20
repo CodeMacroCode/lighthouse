@@ -1,9 +1,8 @@
 import {
-  type VisibilityState,
   type PaginationState,
   type SortingState,
-  type ColumnDef,
-} from "@tanstack/react-table";
+  ColumnDef,
+} from "@/components/ui/customTable(serverSidePagination)";
 import { SubscriptionConfigData } from "@/services/api/subscriptionConfigService";
 import {
   AlertsAndEventsReport,
@@ -30,7 +29,7 @@ import {
 } from "@/interface/modal";
 import { FaPlus, FaMinus } from "react-icons/fa";
 import { CellContent } from "@/components/ui/CustomTable";
-import { Eye, EyeOff, Locate, WifiOff, FileText } from "lucide-react";
+import { Eye, EyeOff, Locate, WifiOff, FileText, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React, { useMemo } from "react";
 import { Button } from "../ui/button";
@@ -42,6 +41,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { normalizePrekRole } from "@/constants/roles";
 
 export const getModelColumns = (
   setEditTarget: (row: Model) => void,
@@ -1201,7 +1210,7 @@ export const getGeofenceCoumns = (
               e.stopPropagation();
               onEdit(row.original); // Use the callback
             }}
-            className="cursor-pointer bg-[#0c235c] text-white hover:bg-[#071230] hover:text-white"
+            className="cursor-pointer bg-primary text-white hover:bg-primary/90"
           >
             Edit
           </Button>
@@ -1311,7 +1320,7 @@ export const getDriverColumns = (
               e.stopPropagation();
               onEdit(row.original); // Use the callback
             }}
-            className="cursor-pointer bg-[#0c235c] text-white hover:bg-[#0C235C] hover:text-white"
+            className="cursor-pointer bg-primary text-white hover:bg-primary/90"
           >
             Edit
           </Button>
@@ -1410,7 +1419,7 @@ export const getSupervisorColumns = (
               e.stopPropagation();
               onEdit(row.original); // Use the callback
             }}
-            className="cursor-pointer bg-[#0c235c] hover:bg-[#D3A80C]"
+            className="cursor-pointer bg-primary text-white hover:bg-primary/90"
           >
             Edit
           </Button>
@@ -2021,7 +2030,15 @@ export const getRouteReportColumns = (): ColumnDef<GeofenceAlerts>[] => [
   { header: "Created At", accessorKey: "createdAt" },
 ];
 
-export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpdateStatus?: (incident: Incident) => void): ColumnDef<Incident>[] => [
+export const getIncidentColumns = (
+  onEdit?: (incident: Incident) => void,
+  onUpdateStatus?: (incident: Incident) => void,
+  canEditRow?: (incident: Incident) => boolean,
+  canUpdateStatusRow?: (incident: Incident) => boolean,
+  onDelete?: (incident: Incident) => void,
+  onEscalate?: (incident: Incident, escalatedTo: string) => void,
+  userList?: Array<{ _id?: string; id?: string; name?: string; username?: string; role?: string }>,
+): ColumnDef<Incident>[] => [
   {
     accessorKey: "caseId",
     header: "Case ID",
@@ -2041,27 +2058,67 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
     header: "Region",
     cell: ({ row }) => (
       <div className="text-center w-full">
-        {row.original.region || "N/A"}
+        {row.original.region || row.original.zone || "N/A"}
       </div>
     ),
   },
   {
-    accessorKey: "branchName",
+    accessorKey: "centreName",
     header: "Centre / School",
     cell: ({ row }) => (
       <div className="text-center w-full">
-        {row.original.branchName || (row.original as any).centre || "N/A"}
+        {row.original.centreName || row.original.schoolName || row.original.branchName || (row.original as any).centre || "N/A"}
       </div>
     ),
   },
   {
-    accessorKey: "subCategory",
+    accessorKey: "incidentType",
     header: "Incident Type",
     cell: ({ row }) => (
       <div className="whitespace-nowrap mx-auto text-center font-medium">
-        {row.original.subCategory || (row.original as any).type || row.original.category || "N/A"}
+        {row.original.incidentType || row.original.subCategory || (row.original as any).type || row.original.category || "N/A"}
       </div>
     ),
+  },
+  {
+    accessorKey: "reporterName",
+    header: "Reported By",
+    cell: ({ row }) => {
+      const name =
+        row.original.reporterName || row.original.reportedBy || "N/A";
+      return (
+        <div className="text-center w-full whitespace-nowrap">
+          <span className="font-medium text-slate-800">{name}</span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "reporterRole",
+    header: "User Role",
+    cell: ({ row }) => {
+      const rawRole =
+        row.original.reporterRole ||
+        (row.original as any).reportedByRole ||
+        (row.original as any).userRole ||
+        (row.original as any).role ||
+        (row.original as any).reporter?.role ||
+        (row.original as any).stakeholders ||
+        "";
+      const normalized = normalizePrekRole(rawRole) || rawRole;
+      if (!normalized || normalized === "N/A") {
+        return (
+          <div className="text-center w-full text-slate-400 text-xs">N/A</div>
+        );
+      }
+      return (
+        <div className="text-center w-full whitespace-nowrap">
+          <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
+            {normalized}
+          </span>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "severity",
@@ -2093,11 +2150,15 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
     header: "Escalation Owner",
     cell: ({ row }) => {
       const severity = row.original.severity || "Low";
-      const owner = row.original.escalationOwner || (
-        severity === "Critical" ? "Central" :
-        severity === "High" ? "RSO" :
-        severity === "Medium" ? "BM" : "AOM"
-      );
+      const owner =
+        row.original.escalationOwner ||
+        (severity === "Critical"
+          ? "Central"
+          : severity === "High"
+            ? "RSO"
+            : severity === "Medium"
+              ? "BM"
+              : "AOM");
       return (
         <div className="text-center w-full">
           <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 whitespace-nowrap">
@@ -2157,31 +2218,53 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
     id: "actions",
     header: "Actions",
     cell: ({ row }) => {
-      const status = row.original.status;
+      const status = row.original.status || "";
+      const isClosed =
+        status.toLowerCase() === "closed" ||
+        status.toLowerCase() === "close" ||
+        status.toLowerCase() === "resolved";
+
+      const showEdit = Boolean(
+        onEdit && (!canEditRow || canEditRow(row.original)),
+      );
+      const showUpdateStatus = Boolean(
+        onUpdateStatus &&
+          (!canUpdateStatusRow || canUpdateStatusRow(row.original)),
+      );
+
       return (
         <div className="flex justify-center items-center gap-2 w-full text-center whitespace-nowrap">
-          {status === "Open" ? (
-            <div className="flex gap-2 justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 cursor-pointer"
-                onClick={() => onEdit?.(row.original)}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 cursor-pointer"
-                onClick={() => onUpdateStatus?.(row.original)}
-              >
-                Update Status
-              </Button>
+          {!isClosed ? (
+            <div className="flex gap-2 justify-center items-center">
+              {showEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 cursor-pointer"
+                  onClick={() => onEdit && onEdit(row.original)}
+                >
+                  Edit
+                </Button>
+              )}
+              {showUpdateStatus && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 cursor-pointer"
+                  onClick={() => onUpdateStatus && onUpdateStatus(row.original)}
+                >
+                  Update Status
+                </Button>
+              )}
+              {!showEdit && !showUpdateStatus && (
+                <span className="text-xs text-muted-foreground self-center text-center">
+                  View only
+                </span>
+              )}
             </div>
           ) : (
             <span className="text-xs text-muted-foreground self-center text-center">
-              No action needed
+              Closed
             </span>
           )}
         </div>
@@ -2214,38 +2297,236 @@ export const getIncidentColumns = (onEdit?: (incident: Incident) => void, onUpda
   {
     accessorKey: "briefDescription",
     header: "Brief Description",
-    cell: ({ row }) => (
-      <div className="whitespace-nowrap mx-auto text-center">
-        {row.original.briefDescription || "N/A"}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const text = row.original.briefDescription || row.original.description;
+      return (
+        <div
+          className="whitespace-normal break-words text-left min-w-[200px] max-w-[360px] text-xs leading-relaxed text-slate-800"
+          title={text || undefined}
+        >
+          {text || "N/A"}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "immediateActionTaken",
     header: "Immediate Action Taken",
-    cell: ({ row }) => (
-      <div className="whitespace-nowrap mx-auto text-center">
-        {row.original.immediateActionTaken || "N/A"}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const text = row.original.immediateActionTaken;
+      return (
+        <div
+          className="whitespace-normal break-words text-left min-w-[180px] max-w-[320px] text-xs leading-relaxed text-slate-800"
+          title={text || undefined}
+        >
+          {text || "N/A"}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "pendingAction",
     header: "Pending Action",
-    cell: ({ row }) => (
-      <div className="whitespace-nowrap mx-auto text-center">
-        {row.original.pendingAction || "N/A"}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const text = row.original.pendingAction;
+      return (
+        <div
+          className="whitespace-normal break-words text-left min-w-[180px] max-w-[320px] text-xs leading-relaxed text-slate-800"
+          title={text || undefined}
+        >
+          {text || "N/A"}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "remarks",
     header: "Remarks",
-    cell: ({ row }) => (
-      <div className="whitespace-nowrap mx-auto text-center">
-        {row.original.remarks || "N/A"}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const text = row.original.remarks;
+      return (
+        <div
+          className="whitespace-normal break-words text-left min-w-[180px] max-w-[320px] text-xs leading-relaxed text-slate-800"
+          title={text || undefined}
+        >
+          {text || "N/A"}
+        </div>
+      );
+    },
+  },
+  {
+    id: "reassign",
+    header: "Assign",
+    cell: ({ row }) => {
+      const severity = row.original.severity || "Low";
+      const rawOwner =
+        row.original.escalatedTo ||
+        row.original.escalationOwner ||
+        (severity === "Critical"
+          ? "Central"
+          : severity === "High"
+            ? "RSO"
+            : severity === "Medium"
+              ? "BM"
+              : "AOM");
+
+      let normalizedOwner = rawOwner;
+      if (
+        rawOwner === "Area Operations Manager (AOM)" ||
+        rawOwner === "AOM (Area Operations)"
+      ) {
+        normalizedOwner = "AOM";
+      } else if (
+        rawOwner === "Business Manager (BM)" ||
+        rawOwner === "BM (Business Manager)"
+      ) {
+        normalizedOwner = "BM";
+      } else if (
+        rawOwner === "Regional Safety Officer (RSO)" ||
+        rawOwner === "RSO (Regional Safety Officer)"
+      ) {
+        normalizedOwner = "RSO";
+      } else if (
+        rawOwner === "National Head" ||
+        rawOwner === "National Head (Executive)"
+      ) {
+        normalizedOwner = "National Head";
+      } else if (
+        rawOwner === "Central Admin" ||
+        rawOwner === "Central Team" ||
+        rawOwner === "Central Admin (Central)"
+      ) {
+        normalizedOwner = "Central";
+      }
+
+      if (onEscalate) {
+        const status = row.original.status || "";
+        const isClosed =
+          status.toLowerCase() === "closed" ||
+          status.toLowerCase() === "close" ||
+          status.toLowerCase() === "resolved";
+
+        const sevKey = (severity || "Low").toLowerCase();
+        let allowedRoleKeys = ["AOM"];
+
+        if (sevKey === "critical") {
+          // Tier 5: Central Admin (Sole closer of Critical, POCSO & Corporal Punishment)
+          allowedRoleKeys = ["Central"];
+        } else if (sevKey === "high") {
+          // Tier 3 (RSO - owns High), Tier 4 (National Head - All Severities), Tier 5 (Central Admin - All Severities)
+          allowedRoleKeys = ["RSO", "National Head", "Central"];
+        } else if (sevKey === "medium") {
+          // Tier 2 (BM - owns Medium), Tier 3 (RSO), Tier 4 (National Head), Tier 5 (Central Admin)
+          allowedRoleKeys = ["BM", "RSO", "National Head", "Central"];
+        } else {
+          // Tier 1 (AOM - resolves Low), Tier 2 (BM), Tier 3 (RSO), Tier 4 (National Head), Tier 5 (Central Admin)
+          allowedRoleKeys = ["AOM", "BM", "RSO", "National Head", "Central"];
+        }
+
+        const filteredUsers =
+          userList?.filter((u: any) => {
+            const uRole = normalizePrekRole(u.role) || u.role || "";
+            return allowedRoleKeys.some(
+              (k) =>
+                uRole.toLowerCase() === k.toLowerCase() ||
+                (k === "Central" &&
+                  (uRole.toLowerCase().includes("central") ||
+                    uRole.toLowerCase().includes("superadmin"))),
+            );
+          }) || [];
+
+        const matchedUser = userList?.find((u: any) => {
+          const uName = (u.name || u.username || "").trim().toLowerCase();
+          if (!uName) return false;
+          const raw = rawOwner.trim().toLowerCase();
+          return (
+            raw === uName ||
+            raw.startsWith(`${uName} `) ||
+            raw.startsWith(`${uName}(`) ||
+            (u._id && u._id === rawOwner)
+          );
+        });
+
+        const selectedValue = matchedUser
+          ? `${matchedUser.name || matchedUser.username} (${normalizePrekRole(matchedUser.role) || matchedUser.role || "User"})`
+          : (rawOwner || normalizedOwner);
+
+        const isUserInFiltered = filteredUsers.some((u: any) => {
+          const uName = u.name || u.username;
+          const uRole = normalizePrekRole(u.role) || u.role || "User";
+          const formatted = `${uName} (${uRole})`;
+          return formatted === selectedValue || uName === selectedValue;
+        });
+
+        return (
+          <div
+            className="flex items-center justify-center min-w-[140px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Select
+              disabled={isClosed}
+              value={selectedValue}
+              onValueChange={(val) => onEscalate(row.original, val)}
+            >
+              <SelectTrigger
+                size="sm"
+                disabled={isClosed}
+                className={cn(
+                  "h-7 text-xs px-2.5 transition-colors",
+                  isClosed
+                    ? "bg-slate-100 border-slate-200 text-slate-500 font-medium cursor-not-allowed opacity-80 shadow-none hover:bg-slate-100 hover:border-slate-200"
+                    : "bg-blue-50/70 border-blue-200 text-blue-900 font-semibold hover:bg-blue-100 hover:border-blue-300 shadow-2xs cursor-pointer"
+                )}
+                title={isClosed ? "Reassignment is disabled for closed cases" : undefined}
+              >
+                <SelectValue placeholder="Reassign to..." />
+              </SelectTrigger>
+              <SelectContent align="center" className="z-50 min-w-[220px] max-h-[300px]">
+                {filteredUsers.length > 0 ? (
+                  <SelectGroup>
+                    <SelectLabel className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+                      Users ({severity})
+                    </SelectLabel>
+                    {filteredUsers.map((u: any) => {
+                      const uName = u.name || u.username;
+                      const uRole = normalizePrekRole(u.role) || u.role || "User";
+                      if (!uName) return null;
+                      const itemVal = `${uName} (${uRole})`;
+                      return (
+                        <SelectItem
+                          key={u._id || u.id || uName}
+                          value={itemVal}
+                          className="text-xs font-medium cursor-pointer"
+                        >
+                          {itemVal}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectGroup>
+                ) : (
+                  <div className="py-2 px-3 text-xs text-slate-500 text-center">
+                    No users available for {severity}
+                  </div>
+                )}
+                {!isUserInFiltered && selectedValue && (
+                  <SelectItem value={selectedValue} className="text-xs font-medium cursor-pointer">
+                    {selectedValue} (Current)
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        );
+      }
+
+      return (
+        <div className="text-center w-full">
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 whitespace-nowrap">
+            {rawOwner || normalizedOwner || "N/A"}
+          </span>
+        </div>
+      );
+    },
   },
 ];
 
@@ -2285,7 +2566,7 @@ export const getAuditColumns = (
       header: "Score",
       accessorKey: "finalScore",
       cell: ({ row }) => (
-        <span className="font-black text-[#0c235c]">
+        <span className="font-bold text-slate-900">
           {row.original.finalScore ?? "--"}
         </span>
       ),

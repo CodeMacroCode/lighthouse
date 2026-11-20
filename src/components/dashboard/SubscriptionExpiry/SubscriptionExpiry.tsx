@@ -107,7 +107,7 @@ export const SubscriptionExpiry: React.FC<SubscriptionExpiryProps & {
           `}
           >
 
-            <div className="bg-[#0c235c] px-3 sm:px-4 py-2 flex items-center justify-between backdrop-blur-sm">
+            <div className="bg-primary px-3 sm:px-4 py-2 flex items-center justify-between backdrop-blur-sm">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div className="bg-white/80 rounded-full p-1 shadow-sm flex-shrink-0">
                   <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />

@@ -172,10 +172,12 @@ To permanently protect same-level data privacy:
 
 | Method | Endpoint | Access / Role | Description |
 |---|---|---|---|
-| `POST` | `/auth/login` | Public | Authenticates user credentials. Returns JWT with role, zone, cluster, and centres. Enforces 5-attempt lockout. |
+| `POST` | `/auth/login` | Public | Authenticates user credentials. Returns **15-minute Access Token** and **30-day Refresh Token**. Enforces 5-attempt lockout. |
+| `POST` | `/auth/refresh-token` | Public | Refreshes session. Takes a valid 30-day refresh token and returns a new 15-minute access token. |
+| `POST` | `/auth/logout` | Authenticated / Public | Logs out user and revokes stored 30-day refresh token. |
 | `POST` | `/auth/reset-password` | Public | Self-service password reset using username/email and new password. |
 | `POST` | `/api/users` | `Central` | Provision a new Pre-K user account. Validates 1-AOM-per-centre allocation. |
-| `GET` | `/api/users` | `Central`, `National Head` | List all provisioned Pre-K users with role and zone filters. |
+| `GET` | `/api/users` | `Central`, `National Head` | List all provisioned Pre-K users with decrypted plain-text passwords for administrator review. |
 | `PUT` | `/api/users/:id` | `Central` | Update user assignments (role, zone, cluster, centres). Checks centre conflict. |
 | `PUT` | `/api/users/:id/unlock` | `Central` | Unlock an account locked by failed attempts. |
 | `PUT` | `/api/users/:id/reset-password` | `Central` | Administrator reset of a user's password. |
@@ -244,17 +246,37 @@ Prototype-Light-House-Backend/
 ### 8.2 Configuration (.env)
 Create a `.env` file in the root directory:
 ```env
-PORT=3000
-JWT_SECRET=your_secure_jwt_secret_key_2026
-ENCRYPTION_KEY=your_32_character_encryption_key_
-IV=your_16_character_iv_value_
-MONGO_URI_1=mongodb://localhost:27017/prek_db1
-MONGO_URI_2=mongodb://localhost:27017/prek_db2
-NODE_ENV=development
+PORT=9000
+MONGO_URI=mongodb://localhost:27017/prek_incident_db
+JWT_SECRET=your_jwt_secret_key_change_in_production
+REFRESH_TOKEN_SECRET=your_refresh_token_secret_key
+IV=your_16_byte_iv_key_here
+ENCRYPTION_KEY=your_32_byte_encryption_key_here
 ```
-*(Note: Cryptographic helpers and auth middleware include safe fallback keys for offline unit testing without environment variables).*
 
-### 8.3 Start Server
+### 8.3 Database Seeding (Pre-K Dummy Test Data)
+Populate test accounts for every single role and sample incidents across severities:
+```powershell
+node scripts/seed-dummy-data.js
+```
+
+#### Pre-Provisioned Test Accounts (Password: `Password@123`)
+
+| Role | Username | Assigned Scope | Key Test Purpose |
+|---|---|---|---|
+| **Central Admin** | `central_admin` | National | Full visibility; owns Critical POCSO & Corporal Punishment; user management |
+| **National Head** | `national_head` | National | Strategic oversight; National & Zone dashboards |
+| **RSO (West)** | `rso_west` | West Zone | Oversees Mumbai & Pune clusters; owns High severity cases |
+| **RSO (North)** | `rso_north` | North Zone | Oversees Delhi cluster; owns High severity cases |
+| **BM (Mumbai)** | `bm_mumbai` | Mumbai Cluster | Supervises `aom_bandra` & `aom_andheri`; owns Medium cases |
+| **BM (Pune)** | `bm_pune` | Pune Cluster | Supervises `aom_pune`; owns Medium cases |
+| **BM (Delhi)** | `bm_delhi` | Delhi Cluster | Supervises `aom_delhi`; owns Medium cases |
+| **AOM 1 (Bandra)** | `aom_bandra` | Bandra & Juhu Centres | Isolated from AOM Andheri; resolves Low cases only |
+| **AOM 2 (Andheri)** | `aom_andheri` | Andheri & Colaba Centres | Isolated from AOM Bandra; resolves Low cases only |
+| **AOM 3 (Pune)** | `aom_pune` | Kothrud & Baner Centres | Resolves Low cases in Pune centres |
+| **AOM 4 (Delhi)** | `aom_delhi` | Rohini & Saket Centres | Resolves Low cases in Delhi centres |
+
+### 8.4 Start Server
 ```powershell
 # Development mode with hot-reload
 npm run dev
@@ -272,7 +294,7 @@ Run all tests:
 npm test
 ```
 
-**Total Tests:** **56 passing** across 15 suites (0 failures).
+**Total Tests:** **59 passing** across 16 suites (0 failures).
 - 5-Tier role normalization and query scoping.
 - Horizontal peer isolation (AOM 1 vs AOM 2) and upward hierarchy visibility.
 - 1-AOM-per-centre allocation conflict detection.
@@ -282,3 +304,4 @@ npm test
 - Unique Case ID generation (`INC-YYYYMMDD-XXXX`).
 - National Dashboard rate band calculations and Top 5 "States to Watch".
 - 5-attempt account lockout policy and security audit trail.
+- 15-minute Access Token & 30-day Refresh Token lifecycles and expiration validation.

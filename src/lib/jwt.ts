@@ -6,6 +6,9 @@ export interface DecodedToken {
   role: string;
   schoolId?: string;
   branchId?: string;
+  zone?: string;
+  region?: string;
+  cluster?: string;
   exp?: number;
   iat?: number;
 }

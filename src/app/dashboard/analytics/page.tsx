@@ -35,6 +35,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { incidentService, IncidentStatsData } from "@/services/api/incidentService";
+import { useAuthStore } from "@/store/authStore";
+import { PREK_ROLES, normalizePrekRole } from "@/constants/roles";
+import { zoneService } from "@/services/api/zoneService";
 
 /* ---------------- design tokens from example.md ---------------- */
 const INK = "#0F1B2D";
@@ -120,12 +123,12 @@ function Overview({
     return (
       <div className="space-y-6">
         <div className="grid md:grid-cols-3 gap-4">
-          <div className="md:col-span-2 rounded-lg p-4 bg-white border border-[#E2E5EA] h-[260px] animate-pulse" />
-          <div className="rounded-lg p-4 bg-white border border-[#E2E5EA] h-[260px] animate-pulse" />
+          <div className="md:col-span-2 rounded-lg p-4 bg-white border border-slate-200 h-[260px] animate-pulse motion-reduce:animate-none" />
+          <div className="rounded-lg p-4 bg-white border border-slate-200 h-[260px] animate-pulse motion-reduce:animate-none" />
         </div>
         <div className="grid md:grid-cols-2 gap-4">
-          <div className="rounded-lg p-4 bg-white border border-[#E2E5EA] h-[300px] animate-pulse" />
-          <div className="rounded-lg p-4 bg-white border border-[#E2E5EA] h-[300px] animate-pulse" />
+          <div className="rounded-lg p-4 bg-white border border-slate-200 h-[300px] animate-pulse motion-reduce:animate-none" />
+          <div className="rounded-lg p-4 bg-white border border-slate-200 h-[300px] animate-pulse motion-reduce:animate-none" />
         </div>
       </div>
     );
@@ -160,7 +163,7 @@ function Overview({
         <div className="rounded-lg p-3 sm:p-4 flex flex-col justify-between" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-semibold" style={{ color: INK }}>Severity Split</div>
-            <span className="text-xs font-mono text-slate-500 font-medium">Total: {totalSeverity}</span>
+            <span className="text-xs text-slate-500 font-medium">Total: <span className="font-mono tabular-nums">{totalSeverity}</span></span>
           </div>
 
           <ResponsiveContainer width="100%" height={180}>
@@ -268,7 +271,7 @@ function Overview({
         </div>
         <table className="w-full min-w-[520px] text-xs sm:text-sm">
           <thead>
-            <tr style={{ background: "#F7F8FA" }}>
+            <tr className="bg-slate-50 border-b border-slate-200">
               {["Month", "Total", "Open", "Closed", "Closure Rate", "Severity Mix"].map((h) => (
                 <th key={h} className="text-left px-3 py-2 text-xs font-semibold whitespace-nowrap" style={{ color: MUTED }}>
                   {h}
@@ -285,25 +288,21 @@ function Overview({
                 <tr
                   key={rowKey}
                   onClick={() => onSelectMonth(isActive ? "All" : (m.key || m.label))}
-                  style={{
-                    borderTop: `1px solid ${BORDER}`,
-                    cursor: "pointer",
-                    background: isActive ? "#FDF3EA" : "transparent",
-                  }}
+                  className={`border-t border-slate-200 transition-colors cursor-pointer ${isActive ? "bg-amber-50/70 font-semibold" : "hover:bg-slate-50/60"}`}
                 >
                   <td className="px-3 py-2 font-semibold" style={{ color: INK }}>
                     {m.label}
                   </td>
-                  <td className="px-3 py-2" style={{ fontFamily: "IBM Plex Mono, monospace", color: INK }}>
+                  <td className="px-3 py-2 font-mono tabular-nums" style={{ color: INK }}>
                     {m.total}
                   </td>
-                  <td className="px-3 py-2" style={{ fontFamily: "IBM Plex Mono, monospace", color: STATUS_COLORS.Open }}>
+                  <td className="px-3 py-2 font-mono tabular-nums" style={{ color: STATUS_COLORS.Open }}>
                     {m.open}
                   </td>
-                  <td className="px-3 py-2" style={{ fontFamily: "IBM Plex Mono, monospace", color: STATUS_COLORS.Closed }}>
+                  <td className="px-3 py-2 font-mono tabular-nums" style={{ color: STATUS_COLORS.Closed }}>
                     {m.closed}
                   </td>
-                  <td className="px-3 py-2" style={{ fontFamily: "IBM Plex Mono, monospace", color: MUTED }}>
+                  <td className="px-3 py-2 font-mono tabular-nums" style={{ color: MUTED }}>
                     {String(closureRate).includes("%") ? closureRate : `${closureRate}%`}
                   </td>
                   <td className="px-3 py-2">
@@ -343,13 +342,13 @@ function Overview({
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full min-w-[500px] text-xs text-left border-collapse">
             <thead>
-              <tr className="bg-[#0b1b2d] text-white">
+              <tr className="bg-slate-900 text-white">
                 <th className="py-2.5 sm:py-3 px-3 sm:px-4 font-semibold whitespace-nowrap">Incident Type</th>
-                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "North" ? "bg-[#162f4c]" : ""}`}>North</th>
-                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "South" ? "bg-[#162f4c]" : ""}`}>South</th>
-                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "East" ? "bg-[#162f4c]" : ""}`}>East</th>
-                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "West" ? "bg-[#162f4c]" : ""}`}>West</th>
-                <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center font-bold text-orange-400 whitespace-nowrap">Total</th>
+                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "North" ? "bg-slate-800" : ""}`}>North</th>
+                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "South" ? "bg-slate-800" : ""}`}>South</th>
+                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "East" ? "bg-slate-800" : ""}`}>East</th>
+                <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${activeRegion === "West" ? "bg-slate-800" : ""}`}>West</th>
+                <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center font-bold text-amber-400 whitespace-nowrap">Total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -365,7 +364,7 @@ function Overview({
                   return (
                     <tr
                       key={row.type}
-                      className={`transition-colors hover:bg-slate-50/80 ${isEven ? "bg-white" : "bg-[#f8fafc]/60"}`}
+                      className={`transition-colors hover:bg-slate-50/80 ${isEven ? "bg-white" : "bg-slate-50/60"}`}
                     >
                       <td className="py-2 px-3 sm:px-4 font-medium text-slate-800 whitespace-nowrap">{row.type}</td>
                       <td className={`py-2 px-3 sm:px-4 text-center ${row.north === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${activeRegion === "North" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
@@ -380,7 +379,7 @@ function Overview({
                       <td className={`py-2 px-3 sm:px-4 text-center ${row.west === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${activeRegion === "West" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
                         {row.west}
                       </td>
-                      <td className="py-2 px-3 sm:px-4 text-center font-bold text-[#e07a38]">
+                      <td className="py-2 px-3 sm:px-4 text-center font-bold text-amber-600">
                         {row.total}
                       </td>
                     </tr>
@@ -397,7 +396,45 @@ function Overview({
 
 export default function AnalyticsDashboardPage() {
   const router = useRouter();
-  const [selectedRegion, setSelectedRegion] = useState<Region>("All Regions");
+  const user = useAuthStore((state) => state.decodedToken);
+  const prekRole = normalizePrekRole(user?.role);
+  const isCentral =
+    prekRole === PREK_ROLES.CENTRAL ||
+    user?.role === "superAdmin" ||
+    user?.role === "central" ||
+    user?.role === "Central";
+  const isNationalHead =
+    prekRole === PREK_ROLES.NATIONAL_HEAD ||
+    user?.role === "school" ||
+    user?.role === "national_head" ||
+    user?.role === "National Head" ||
+    user?.role === "NationalHead";
+  const isRSO =
+    prekRole === PREK_ROLES.RSO ||
+    user?.role === "branchGroup" ||
+    user?.role === "rso" ||
+    user?.role === "RSO";
+  const canAccessZoneFilter = isCentral || isNationalHead;
+
+  const [zonesList, setZonesList] = useState<string[]>([]);
+  useEffect(() => {
+    let active = true;
+    zoneService
+      .getZones({ isActive: true })
+      .then((res) => {
+        if (active && res?.data && Array.isArray(res.data)) {
+          setZonesList(res.data.map((z) => z.name));
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not fetch active zones for analytics:", err);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const [selectedRegion, setSelectedRegion] = useState<any>("All Regions");
   const [activeTab, setActiveTab] = useState<TabType>("National");
   const [hoveredSlice, setHoveredSlice] = useState<string | null>(null);
 
@@ -408,6 +445,16 @@ export default function AnalyticsDashboardPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isRSO && (user?.zone || user?.region)) {
+      const assigned = user.zone || user.region || "";
+      if (assigned) {
+        setActiveZoneRegion(assigned);
+        setSelectedRegion(assigned as any);
+      }
+    }
+  }, [isRSO, user?.zone, user?.region]);
 
   // Live Incident Stats from API
   const [statsData, setStatsData] = useState<IncidentStatsData | null>(null);
@@ -685,102 +732,101 @@ export default function AnalyticsDashboardPage() {
   }, [activeZoneData]);
 
   return (
-    <div className="min-h-full bg-[#f8fafc] text-slate-800 -m-2 md:-m-4 overflow-x-clip">
-      {/* 1. TOP NAVIGATION SUB-TABS */}
-      <div className="bg-white border-b border-slate-200 px-3 sm:px-4 md:px-8 flex items-center gap-4 sm:gap-6 md:gap-8 text-xs md:text-sm shadow-2xs overflow-x-auto no-scrollbar scrollbar-none">
-        {(["National", "Zone Overview", "Escalation Matrix"] as TabType[]).map((tab) => {
-          const isActive = activeTab === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-3 sm:py-3.5 font-semibold cursor-pointer relative transition-colors whitespace-nowrap shrink-0 ${
-                isActive ? "text-slate-900 font-bold" : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              {tab}
-              {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-900 rounded-full" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 2. REGION FILTER TABS (Shown on National tab) */}
-      {activeTab === "National" && (
-        <div className="bg-white border-b border-slate-200 px-3 sm:px-4 md:px-8 flex items-center justify-between overflow-x-auto shadow-2xs no-scrollbar scrollbar-none">
-          <div className="flex items-center gap-3 sm:gap-4 md:gap-6 shrink-0">
-            {(["All Regions", "North", "South", "East", "West"] as Region[]).map((region) => {
-              const isActive = selectedRegion === region;
+    <div className="min-h-full bg-slate-50 text-slate-800 -m-2 md:-m-4 overflow-x-clip">
+      {/* 1. UNIFIED COMMAND BAR HEADER */}
+      <div className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 sm:px-6 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs sticky top-0 z-20">
+        {/* Left: View Switcher */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="inline-flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/60 gap-1 shrink-0">
+            {(["National", "Zone Overview", "Escalation Matrix"] as TabType[]).map((tab) => {
+              const isActive = activeTab === tab;
               return (
                 <button
-                  key={region}
-                  onClick={() => setSelectedRegion(region)}
-                  className={`py-2.5 sm:py-3 text-xs md:text-sm transition-all duration-150 whitespace-nowrap cursor-pointer relative shrink-0 ${
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
                     isActive
-                      ? "text-slate-900 font-bold"
-                      : "text-slate-500 font-medium hover:text-slate-800"
+                      ? "bg-white text-slate-950 shadow-xs border border-slate-200/80"
+                      : "text-slate-600 hover:text-slate-950 hover:bg-white/60"
                   }`}
                 >
-                  {region}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#ea580c] rounded-t-full transition-all" />
-                  )}
+                  {tab === "National" ? "National Overview" : tab}
                 </button>
               );
             })}
           </div>
-          {loadingStats && (
-            <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-400 py-2 pl-3 sm:pl-4 shrink-0">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-500" />
-              <span className="hidden sm:inline">Updating...</span>
+        </div>
+
+        {/* Right: Context Controls based on active tab */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-between md:justify-end">
+          {canAccessZoneFilter && activeTab === "National" && (
+            <div className="flex items-center gap-1 sm:gap-1.5 p-0.5 bg-slate-100/80 rounded-lg border border-slate-200/50">
+              {["All Regions", ...(zonesList.length > 0 ? zonesList : ["North", "South", "East", "West"])].map((region) => {
+                const isActive = selectedRegion === region;
+                return (
+                  <button
+                    key={region}
+                    onClick={() => setSelectedRegion(region as any)}
+                    className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors whitespace-nowrap cursor-pointer ${
+                      isActive
+                        ? "bg-slate-900 text-white shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                    }`}
+                  >
+                    {region}
+                  </button>
+                );
+              })}
             </div>
           )}
-        </div>
-      )}
 
-      {/* 2. ZONE FILTER TABS & MONTH SELECTOR (Single line, no scrollbar) */}
-      {activeTab === "Zone Overview" && (
-        <div className="bg-white border-b border-slate-200 px-2.5 sm:px-4 md:px-8 flex items-center justify-between gap-2 shadow-2xs no-scrollbar">
-          <div className="flex items-center gap-2 sm:gap-4 md:gap-6 shrink-0">
-            {(["All", ...REGIONS]).map((r) => {
-              const isActive = activeZoneRegion === r;
-              const label = r === "All" ? "All Zones" : r;
-              return (
-                <button
-                  key={r}
-                  onClick={() => setActiveZoneRegion(r)}
-                  className={`py-2.5 sm:py-3 text-[11px] sm:text-xs md:text-sm transition-all duration-150 whitespace-nowrap cursor-pointer relative shrink-0 ${
-                    isActive
-                      ? "text-slate-900 font-bold"
-                      : "text-slate-500 font-medium hover:text-slate-800"
-                  }`}
-                >
-                  {label}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#ea580c] rounded-t-full transition-all" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex items-center py-1.5 sm:py-2 shrink-0">
-            <select
-              value={activeZoneMonth}
-              onChange={(e) => setActiveZoneMonth(e.target.value)}
-              className="text-[11px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md border border-slate-300 flex-shrink-0 cursor-pointer bg-white text-slate-700 shadow-2xs hover:border-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500"
-            >
-              <option value="All">All Months</option>
-              {zoneMonthOptions.map((m) => (
-                <option key={m.key} value={m.key}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
+          {canAccessZoneFilter && activeTab === "Zone Overview" && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100/80 rounded-lg border border-slate-200/50">
+                {["All", ...(zonesList.length > 0 ? zonesList : REGIONS)].map((r) => {
+                  const isActive = activeZoneRegion === r;
+                  return (
+                    <button
+                      key={r}
+                      onClick={() => setActiveZoneRegion(r)}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors whitespace-nowrap cursor-pointer ${
+                        isActive
+                          ? "bg-slate-900 text-white shadow-2xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                      }`}
+                    >
+                      {r === "All" ? "All Zones" : r}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <select
+                value={activeZoneMonth}
+                onChange={(e) => setActiveZoneMonth(e.target.value)}
+                className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-800 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
+              >
+                <option value="All">All Months</option>
+                {zoneMonthOptions.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Network Footprint Badge & Loading */}
+          <div className="flex items-center gap-2 shrink-0">
+            {loadingStats && (
+              <div className="flex items-center gap-1 text-xs text-amber-600 px-2 py-0.5 bg-amber-50 rounded-md border border-amber-200/60">
+                <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                <span className="text-[11px] font-medium">Syncing…</span>
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-[1600px] mx-auto">
         {/* ======================================================== */}
@@ -789,7 +835,7 @@ export default function AnalyticsDashboardPage() {
         {activeTab === "National" && (
           <div className="space-y-4 sm:space-y-6">
             {statsError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700 flex items-center justify-between">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 flex items-center justify-between">
                 <span>{statsError}</span>
                 <button
                   onClick={() => setSelectedRegion(selectedRegion)}
@@ -800,50 +846,77 @@ export default function AnalyticsDashboardPage() {
               </div>
             )}
 
-            {/* KPI METRIC CARDS (BRD v1.1 FR-3.1 Baseline Metrics) */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
-              <div className="bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-5 shadow-sm border-l-4 border-l-[#0f2942] transition-transform hover:-translate-y-0.5 duration-200">
-                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+            {/* 4-COLUMN EXECUTIVE TELEMETRY DECK */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Metric 1: Total Incidents */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm transition-colors hover:border-slate-300 hover:shadow-md">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-slate-600">
+                    Total Incidents
+                  </span>
+                  <div className="h-7 w-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+                    <FolderOpen className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-mono">
                   {loadingStats && !statsData ? "..." : totalIncidents}
                 </div>
-                <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider mt-1 sm:mt-1.5">
-                  Total Incidents
+                <div className="text-[11px] text-slate-400 font-medium mt-1">
+                  Across {nationalDashboardData?.totalCentres || 2260} monitored centres
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-5 shadow-sm border-l-4 border-l-[#d97706] transition-transform hover:-translate-y-0.5 duration-200">
-                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              {/* Metric 2: Open Cases */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm transition-colors hover:border-slate-300 hover:shadow-md">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-slate-600">
+                    Open Cases
+                  </span>
+                  <div className="h-7 w-7 rounded-lg bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-amber-600 tracking-tight font-mono">
                   {loadingStats && !statsData ? "..." : openCases}
                 </div>
-                <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider mt-1 sm:mt-1.5">
-                  Open Cases
+                <div className="text-[11px] text-amber-700/70 font-medium mt-1">
+                  Active inquiry & resolution
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-5 shadow-sm border-l-4 border-l-[#991b1b] transition-transform hover:-translate-y-0.5 duration-200">
-                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              {/* Metric 3: High / Critical */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm transition-colors hover:border-slate-300 hover:shadow-md">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-slate-600">
+                    High / Critical
+                  </span>
+                  <div className="h-7 w-7 rounded-lg bg-rose-50 border border-rose-200/60 flex items-center justify-center text-rose-600">
+                    <ShieldAlert className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-rose-600 tracking-tight font-mono">
                   {loadingStats && !statsData ? "..." : highOrCritical}
                 </div>
-                <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider mt-1 sm:mt-1.5">
-                  High / Critical
+                <div className="text-[11px] text-rose-700/70 font-medium mt-1">
+                  Zero-tolerance SLA escalation
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-5 shadow-sm border-l-4 border-l-[#059669] transition-transform hover:-translate-y-0.5 duration-200">
-                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              {/* Metric 4: Closure Rate */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm transition-colors hover:border-slate-300 hover:shadow-md">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-slate-600">
+                    Closure Rate
+                  </span>
+                  <div className="h-7 w-7 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-emerald-600 tracking-tight font-mono">
                   {loadingStats && !statsData ? "..." : closureRate}
                 </div>
-                <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider mt-1 sm:mt-1.5">
-                  Closure Rate
-                </div>
-              </div>
-
-              <div className="col-span-2 sm:col-span-1 bg-white rounded-lg border border-slate-200/80 p-3.5 sm:p-5 shadow-sm border-l-4 border-l-[#2563eb] transition-transform hover:-translate-y-0.5 duration-200">
-                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-                  {nationalDashboardData?.totalCentres || 2260}
-                </div>
-                <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider mt-1 sm:mt-1.5">
-                  Network Centres
+                <div className="text-[11px] text-emerald-700/70 font-medium mt-1">
+                  Closed vs total recorded
                 </div>
               </div>
             </div>
@@ -851,9 +924,9 @@ export default function AnalyticsDashboardPage() {
             {/* ROW 1: Incident Trend by Severity & Severity Split */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
               {/* Card 1: Incident Trend by Severity (Stacked Bar) */}
-              <div className="lg:col-span-8 bg-white rounded-lg border border-slate-200/90 p-4 sm:p-6 shadow-sm">
+              <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
-                  <h2 className="text-sm font-bold text-slate-800 tracking-wide">
+                  <h2 className="text-sm font-bold text-slate-900 tracking-tight">
                     Incident Trend by Severity
                   </h2>
                   <span className="text-[11px] text-slate-400 font-normal sm:hidden">Scroll months →</span>
@@ -873,32 +946,32 @@ export default function AnalyticsDashboardPage() {
 
                       return (
                         <div key={`${item.month || idx}-${idx}`} className="flex flex-col items-center flex-shrink-0">
-                          <div className="w-11 sm:w-16 flex flex-col-reverse rounded-t-sm overflow-hidden shadow-sm transition-all duration-300 hover:brightness-105">
+                          <div className="w-11 sm:w-16 flex flex-col-reverse rounded-t-sm overflow-hidden shadow-xs transition-transform duration-300 hover:scale-[1.02]">
                             {(item.low || 0) > 0 && (
                               <div
                                 style={{ height: `${lowH}px` }}
-                                className="bg-[#2e7d52] w-full transition-all duration-300 relative group"
+                                className="bg-emerald-600 w-full transition-opacity duration-300 relative group"
                                 title={`Low: ${item.low}`}
                               />
                             )}
                             {(item.medium || 0) > 0 && (
                               <div
                                 style={{ height: `${medH}px` }}
-                                className="bg-[#b87326] w-full transition-all duration-300 relative group"
+                                className="bg-amber-600 w-full transition-opacity duration-300 relative group"
                                 title={`Medium: ${item.medium}`}
                               />
                             )}
                             {(item.high || 0) > 0 && (
                               <div
                                 style={{ height: `${highH}px` }}
-                                className="bg-[#b93829] w-full transition-all duration-300 relative group"
+                                className="bg-red-600 w-full transition-opacity duration-300 relative group"
                                 title={`High: ${item.high}`}
                               />
                             )}
                             {(item.critical || 0) > 0 && (
                               <div
                                 style={{ height: `${critH}px` }}
-                                className="bg-[#651212] w-full transition-all duration-300 relative group"
+                                className="bg-rose-950 w-full transition-opacity duration-300 relative group"
                                 title={`Critical: ${item.critical}`}
                               />
                             )}
@@ -909,7 +982,7 @@ export default function AnalyticsDashboardPage() {
 
                           <div className="text-center mt-2.5 sm:mt-3">
                             <div className="text-[11px] sm:text-xs font-medium text-slate-700">{item.month}</div>
-                            <div className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5">{item.total}</div>
+                            <div className="text-xs sm:text-sm font-bold text-slate-900 mt-0.5 font-mono tabular-nums">{item.total}</div>
                           </div>
                         </div>
                       );
@@ -919,33 +992,33 @@ export default function AnalyticsDashboardPage() {
 
                 <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-100 text-[11px] sm:text-xs font-medium text-slate-600">
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-[#2e7d52]" />
+                    <span className="w-2.5 h-2.5 rounded-xs bg-emerald-600" />
                     <span>Low</span>
                   </div>
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-[#b87326]" />
+                    <span className="w-2.5 h-2.5 rounded-xs bg-amber-600" />
                     <span>Medium</span>
                   </div>
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-[#b93829]" />
+                    <span className="w-2.5 h-2.5 rounded-xs bg-red-600" />
                     <span>High</span>
                   </div>
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-[#651212]" />
+                    <span className="w-2.5 h-2.5 rounded-xs bg-rose-950" />
                     <span>Critical</span>
                   </div>
                 </div>
               </div>
 
               {/* Card 2: Severity Split */}
-              <div className="lg:col-span-4 bg-white rounded-lg border border-slate-200/90 p-4 sm:p-6 shadow-sm flex flex-col justify-between">
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide mb-3 sm:mb-4">
+              <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-sm flex flex-col justify-between">
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight mb-3 sm:mb-4">
                   Severity Split
                 </h2>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 my-auto">
                   <div className="relative w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center shrink-0">
-                    <svg viewBox="0 0 180 180" className="w-full h-full -rotate-90 transform overflow-visible">
+                    <svg viewBox="0 0 180 180" aria-hidden="true" className="w-full h-full -rotate-90 transform overflow-visible">
                       {severitySegments
                         .filter((seg) => seg.dash > 0)
                         .map((seg) => (
@@ -959,7 +1032,7 @@ export default function AnalyticsDashboardPage() {
                             strokeWidth="32"
                             strokeDasharray={`${seg.dash} ${2 * Math.PI * 60}`}
                             strokeDashoffset={seg.offset}
-                            className="transition-all duration-500 cursor-pointer hover:opacity-90"
+                            className="transition-opacity duration-300 cursor-pointer hover:opacity-90"
                           />
                         ))}
                       {totalSeverity === 0 && (
@@ -976,7 +1049,7 @@ export default function AnalyticsDashboardPage() {
 
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       <span className="text-[11px] sm:text-xs text-slate-400 font-medium">Total</span>
-                      <span className="text-lg sm:text-xl font-extrabold text-slate-900">{totalSeverity}</span>
+                      <span className="text-lg sm:text-xl font-extrabold text-slate-900 font-mono tabular-nums">{totalSeverity}</span>
                     </div>
                   </div>
 
@@ -987,8 +1060,8 @@ export default function AnalyticsDashboardPage() {
                         <div key={item.name} className="flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-xs shrink-0" style={{ backgroundColor: color }} />
                           <span className="text-slate-600 w-14 sm:w-16 text-xs">{item.name}</span>
-                          <span className="text-slate-400 font-normal hidden sm:inline">—</span>
-                          <span className="font-bold text-slate-900 text-xs sm:text-sm ml-auto sm:ml-0">{item.value}</span>
+                          <span className="text-slate-400 font-normal hidden sm:inline">:</span>
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm ml-auto sm:ml-0 font-mono tabular-nums">{item.value}</span>
                         </div>
                       );
                     })}
@@ -1003,8 +1076,8 @@ export default function AnalyticsDashboardPage() {
 
             {/* ROW 2: Incidents by Type & Region Comparison */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <div className="bg-white rounded-lg border border-slate-200/90 p-4 sm:p-6 shadow-sm">
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide mb-4 sm:mb-6">
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-sm">
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight mb-4 sm:mb-6">
                   Incidents by Type
                 </h2>
 
@@ -1024,10 +1097,10 @@ export default function AnalyticsDashboardPage() {
                           <div className="flex-1 bg-slate-100 rounded-sm h-4 sm:h-5 overflow-hidden flex items-center pr-2">
                             <div
                               style={{ width: `${Math.max(widthPercent, 2)}%` }}
-                              className="bg-[#0f2942] h-full rounded-sm transition-all duration-500 ease-out"
+                              className="bg-slate-900 h-full rounded-sm transition-transform duration-500 ease-out"
                             />
                           </div>
-                          <div className="w-6 text-right font-bold text-slate-800 shrink-0 text-[11px] sm:text-xs">
+                          <div className="w-6 text-right font-bold text-slate-800 shrink-0 text-[11px] sm:text-xs font-mono tabular-nums">
                             {item.count}
                           </div>
                         </div>
@@ -1037,8 +1110,8 @@ export default function AnalyticsDashboardPage() {
                 )}
               </div>
 
-              <div className="bg-white rounded-lg border border-slate-200/90 p-4 sm:p-6 shadow-sm">
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide mb-4 sm:mb-6">
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-sm">
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight mb-4 sm:mb-6">
                   Region Comparison
                 </h2>
 
@@ -1054,11 +1127,11 @@ export default function AnalyticsDashboardPage() {
 
                       return (
                         <div key={`${item.region || idx}-${idx}`} className="flex flex-col items-center flex-1 max-w-[50px] sm:max-w-[60px]">
-                          <div className="text-xs font-bold text-slate-700 mb-1.5">{item.count}</div>
+                          <div className="text-xs font-bold text-slate-700 mb-1.5 font-mono tabular-nums">{item.count}</div>
                           <div
                             style={{ height: `${Math.max(barHeight, 4)}px` }}
-                            className={`w-8 sm:w-12 rounded-t-sm transition-all duration-300 ${
-                              isSelected ? "bg-[#e07a38] hover:bg-[#d06927]" : "bg-[#e07a38]/40"
+                            className={`w-8 sm:w-12 rounded-t-sm transition-colors duration-300 ${
+                              isSelected ? "bg-amber-600 hover:bg-amber-700" : "bg-amber-600/40"
                             }`}
                           />
                           <div className="text-[10px] sm:text-[11px] font-medium text-slate-600 mt-2 sm:mt-2.5 truncate max-w-full text-center">
@@ -1073,9 +1146,9 @@ export default function AnalyticsDashboardPage() {
             </div>
 
             {/* ROW 3: Incident Type × Region Matrix Table */}
-            <div className="bg-white rounded-lg border border-slate-200/90 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
               <div className="p-4 sm:p-5 pb-2 sm:pb-3 flex items-center justify-between gap-2 flex-wrap">
-                <h2 className="text-sm font-bold text-slate-800 tracking-wide">
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight">
                   Incident Type × Region
                 </h2>
                 <span className="text-[11px] text-slate-400 font-normal sm:hidden">Scroll to view all →</span>
@@ -1084,13 +1157,13 @@ export default function AnalyticsDashboardPage() {
               <div className="overflow-x-auto scrollbar-thin">
                 <table className="w-full min-w-[500px] text-xs text-left border-collapse">
                   <thead>
-                    <tr className="bg-[#0b1b2d] text-white">
+                    <tr className="bg-slate-900 text-white">
                       <th className="py-2.5 sm:py-3 px-3 sm:px-4 font-semibold whitespace-nowrap">Incident Type</th>
-                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "North" ? "bg-[#162f4c]" : ""}`}>North</th>
-                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "South" ? "bg-[#162f4c]" : ""}`}>South</th>
-                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "East" ? "bg-[#162f4c]" : ""}`}>East</th>
-                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "West" ? "bg-[#162f4c]" : ""}`}>West</th>
-                      <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center font-bold text-orange-400 whitespace-nowrap">Total</th>
+                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "North" ? "bg-slate-800" : ""}`}>North</th>
+                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "South" ? "bg-slate-800" : ""}`}>South</th>
+                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "East" ? "bg-slate-800" : ""}`}>East</th>
+                      <th className={`py-2.5 sm:py-3 px-3 sm:px-4 text-center font-semibold whitespace-nowrap ${selectedRegion === "West" ? "bg-slate-800" : ""}`}>West</th>
+                      <th className="py-2.5 sm:py-3 px-3 sm:px-4 text-center font-bold text-amber-400 whitespace-nowrap">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1106,22 +1179,22 @@ export default function AnalyticsDashboardPage() {
                         return (
                           <tr
                             key={`${row.type || idx}-${idx}`}
-                            className={`transition-colors hover:bg-slate-50/80 ${isEven ? "bg-white" : "bg-[#f8fafc]/60"}`}
+                            className={`transition-colors hover:bg-slate-50/80 ${isEven ? "bg-white" : "bg-slate-50/60"}`}
                           >
                             <td className="py-2 px-3 sm:px-4 font-medium text-slate-800 whitespace-nowrap">{row.type}</td>
-                            <td className={`py-2 px-3 sm:px-4 text-center ${row.north === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "North" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                            <td className={`py-2 px-3 sm:px-4 text-center font-mono tabular-nums ${row.north === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "North" ? "bg-amber-50/70 font-bold text-amber-950" : ""}`}>
                               {row.north ?? 0}
                             </td>
-                            <td className={`py-2 px-3 sm:px-4 text-center ${row.south === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "South" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                            <td className={`py-2 px-3 sm:px-4 text-center font-mono tabular-nums ${row.south === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "South" ? "bg-amber-50/70 font-bold text-amber-950" : ""}`}>
                               {row.south ?? 0}
                             </td>
-                            <td className={`py-2 px-3 sm:px-4 text-center ${row.east === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "East" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                            <td className={`py-2 px-3 sm:px-4 text-center font-mono tabular-nums ${row.east === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "East" ? "bg-amber-50/70 font-bold text-amber-950" : ""}`}>
                               {row.east ?? 0}
                             </td>
-                            <td className={`py-2 px-3 sm:px-4 text-center ${row.west === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "West" ? "bg-orange-50/70 font-bold text-orange-950" : ""}`}>
+                            <td className={`py-2 px-3 sm:px-4 text-center font-mono tabular-nums ${row.west === 0 ? "text-slate-300 font-light" : "text-slate-700 font-medium"} ${selectedRegion === "West" ? "bg-amber-50/70 font-bold text-amber-950" : ""}`}>
                               {row.west ?? 0}
                             </td>
-                            <td className="py-2 px-3 sm:px-4 text-center font-bold text-[#e07a38]">
+                            <td className="py-2 px-3 sm:px-4 text-center font-bold font-mono tabular-nums text-amber-600">
                               {row.total ?? 0}
                             </td>
                           </tr>
@@ -1140,27 +1213,28 @@ export default function AnalyticsDashboardPage() {
         {/* ======================================================== */}
         {activeTab === "Zone Overview" && (
           <div className="space-y-4 sm:space-y-6">
-            {/* KPI strip matching example.md */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
+            {/* KPI strip matching national view */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
               {[
-                { label: "Total Incidents", value: zoneKpis.total, icon: FolderOpen, color: STEEL },
-                { label: "Open Cases", value: zoneKpis.open, icon: Clock, color: STATUS_COLORS.Open },
-                { label: "High / Critical", value: zoneKpis.critical, icon: AlertTriangle, color: SEVERITY_COLORS.Critical },
-                { label: "Closure Rate", value: `${zoneKpis.closureRate}%`, icon: CheckCircle2, color: STATUS_COLORS.Closed },
+                { label: "Total Incidents", value: zoneKpis.total, icon: FolderOpen, tint: "bg-slate-100 text-slate-700 border-slate-200" },
+                { label: "Open Cases", value: zoneKpis.open, icon: Clock, tint: "bg-amber-50 text-amber-600 border-amber-200/60" },
+                { label: "High / Critical", value: zoneKpis.critical, icon: ShieldAlert, tint: "bg-rose-50 text-rose-600 border-rose-200/60" },
+                { label: "Closure Rate", value: `${zoneKpis.closureRate}%`, icon: CheckCircle2, tint: "bg-emerald-50 text-emerald-600 border-emerald-200/60" },
               ].map((k, idx) => (
                 <div
                   key={idx}
-                  className="rounded-lg p-3 sm:p-4"
-                  style={{ background: CARD, border: `1px solid ${BORDER}`, borderLeft: `4px solid ${k.color}` }}
+                  className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm transition-colors hover:border-slate-300 hover:shadow-md"
                 >
-                  <div className="flex items-center justify-between">
-                    <div style={{ fontFamily: "IBM Plex Mono, monospace", fontWeight: 600, color: INK }} className="text-2xl sm:text-3xl">
-                      {k.value}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-slate-600">
+                      {k.label}
+                    </span>
+                    <div className={`h-7 w-7 rounded-lg border flex items-center justify-center ${k.tint}`}>
+                      <k.icon className="h-4 w-4" />
                     </div>
-                    <k.icon size={18} color={k.color} />
                   </div>
-                  <div style={{ color: MUTED }} className="text-[11px] sm:text-xs mt-1 font-medium">
-                    {k.label}
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight font-sans">
+                    {k.value}
                   </div>
                 </div>
               ))}
@@ -1182,144 +1256,144 @@ export default function AnalyticsDashboardPage() {
         )}
 
         {/* ======================================================== */}
-        {/* TAB 3: ESCALATION MATRIX                                 */}
+        {/* TAB 3: ESCALATION MATRIX & SLA PIPELINE                 */}
         {/* ======================================================== */}
         {activeTab === "Escalation Matrix" && (
-          <div className="bg-white rounded-xl border border-slate-200/90 p-4 sm:p-6 md:p-8 shadow-sm space-y-3 sm:space-y-3.5">
-            <p className="text-xs md:text-sm text-slate-600 mb-4 sm:mb-6 leading-relaxed">
-              Every incident is routed automatically to an owner based on severity. Reps can still escalate manually if a case feels understated.
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 md:p-8 shadow-sm space-y-4">
+            <p className="text-xs md:text-sm text-slate-500 mb-2 leading-relaxed">
+              Every incident is routed automatically to a designated owner based on severity. Reps can escalate manually if an initial risk is understated.
             </p>
 
             {/* Row 1: LOW */}
-            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-3.5 sm:p-4 md:py-4 md:px-5 border-l-4 border-l-[#1b6d48] flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3 md:gap-5 shadow-2xs">
-              <div className="flex items-center justify-between md:justify-start md:w-24 shrink-0">
-                <span className="text-center bg-[#eef7f2] text-[#1b6d48] font-bold text-xs uppercase px-2.5 py-1 rounded tracking-wide">
-                  LOW
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center gap-3 sm:gap-4 md:gap-6 shadow-xs hover:border-emerald-300 hover:shadow-md transition-colors">
+              <div className="flex items-center justify-between md:justify-start md:w-28 shrink-0">
+                <span className="text-center bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-semibold text-xs px-3 py-1 rounded-lg">
+                  Low
                 </span>
-                <span className="md:hidden text-[11px] font-mono font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                <span className="md:hidden text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
                   72 hrs
                 </span>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
-                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
+                <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2]" />
               </div>
               <div className="w-full md:w-64 lg:w-72 shrink-0">
                 <div className="text-sm md:text-[15px] font-bold text-slate-900">Area Operations Manager (AOM)</div>
-                <div className="text-xs font-mono text-slate-500 mt-0.5 hidden md:block">SLA: 3 working days (72 hrs)</div>
+                <div className="text-xs text-slate-500 mt-0.5 hidden md:block">SLA: 3 working days (72 hrs)</div>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
-                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
+                <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2]" />
               </div>
               <div className="flex-1 text-xs md:text-sm text-slate-600 leading-relaxed">
                 Log the case, investigate locally, resolve and close. Include in weekly summary to BM.
-                <div className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1 flex-wrap">
+                <div className="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5 flex-wrap">
                   <span className="font-semibold text-slate-700">Authorized Closure:</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">AOM</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">BM</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">RSO</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">National Head</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">Central</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">AOM</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">BM</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">RSO</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">National Head</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">Central</span>
                 </div>
               </div>
             </div>
 
             {/* Row 2: MEDIUM */}
-            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-3.5 sm:p-4 md:py-4 md:px-5 border-l-4 border-l-[#b87326] flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3 md:gap-5 shadow-2xs">
-              <div className="flex items-center justify-between md:justify-start md:w-24 shrink-0">
-                <span className="text-center bg-[#fdf6ee] text-[#b87326] font-bold text-xs uppercase px-2.5 py-1 rounded tracking-wide">
-                  MEDIUM
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center gap-3 sm:gap-4 md:gap-6 shadow-xs hover:border-amber-300 hover:shadow-md transition-colors">
+              <div className="flex items-center justify-between md:justify-start md:w-28 shrink-0">
+                <span className="text-center bg-amber-50 text-amber-700 border border-amber-200/60 font-semibold text-xs px-3 py-1 rounded-lg">
+                  Medium
                 </span>
-                <span className="md:hidden text-[11px] font-mono font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                <span className="md:hidden text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
                   48 hrs
                 </span>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
-                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
+                <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2]" />
               </div>
               <div className="w-full md:w-64 lg:w-72 shrink-0">
                 <div className="text-sm md:text-[15px] font-bold text-slate-900">Business Manager (BM)</div>
-                <div className="text-xs font-mono text-slate-500 mt-0.5 hidden md:block">SLA: 48 hours</div>
+                <div className="text-xs text-slate-500 mt-0.5 hidden md:block">SLA: 48 hours</div>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
-                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
+                <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2]" />
               </div>
               <div className="flex-1 text-xs md:text-sm text-slate-600 leading-relaxed">
                 Review with AOM, agree corrective action, keep RSO informed via weekly rollup.
-                <div className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1 flex-wrap">
+                <div className="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5 flex-wrap">
                   <span className="font-semibold text-slate-700">Authorized Closure:</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">BM</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">RSO</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">National Head</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">Central</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">BM</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">RSO</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">National Head</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">Central</span>
                 </div>
               </div>
             </div>
 
             {/* Row 3: HIGH */}
-            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-3.5 sm:p-4 md:py-4 md:px-5 border-l-4 border-l-[#c2410c] flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3 md:gap-5 shadow-2xs">
-              <div className="flex items-center justify-between md:justify-start md:w-24 shrink-0">
-                <span className="text-center bg-[#fef2f2] text-[#c2410c] font-bold text-xs uppercase px-2.5 py-1 rounded tracking-wide">
-                  HIGH
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center gap-3 sm:gap-4 md:gap-6 shadow-xs hover:border-orange-300 hover:shadow-md transition-colors">
+              <div className="flex items-center justify-between md:justify-start md:w-28 shrink-0">
+                <span className="text-center bg-orange-50 text-orange-700 border border-orange-200/60 font-semibold text-xs px-3 py-1 rounded-lg">
+                  High
                 </span>
-                <span className="md:hidden text-[11px] font-mono font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                <span className="md:hidden text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
                   24 hrs
                 </span>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
-                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
+                <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2]" />
               </div>
               <div className="w-full md:w-64 lg:w-72 shrink-0">
                 <div className="text-sm md:text-[15px] font-bold text-slate-900">Regional Safety Officer (RSO)</div>
-                <div className="text-xs font-mono text-slate-500 mt-0.5 hidden md:block">SLA: 24 hours</div>
+                <div className="text-xs text-slate-500 mt-0.5 hidden md:block">SLA: 24 hours</div>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
-                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
+                <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2]" />
               </div>
               <div className="flex-1 text-xs md:text-sm text-slate-600 leading-relaxed">
                 Lead investigation directly, initiate parent/guardian communication, notify National Head & Central.
-                <div className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1 flex-wrap">
+                <div className="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5 flex-wrap">
                   <span className="font-semibold text-slate-700">Authorized Closure:</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">RSO</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">National Head</span>
-                  <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px]">Central</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">RSO</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">National Head</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">Central</span>
                 </div>
               </div>
             </div>
 
             {/* Row 4: CRITICAL */}
-            <div className="bg-[#fcfdfd] border border-slate-100 rounded-lg p-3.5 sm:p-4 md:py-4 md:px-5 border-l-4 border-l-[#781919] flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3 md:gap-5 shadow-2xs">
-              <div className="flex items-center justify-between md:justify-start md:w-24 shrink-0">
-                <span className="text-center bg-[#fdf2f2] text-[#781919] font-bold text-xs uppercase px-2.5 py-1 rounded tracking-wide">
-                  CRITICAL
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center gap-3 sm:gap-4 md:gap-6 shadow-xs hover:border-rose-300 hover:shadow-md transition-colors">
+              <div className="flex items-center justify-between md:justify-start md:w-28 shrink-0">
+                <span className="text-center bg-rose-50 text-rose-700 border border-rose-200/60 font-semibold text-xs px-3 py-1 rounded-lg">
+                  Critical
                 </span>
-                <span className="md:hidden text-[11px] font-mono font-medium text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded">
+                <span className="md:hidden text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
                   2 hrs
                 </span>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
-                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
+                <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2]" />
               </div>
               <div className="w-full md:w-64 lg:w-72 shrink-0">
                 <div className="text-sm md:text-[15px] font-bold text-slate-900">Central (All-Activity Admin)</div>
-                <div className="text-xs font-mono text-slate-500 mt-0.5 hidden md:block">SLA: 2 hours — immediate</div>
+                <div className="text-xs text-slate-500 mt-0.5 hidden md:block">SLA: 2 hours (immediate)</div>
               </div>
               <div className="w-5 shrink-0 hidden md:flex items-center justify-center">
-                <ChevronRight className="w-4 h-4 text-slate-700 stroke-[2.5]" />
+                <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2]" />
               </div>
               <div className="flex-1 text-xs md:text-sm text-slate-600 leading-relaxed">
-                RSO, National Head & Central notified simultaneously. Mandatory / statutory reporting triggered (POCSO, Corporal Punishment).
-                <div className="text-[11px] text-red-600 font-semibold mt-1.5 flex items-center gap-1">
-                  <span>Authorized Closure:</span>
-                  <span className="bg-red-50 border border-red-200 text-red-700 px-1.5 py-0.5 rounded text-[10px]">Central only</span>
+                Emergency crisis response, legal/regulatory counsel, brand communications, direct board notification. RSO, National Head & Central notified simultaneously. Mandatory / statutory reporting triggered (POCSO, Corporal Punishment).
+                <div className="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5 flex-wrap">
+                  <span className="font-semibold text-slate-700">Authorized Closure:</span>
+                  <span className="bg-slate-100 border border-slate-200/60 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-semibold">Central Admin Only</span>
                 </div>
               </div>
             </div>
 
             {/* Bottom Alert / Warning */}
-            <div className="bg-[#fff8f3] border border-[#fed7aa]/80 rounded-lg p-3.5 px-4 mt-4 sm:mt-6 flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 text-[#c2410c] shrink-0 mt-0.5" />
-              <p className="text-xs text-[#9a3412] leading-relaxed font-normal">
-                Corporal Punishment and POCSO cases are treated as Critical by default and cannot be downgraded from this portal — statutory / mandatory reporting rules apply regardless of who logs the case.
+            <div className="bg-amber-50/60 border border-amber-200/70 rounded-2xl p-4 sm:p-5 flex items-start gap-3 shadow-2xs">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-900 leading-relaxed font-normal">
+                Corporal Punishment and POCSO cases are treated as Critical by default and cannot be downgraded from this portal (statutory and mandatory reporting rules apply regardless of who logs the case).
               </p>
             </div>
           </div>

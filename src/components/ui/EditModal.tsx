@@ -118,6 +118,7 @@ const validateField = (
   value: unknown,
   config: FieldConfig
 ): string | undefined => {
+  if (config.hidden) return undefined;
   if (config.required && (!value || value === ""))
     return `${config.label} is required`;
   if (!config.validation || !value) return undefined;

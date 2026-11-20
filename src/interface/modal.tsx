@@ -701,35 +701,61 @@ export interface TicketType {
 export interface Incident {
   _id: string;
   caseId?: string;
+  incidentType?: string;
+  category?: string;
+  subCategory?: string;
   type?: string;
-  state?: string;
-  centre?: string;
-  escalationOwner?: string;
-  sla?: string;
-  slaDeadline?: string;
-  email: string;
-  region: string;
-  category: string;
   severity?: string;
-  reportedBy: string;
-  subCategory: string;
-  stakeholders: string[];
-  briefDescription: string;
-  immediateActionTaken: string;
-  pendingAction: string;
-  closureDate: string;
-  date: string;
+  zone?: string;
+  region?: string;
+  state?: string;
+  centreName?: string;
+  centre?: string;
+  schoolName?: string;
+  branchName?: string;
+  date?: string;
+  reporterName?: string;
+  reportedBy?: string;
+  reporterRole?: string;
+  description?: string;
+  briefDescription?: string;
+  immediateActionTaken?: string;
+  pendingAction?: string;
   status: string;
-  escalationStatus: string;
-  escalatedTo: string;
-  remarks: string;
-  schoolId: string;
-  branchId: string;
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
-  schoolName: string;
-  branchName: string;
+  closureDate?: string;
+  closedBy?: {
+    userId?: string;
+    userName?: string;
+    userRole?: string;
+    closedAt?: string;
+  };
+  escalationOwner?: string;
+  escalationOwnerRole?: string;
+  sla?: string;
+  slaHours?: number;
+  slaDeadline?: string;
+  slaAction?: string;
+  escalationStatus?: string;
+  escalatedTo?: string;
+  remarks?: string;
+  stakeholders?: string[];
+  history?: Array<{
+    changedBy?: string;
+    userRole?: string;
+    action?: string;
+    previousStatus?: string;
+    newStatus?: string;
+    timestamp?: string;
+    remarks?: string;
+    _id?: string;
+  }>;
+  email?: string;
+  schoolId?: string;
+  branchId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  [key: string]: any;
 }
 
 export interface IncidentResponse {
@@ -806,4 +832,32 @@ export interface AuditResponse {
   page: number;
   limit: number;
   data: Audit[];
+}
+
+export interface AuditLog {
+  _id: string;
+  action: string;
+  userId?: string;
+  username?: string;
+  userRole?: string;
+  role?: string;
+  caseId?: string;
+  targetId?: string;
+  targetUser?: string;
+  details?: any;
+  description?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  status?: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AuditLogResponse {
+  success: boolean;
+  total: number;
+  page: number;
+  limit: number;
+  data: AuditLog[];
 }

@@ -267,8 +267,20 @@ export function Combobox({
 
       return null; // Will show badges instead
     } else {
-      const selectedItem = items.find((item) => item.value === value || (typeof value === "string" && item.value.toLowerCase() === value.toLowerCase()));
-      return selectedItem ? selectedItem.label : placeholder;
+      const selectedItem =
+        items.find(
+          (item) =>
+            item.value === value ||
+            (typeof value === "string" &&
+              typeof item.value === "string" &&
+              item.value.toLowerCase() === value.toLowerCase())
+        ) ||
+        (typeof value === "string" && value.trim() !== ""
+          ? items.find((item) =>
+              item.label.toLowerCase().includes(`(${value.toLowerCase()})`)
+            )
+          : undefined);
+      return selectedItem ? selectedItem.label : (value ? String(value) : placeholder);
     }
   }, [
     multiple,
@@ -351,11 +363,17 @@ export function Combobox({
 
   // Check if item is selected (works for both single and multi)
   const isSelected = React.useCallback(
-    (itemValue: string) => {
+    (itemValue: string, itemLabel?: string) => {
       if (multiple) {
         return selectedValues.some((v) => v === itemValue || v.toLowerCase() === itemValue.toLowerCase());
       }
-      return value === itemValue || (typeof value === "string" && value.toLowerCase() === itemValue.toLowerCase());
+      if (value === itemValue || (typeof value === "string" && value.toLowerCase() === itemValue.toLowerCase())) {
+        return true;
+      }
+      if (typeof value === "string" && value.trim() && itemLabel) {
+        return itemLabel.toLowerCase().includes(`(${value.toLowerCase()})`);
+      }
+      return false;
     },
     [multiple, selectedValues, value]
   );
@@ -504,7 +522,7 @@ export function Combobox({
                     <div
                       className={cn(
                         "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                        isSelected(item.value)
+                        isSelected(item.value, item.label)
                           ? "bg-primary text-primary-foreground"
                           : "opacity-50 [&_svg]:invisible"
                       )}
@@ -517,7 +535,7 @@ export function Combobox({
                     <Check
                       className={cn(
                         "ml-auto h-4 w-4",
-                        isSelected(item.value) ? "opacity-100" : "opacity-0"
+                        isSelected(item.value, item.label) ? "opacity-100" : "opacity-0"
                       )}
                     />
                   )}

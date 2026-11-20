@@ -55,7 +55,7 @@ export function TravelTable<T extends Record<string, unknown>>({
   maxHeight = "500px",
   columnVisibility,
   onColumnVisibilityChange,
-  headerBackgroundColor = "#0c235c", // Default to the dark blue
+  headerBackgroundColor = "#0f233a", // Default to executive slate-navy
 }: TravelTableProps<T> & { headerBackgroundColor?: string }) {
   // Serial number column
   const serialNumberColumn: ColumnDef<T> = {

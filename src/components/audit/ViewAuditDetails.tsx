@@ -59,7 +59,7 @@ export function ViewAuditDetails({ isOpen, onClose, audit }: ViewAuditDetailsPro
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="sm:max-w-3xl w-full p-0 flex flex-col gap-0 border-l-0 shadow-2xl h-full overflow-hidden">
-                <SheetHeader className="p-6 bg-[#0c235c] text-white shrink-0 relative overflow-hidden">
+                <SheetHeader className="p-6 bg-primary text-white shrink-0 relative overflow-hidden">
                     <div className="absolute right-[-20px] top-[-20px] opacity-10">
                         <ClipboardCheck className="h-40 w-40" />
                     </div>
@@ -132,12 +132,12 @@ export function ViewAuditDetails({ isOpen, onClose, audit }: ViewAuditDetailsPro
                                         <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="bg-[#0c235c] text-white h-5 w-5 flex items-center justify-center rounded-md text-[9px] font-bold">
+                                                    <div className="bg-primary text-white h-5 w-5 flex items-center justify-center rounded-md text-[9px] font-bold">
                                                         {i + 1}
                                                     </div>
                                                     <span className="font-bold text-xs text-gray-800">{s.section}</span>
                                                 </div>
-                                                <span className="text-[10px] font-black text-[#0c235c] bg-blue-50 px-2 py-0.5 rounded-md">
+                                                <span className="text-[10px] font-black text-primary bg-slate-100 px-2 py-0.5 rounded-md">
                                                     {s.obtained} / {s.max}
                                                 </span>
                                             </div>
@@ -215,7 +215,7 @@ export function ViewAuditDetails({ isOpen, onClose, audit }: ViewAuditDetailsPro
                                                     <div className="flex items-center gap-3">
                                                         <div className={cn(
                                                             "h-7 w-7 flex items-center justify-center rounded-lg text-xs font-black shadow-lg",
-                                                            section.isCriticalFailed ? "bg-red-600 text-white" : "bg-[#0c235c] text-white"
+                                                            section.isCriticalFailed ? "bg-red-600 text-white" : "bg-primary text-white"
                                                         )}>
                                                             {String.fromCharCode(65 + idx)}
                                                         </div>
@@ -223,7 +223,7 @@ export function ViewAuditDetails({ isOpen, onClose, audit }: ViewAuditDetailsPro
                                                     </div>
                                                     <Badge className={cn(
                                                         "border-none font-black text-[9px] md:text-[10px] rounded-md px-2",
-                                                        section.isCriticalFailed ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"
+                                                        section.isCriticalFailed ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-800"
                                                     )}>
                                                         {section.isCriticalFailed ? "FAILED" : `SCORE: ${section.sectionScore}`}
                                                     </Badge>
@@ -275,7 +275,7 @@ export function ViewAuditDetails({ isOpen, onClose, audit }: ViewAuditDetailsPro
                 <div className="p-4 md:p-6 border-t border-gray-100 bg-white grid grid-cols-2 gap-4 shrink-0">
                     <button
                         onClick={onClose}
-                        className="bg-[#0c235c] text-white font-black py-3.5 rounded-2xl shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                        className="bg-primary hover:bg-primary/90 text-white font-black py-3.5 rounded-2xl shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
                     >
                         <CheckCircle2 className="h-4 w-4" />
                         Close Report

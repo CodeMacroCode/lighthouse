@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lighthouse",
-  description: "Lighthouse",
+  title: "Lighthouse Learning — Pre-K Incident & Safety Portal",
+  description: "Lighthouse Learning Pre-K Incident & Operational Safety Portal",
 };
 
 export default function RootLayout({

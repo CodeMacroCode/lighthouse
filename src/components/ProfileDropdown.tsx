@@ -17,11 +17,15 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, Bell, CreditCard, User, SubscriptIcon, Repeat1Icon, KeyRound, QrCode, ChevronDown } from "lucide-react";
-import { LogoutButton } from "./logout-button";
 import Link from "next/link";
 import Cookies from "js-cookie";
 import { getDecodedToken } from "@/lib/jwt";
 import { normalizePrekRole, PREK_ROLES } from "@/constants/roles";
+import { logoutUser } from "@/services/userService";
+import { useAuthStore } from "@/store/authStore";
+import { useNotificationStore } from "@/store/notificationStore";
+import { LogoutLoader } from "./ui/logout-loader";
+import { ResetPasswordModal } from "@/components/auth/ResetPasswordModal";
 import {
   getStoredPreferences,
   setStoredPreference,
@@ -34,6 +38,7 @@ export function ProfileDropdown() {
   const router = useRouter();
   const [username, setUsername] = React.useState<string>("User");
   const [roleLabel, setRoleLabel] = React.useState<string>("");
+  const [showResetPassword, setShowResetPassword] = React.useState(false);
   const [blockedTypes, setBlockedTypes] = React.useState<NotificationType[]>(
     []
   );
@@ -66,28 +71,90 @@ export function ProfileDropdown() {
   const handleRenewalClick = () => {
     router.push("/dashboard/renewal");
   };
+
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+
+  const handleLogout = async (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    console.log("🚪 [ProfileDropdown] Logout initiated");
+
+    try {
+      const state = useAuthStore.getState();
+      const token =
+        state.token ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem("token") || Cookies.get("token")
+          : null);
+      const refreshToken =
+        state.refreshToken ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem("refreshToken") || Cookies.get("refreshToken")
+          : null);
+
+      console.log("📡 [ProfileDropdown] Dispatching POST /auth/logout API...", {
+        hasToken: !!token,
+        hasRefreshToken: !!refreshToken,
+      });
+
+      // 1. Await the server logout call
+      await logoutUser(refreshToken, token);
+      console.log("✅ [ProfileDropdown] Logout API call finished");
+
+      // 2. Clear auth store
+      await state.logout();
+    } catch (err) {
+      console.error("❌ [ProfileDropdown] Logout error:", err);
+    } finally {
+      // 3. Clear non-auth stores & caches
+      try {
+        useNotificationStore.getState().clearNotifications();
+        localStorage.removeItem("fcm_token");
+        localStorage.removeItem("ct-notifications");
+        localStorage.removeItem("device-store");
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("userId");
+        Cookies.remove("token");
+        Cookies.remove("token", { path: "/" });
+        Cookies.remove("refreshToken");
+        Cookies.remove("refreshToken", { path: "/" });
+      } catch (_) {}
+
+      // 4. Hard redirect to login page
+      window.location.href = "/login";
+    }
+  };
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <div className="flex items-center gap-2 cursor-pointer hover:bg-white/10 p-1.5 rounded-lg transition-all duration-200 border border-transparent hover:border-white/20">
-          <Avatar className="h-8 w-8 ring-2 ring-white/10 ring-offset-2 ring-offset-primary">
+    <>
+      {isLoggingOut && <LogoutLoader />}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+        <div className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1.5 rounded-xl transition-all duration-200 border border-transparent hover:border-slate-200">
+          <Avatar className="h-8 w-8 ring-2 ring-amber-400/50 ring-offset-2 ring-offset-white">
             <AvatarImage
               src={`https://api.dicebear.com/9.x/initials/svg?radius=50&seed=${username}`}
               alt={username}
             />
-            <AvatarFallback className="bg-blue-600 text-white text-xs">
+            <AvatarFallback className="bg-slate-900 text-amber-400 font-bold text-xs">
               {username.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="hidden md:flex flex-col items-start leading-none gap-0.5">
-            <span className="text-white font-semibold text-sm drop-shadow-sm">
+            <span className="text-slate-900 font-bold text-sm">
               {username}
             </span>
-            <span className="text-blue-200 text-[10px] font-medium tracking-wider">
+            <span className="text-slate-500 text-[10px] font-semibold tracking-wider uppercase">
               {roleLabel || "Profile"}
             </span>
           </div>
-          <ChevronDown className="h-4 w-4 text-blue-200 hidden md:block opacity-60" />
+          <ChevronDown className="h-4 w-4 text-slate-400 hidden md:block" />
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -107,89 +174,31 @@ export function ProfileDropdown() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {/* <DropdownMenuItem>
-          <User className="mr-2 h-4 w-4" />
-          <span>Account</span>
-        </DropdownMenuItem> */}
-        {/* <DropdownMenuItem> */}
-        {/* <CreditCard className="mr-2 h-4 w-4" /> */}
-        {/* <span>Billing</span> */}
-        {/* <Link href="/dashboard/billing">Billing</Link> */}
-        {/* </DropdownMenuItem> */}
-        {/* <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="cursor-pointer">
-            <Bell className="mr-2 h-4 w-4" />
-            <span>Notifications</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuPortal>
-            <DropdownMenuSubContent className="p-1 min-w-[220px]">
-              {NOTIFICATION_TYPES.map((type) => {
-                const isEnabled = isNotificationEnabled(
-                  type.value,
-                  blockedTypes
-                );
-                return (
-                  <DropdownMenuItem
-                    key={type.value}
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      handlePreferenceChange(type.value, !isEnabled);
-                    }}
-                    className={`flex items-center gap-3 p-2.5 cursor-pointer rounded-md mb-1 last:mb-0 transition-colors
-                      ${isEnabled
-                        ? "bg-green-50 focus:bg-green-100"
-                        : "focus:bg-gray-100"
-                      }
-                    `}
-                  >
-                    <Checkbox
-                      checked={isEnabled}
-                      className={`h-5 w-5 rounded border-gray-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary`}
-                    />
-                    <span
-                      className={`text-sm ${isEnabled
-                        ? "text-gray-900 font-medium"
-                        : "text-gray-600"
-                        }`}
-                    >
-                      {type.label}
-                    </span>
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuSubContent>
-          </DropdownMenuPortal>
-        </DropdownMenuSub>
+        <DropdownMenuItem
+          className="cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-slate-100 flex items-center gap-2.5 w-full py-2 px-2.5 font-medium transition-colors"
+          onSelect={() => setShowResetPassword(true)}
+          onClick={() => setShowResetPassword(true)}
+        >
+          <KeyRound className="h-4 w-4 shrink-0 text-slate-500" />
+          <span>Reset Password</span>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer" onClick={() => { handleRenewalClick() }}>
-          <Repeat1Icon className="mr-2 h-4 w-4" />
-          <span>Renewal</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link
-            href="/dashboard/profile/change-password"
-            className="cursor-pointer flex items-center"
-          >
-            <KeyRound className="mr-2 h-4 w-4" />
-            <span>Change Password</span>
-          </Link>
-        </DropdownMenuItem>
-        {decodedToken?.role === "superAdmin" && (
-          <DropdownMenuItem asChild>
-            <Link
-              href="/dashboard/profile/payment-qr"
-              className="cursor-pointer flex items-center"
-            >
-              <QrCode className="mr-2 h-4 w-4" />
-              <span>Change Payment QR</span>
-            </Link>
-          </DropdownMenuItem>
-        )} */}
-        {/* <DropdownMenuSeparator /> */}
-        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-          <LogoutButton />
+        <DropdownMenuItem
+          className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50 flex items-center gap-2.5 w-full py-2 px-2.5 font-medium"
+          onSelect={handleLogout}
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          <span>Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+
+    <ResetPasswordModal
+      open={showResetPassword}
+      onOpenChange={setShowResetPassword}
+      defaultUsername={username}
+    />
+  </>
+);
 }

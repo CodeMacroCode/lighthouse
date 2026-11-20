@@ -41,6 +41,8 @@ import { loginUser } from "@/services/userService";
 import { useAuthStore } from "@/store/authStore";
 import { useAccessStore } from "@/store/accessStore";
 import { useRouter } from "next/navigation";
+import { PREK_ROLES, normalizePrekRole } from "@/constants/roles";
+import { getDecodedToken } from "@/lib/jwt";
 import { auditService } from "@/services/api/auditService";
 import { getAuditColumns } from "@/components/columns/columns";
 import { useCustomTable } from "@/components/ui/customTable(serverSidePagination)";
@@ -94,7 +96,24 @@ export default function SchoolMaster() {
   const { login: authLogin, decodedToken: user } = useAuthStore();
   const { setAccess } = useAccessStore();
 
-  const isSchoolRole = user?.role === "school";
+  const normalizedRole = normalizePrekRole(user?.role);
+  const isCentral =
+    normalizedRole === PREK_ROLES.CENTRAL ||
+    user?.role === "superAdmin" ||
+    user?.role === "central" ||
+    user?.role === "Central";
+  const isSchoolRole =
+    normalizedRole === PREK_ROLES.NATIONAL_HEAD || user?.role === "school";
+
+  // Only Central can manage National Head accounts
+  useEffect(() => {
+    if (user?.role && !isCentral) {
+      toast.error(
+        "Access Restricted: Only Central administrators have authority for user administration."
+      );
+      router.replace("/dashboard/users?tab=bm");
+    }
+  }, [user, isCentral, router]);
 
   // Audit state
   const [paginationAudit, setPaginationAudit] = useState<PaginationState>({
@@ -119,6 +138,10 @@ export default function SchoolMaster() {
 
   // Handle "Login As" - superAdmin logs in as a school admin
   const handleLoginAs = async (username: string, password: string, id: string) => {
+    if (!isCentral) {
+      toast.error("Only Central administrators have authority to Login As.");
+      return;
+    }
     setLoginAsLoading(id);
     try {
       // Clear existing session
@@ -126,13 +149,26 @@ export default function SchoolMaster() {
       localStorage.clear();
 
       const data = await loginUser(username, password);
-      if (data?.token) {
-        authLogin(data.token);
+      const authToken = data?.token || data?.accessToken;
+      if (authToken) {
+        authLogin(authToken, data.refreshToken);
         if (data.access) {
           setAccess(data.access);
         }
         toast.success(`Logged in as ${username}`);
-        window.location.replace("/dashboard/users/user-access");
+        const decoded = getDecodedToken(authToken);
+        const normRole = normalizePrekRole(decoded?.role);
+        let targetUrl = "/dashboard/users?tab=bm";
+        if (normRole === PREK_ROLES.AOM) {
+          targetUrl = "/dashboard/incident";
+        } else if (normRole === PREK_ROLES.BM) {
+          targetUrl = "/dashboard/users?tab=aom";
+        } else if (normRole === PREK_ROLES.RSO || normRole === PREK_ROLES.NATIONAL_HEAD) {
+          targetUrl = "/dashboard/users?tab=bm";
+        } else if (normRole === PREK_ROLES.CENTRAL) {
+          targetUrl = "/dashboard/users?tab=national-head";
+        }
+        window.location.replace(targetUrl);
       } else {
         toast.error("Login failed: Invalid server response");
       }
@@ -219,28 +255,30 @@ export default function SchoolMaster() {
         render: () => (
           <div className="flex items-center gap-2 w-full">
             <span className="truncate flex-1">{row.schoolName ?? ""}</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLoginAs(row.username, row.password, row._id);
-                  }}
-                  disabled={loginAsLoading === row._id}
-                  className="shrink-0 w-7 h-7 rounded-full bg-gray-200/80 hover:bg-gray-300 dark:bg-gray-600/60 dark:hover:bg-gray-500 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
-                >
-                  {loginAsLoading === row._id ? (
-                    <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <LogIn className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                  )}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                Login as {row.schoolName}
-              </TooltipContent>
-            </Tooltip>
+            {isCentral && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLoginAs(row.username, row.password, row._id);
+                    }}
+                    disabled={loginAsLoading === row._id}
+                    className="shrink-0 w-7 h-7 rounded-full bg-gray-200/80 hover:bg-gray-300 dark:bg-gray-600/60 dark:hover:bg-gray-500 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
+                  >
+                    {loginAsLoading === row._id ? (
+                      <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <LogIn className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  Login as {row.schoolName}
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         ),
       }),
@@ -248,31 +286,36 @@ export default function SchoolMaster() {
       enableHiding: true,
     },
     {
-      header: "Mobile",
+      header: "Email",
       accessorFn: (row: any) => ({
         type: "text",
-        value: row.mobileNo ?? "",
+        value: row.email || "N/A",
+        render: () => row.email || "N/A",
       }),
-      meta: { flex: 1, minWidth: 150, maxWidth: 300 },
+      meta: { flex: 1.1, minWidth: 180, maxWidth: 260 },
       enableHiding: true,
     },
-    {
-      header: "Username",
-      accessorFn: (row: any) => ({
-        type: "text",
-        value: row.username ?? "",
-      }),
-      meta: { flex: 1, minWidth: 150, maxWidth: 300 },
-      enableHiding: true,
-    },
-    {
-      header: "Password",
-      accessorFn: (row: any) => ({
-        type: "custom",
-        render: () => <PasswordCell password={row.password} />,
-      }),
-      meta: { flex: 1, minWidth: 150, maxWidth: 300 },
-    },
+    ...(isCentral
+      ? [
+          {
+            header: "Username",
+            accessorFn: (row: any) => ({
+              type: "text",
+              value: row.username ?? "",
+            }),
+            meta: { flex: 1, minWidth: 150, maxWidth: 300 },
+            enableHiding: true,
+          },
+          {
+            header: "Password",
+            accessorFn: (row: any) => ({
+              type: "custom",
+              render: () => <PasswordCell password={row.password} />,
+            }),
+            meta: { flex: 1, minWidth: 150, maxWidth: 300 },
+          },
+        ]
+      : []),
 
     {
       header: "Registration Date",
@@ -283,49 +326,53 @@ export default function SchoolMaster() {
       meta: { flex: 1, minWidth: 200 },
       enableHiding: true,
     },
-    {
-      header: "Action",
-      accessorFn: (row: any) => ({
-        type: "group",
-        items: [
+    ...(isCentral
+      ? [
           {
-            type: "button",
-            label: "Edit",
-            onClick: () => {
-              setEditTarget(row);
-              setEditDialogOpen(true);
+            header: "Action",
+            accessorFn: (row: any) => ({
+              type: "group",
+              items: [
+                {
+                  type: "button",
+                  label: "Edit",
+                  onClick: () => {
+                    setEditTarget(row);
+                    setEditDialogOpen(true);
+                  },
+                  className: "cursor-pointer text-white",
+                  disabled: false,
+                },
+                {
+                  type: "button",
+                  label: "Delete",
+                  onClick: () => setDeleteTarget(row),
+                  className: "text-white cursor-pointer",
+                  disabled: false,
+                },
+                {
+                  type: "button",
+                  label: (row as any).Active ? "Deactivate" : "Activate",
+                  onClick: () => deactivateMutation.mutate(row),
+                  className: `${
+                    (row as any).Active
+                      ? "bg-red-100 text-red-700 hover:bg-red-200"
+                      : "bg-green-100 text-green-700 hover:bg-green-200"
+                  } w-24 cursor-pointer`,
+                  disabled: deactivateMutation.isPending,
+                },
+              ],
+            }),
+            meta: {
+              minWidth: 280,
+              maxWidth: 320,
+              width: 300,
             },
-            className: "cursor-pointer text-white",
-            // note: original used updateSchoolMutation.isPending; keep as-is if desired
-            disabled: false,
+            enableSorting: false,
+            enableHiding: true,
           },
-          {
-            type: "button",
-            label: "Delete",
-            onClick: () => setDeleteTarget(row),
-            className: "text-white cursor-pointer",
-            disabled: false,
-          },
-          {
-            type: "button",
-            label: (row as any).Active ? "Deactivate" : "Activate",
-            onClick: () => deactivateMutation.mutate(row),
-            className: `${(row as any).Active
-              ? "bg-red-100 text-red-700 hover:bg-red-200"
-              : "bg-green-100 text-green-700 hover:bg-green-200"
-              } w-24 cursor-pointer`,
-            disabled: deactivateMutation.isPending,
-          },
-        ],
-      }),
-      meta: {
-        minWidth: 280,
-        maxWidth: 320,
-        width: 300,
-      },
-      enableSorting: false,
-      enableHiding: true,
-    },
+        ]
+      : []),
   ];
 
 
@@ -541,7 +588,7 @@ export default function SchoolMaster() {
   };
 
   return (
-    <main className="h-full overflow-hidden flex flex-col">
+    <main className="p-4 sm:p-6 flex flex-col space-y-4 animate-in fade-in duration-300">
       <ResponseLoader isLoading={isLoading || isAuditListLoading} />
 
       {isSchoolRole ? (
@@ -552,7 +599,7 @@ export default function SchoolMaster() {
                 <ScrollText className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#0c235c]">Audit History</h1>
+                <h1 className="text-xl font-bold text-slate-900">Audit History</h1>
                 <p className="text-xs text-gray-500 font-medium">
                   {auditListData?.total || 0} inspections found
                 </p>
@@ -583,11 +630,11 @@ export default function SchoolMaster() {
         </div>
       ) : (
         <>
-          <header className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 mb-4">
+          <header className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
             <section className="flex flex-wrap items-center gap-2 sm:gap-3">
               <SearchComponent
                 data={filterResults}
-                displayKey={["schoolName", "username", "email", "mobileNo"]}
+                displayKey={["schoolName", "username", "email"]}
                 onResults={handleSearchResults}
                 className="w-full sm:w-[240px] md:w-[300px]"
               />
@@ -605,116 +652,104 @@ export default function SchoolMaster() {
               />
             </section>
 
-            <section className="flex flex-wrap gap-2 items-center">
-              <AdminImportModal
-                onImport={handleBulkImport}
-                isLoading={addSchoolMutation.isPending}
-              />
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="default" className="text-white">
-                    Add
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <DialogHeader>
-                      <DialogTitle>Add National Head</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="grid gap-2">
-                        <Label htmlFor="schoolName">National Head</Label>
-                        <Input
-                          id="schoolName"
-                          name="schoolName"
-                          placeholder="Enter national head name"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          placeholder="Enter email address"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="mobileNo">Mobile No</Label>
-                        <Input
-                          id="mobileNo"
-                          name="mobileNo"
-                          type="tel"
-                          placeholder="Enter admin mobile number"
-                          pattern="[0-9]{10}"
-                          maxLength={10}
-                          autoComplete="tel"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="username">Username</Label>
-                        <Input
-                          id="username"
-                          name="username"
-                          type="text"
-                          placeholder="Enter username"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="password">Password *</Label>
-                        <div className="relative">
+            {isCentral && (
+              <section className="flex flex-wrap gap-2 items-center">
+                <AdminImportModal
+                  onImport={handleBulkImport}
+                  isLoading={addSchoolMutation.isPending}
+                />
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="default" className="text-white">
+                      Add
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <DialogHeader>
+                        <DialogTitle>Add National Head</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid gap-2">
+                          <Label htmlFor="schoolName">National Head</Label>
                           <Input
-                            id="password"
-                            name="password"
-                            type={showAddPassword ? "text" : "password"}
-                            placeholder="Enter password"
-                            className="pr-10"
+                            id="schoolName"
+                            name="schoolName"
+                            placeholder="Enter national head name"
                             required
                           />
-                          <button
-                            type="button"
-                            onClick={() => setShowAddPassword(!showAddPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                          >
-                            {showAddPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </button>
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="Enter email address"
+                            required
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="username">Username</Label>
+                          <Input
+                            id="username"
+                            name="username"
+                            type="text"
+                            placeholder="Enter username"
+                            required
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="password">Password *</Label>
+                          <div className="relative">
+                            <Input
+                              id="password"
+                              name="password"
+                              type={showAddPassword ? "text" : "password"}
+                              placeholder="Enter password"
+                              className="pr-10"
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowAddPassword(!showAddPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            >
+                              {showAddPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <DialogFooter>
-                      <DialogClose asChild>
-                        <Button ref={closeButtonRef} variant="outline">
-                          Cancel
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button ref={closeButtonRef} variant="outline">
+                            Cancel
+                          </Button>
+                        </DialogClose>
+                        <Button
+                          type="submit"
+                          className="text-white"
+                          disabled={addSchoolMutation.isPending}
+                        >
+                          {addSchoolMutation.isPending ? "Saving..." : "Save Admin"}
                         </Button>
-                      </DialogClose>
-                      <Button
-                        type="submit"
-                        className="text-white"
-                        disabled={addSchoolMutation.isPending}
-                      >
-                        {addSchoolMutation.isPending ? "Saving..." : "Save Admin"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </section>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </section>
+            )}
           </header>
 
-          <section className="mb-4">
+          <section className="flex-1 min-h-0 pt-2">
             <CustomTable
               data={filteredData || []}
               columns={columns}
@@ -743,14 +778,14 @@ export default function SchoolMaster() {
                             "editSchoolName"
                           ) as HTMLInputElement
                         )?.value,
-                        mobileNo: (
-                          form.elements.namedItem(
-                            "editMobileNo"
-                          ) as HTMLInputElement
-                        )?.value,
                         username: (
                           form.elements.namedItem(
                             "editUsername"
+                          ) as HTMLInputElement
+                        )?.value,
+                        email: (
+                          form.elements.namedItem(
+                            "editEmail"
                           ) as HTMLInputElement
                         )?.value,
                         password: (
@@ -783,16 +818,13 @@ export default function SchoolMaster() {
                       </div>
 
                       <div className="grid gap-2">
-                        <Label htmlFor="editMobileNo">Mobile No *</Label>
+                        <Label htmlFor="editEmail">Email</Label>
                         <Input
-                          id="editMobileNo"
-                          name="editMobileNo"
-                          type="tel"
-                          defaultValue={editTarget.mobileNo}
-                          placeholder="Enter mobile number"
-                          pattern="[0-9]{10}"
-                          maxLength={10}
-                          required
+                          id="editEmail"
+                          name="editEmail"
+                          type="email"
+                          defaultValue={editTarget.email || ""}
+                          placeholder="Enter email address"
                         />
                       </div>
 
