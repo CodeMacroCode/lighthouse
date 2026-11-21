@@ -285,49 +285,93 @@ export function useCustomTable<
 
   const rows = table.getRowModel().rows;
 
-  // Mobile Infinite Scrolling state via ref accumulation (zero setState in useEffect)
-  const accumulatedRowsRef = useRef<typeof rows>(rows);
+  // Mobile Infinite Scrolling state:
+  // Maintain accumulated rows in state so that newly fetched pages trigger React re-renders,
+  // while ensuring page 0 displays immediately and resets cleanly on filter/search/sort change.
+  const [accumulatedRows, setAccumulatedRows] = useState<typeof rows>([]);
   const lastLoadedPageRef = useRef<number>(0);
-  const isFetchingNextPageRef = useRef(false);
+  const isFetchingNextPageRef = useRef<boolean>(false);
 
-  if (pagination.pageIndex === 0) {
-    accumulatedRowsRef.current = rows;
-    lastLoadedPageRef.current = 0;
-    isFetchingNextPageRef.current = false;
-  } else if (pagination.pageIndex > lastLoadedPageRef.current) {
-    lastLoadedPageRef.current = pagination.pageIndex;
-    isFetchingNextPageRef.current = false;
-    const seen = new Set(
-      accumulatedRowsRef.current.map((r: any, idx: number) => {
-        const id = getRowId(r.original as T);
-        return id != null && id !== "" ? String(id) : r.id || String(idx);
-      })
-    );
-    const newRows = rows.filter((r: any, idx: number) => {
-      const id = getRowId(r.original as T);
-      const key = id != null && id !== "" ? String(id) : r.id || String(idx);
-      return !seen.has(key);
-    });
-    accumulatedRowsRef.current = [...accumulatedRowsRef.current, ...newRows];
-  }
+  // Synchronize accumulated rows when data loads or pagination changes
+  useEffect(() => {
+    if (loading) return;
 
-  const mobileDisplayRows =
-    pagination.pageIndex === 0 ? rows : accumulatedRowsRef.current;
+    if (pagination.pageIndex === 0) {
+      setAccumulatedRows(rows);
+      lastLoadedPageRef.current = 0;
+      isFetchingNextPageRef.current = false;
+    } else if (pagination.pageIndex > lastLoadedPageRef.current && rows.length > 0) {
+      setAccumulatedRows((prevRows) => {
+        const seen = new Set(
+          prevRows.map((r: any, idx: number) => {
+            const id = getRowId ? getRowId(r.original as T) : undefined;
+            return id != null && id !== "" ? String(id) : r.id || String(idx);
+          })
+        );
+        const newRows = rows.filter((r: any, idx: number) => {
+          const id = getRowId ? getRowId(r.original as T) : undefined;
+          const key = id != null && id !== "" ? String(id) : r.id || String(idx);
+          return !seen.has(key);
+        });
+
+        // Only commit if we actually received fresh, non-duplicate rows
+        if (newRows.length > 0) {
+          lastLoadedPageRef.current = pagination.pageIndex;
+          isFetchingNextPageRef.current = false;
+          return [...prevRows, ...newRows];
+        }
+
+        return prevRows;
+      });
+    } else {
+      isFetchingNextPageRef.current = false;
+    }
+  }, [loading, pagination.pageIndex, rows, getRowId]);
 
   useEffect(() => {
-    // Only activate mobile infinite scrolling on mobile viewports (< 768px)
-    if (typeof window !== "undefined" && window.innerWidth >= 768) {
-      return;
+    if (!loading) {
+      isFetchingNextPageRef.current = false;
     }
+  }, [loading]);
 
+  const mobileDisplayRows = useMemo(() => {
+    if (pagination.pageIndex === 0) {
+      return rows;
+    }
+    return accumulatedRows.length > 0 ? accumulatedRows : rows;
+  }, [pagination.pageIndex, rows, accumulatedRows]);
+
+  const hasMoreMobileRecords =
+    totalCount > 0 ? mobileDisplayRows.length < totalCount : hasNextPage;
+
+  useEffect(() => {
     const sentinel = mobileSentinelRef.current;
     if (!sentinel) return;
 
+    // Find the nearest scrollable ancestor container (e.g., <main className="overflow-y-auto">)
+    let scrollParent: HTMLElement | null = null;
+    let current = sentinel.parentElement;
+    while (current && current !== document.body) {
+      const style = window.getComputedStyle(current);
+      if (
+        style.overflowY === "auto" ||
+        style.overflowY === "scroll" ||
+        style.overflow === "auto" ||
+        style.overflow === "scroll"
+      ) {
+        scrollParent = current;
+        break;
+      }
+      current = current.parentElement;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
+        const entry = entries[0];
         if (
-          entries[0].isIntersecting &&
-          hasNextPage &&
+          entry &&
+          entry.isIntersecting &&
+          hasMoreMobileRecords &&
           !loading &&
           !isFetchingNextPageRef.current
         ) {
@@ -335,12 +379,15 @@ export function useCustomTable<
           goToPage(pagination.pageIndex + 1);
         }
       },
-      { rootMargin: "200px" }
+      {
+        root: scrollParent,
+        rootMargin: "250px",
+      }
     );
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasNextPage, loading, pagination.pageIndex]);
+  }, [hasMoreMobileRecords, loading, pagination.pageIndex, totalPages]);
 
   // Adaptive overscan: increase for larger datasets for smoother scrolling
   const adaptiveOverscan = useMemo(() => {
@@ -691,6 +738,7 @@ export function useCustomTable<
                     onClick={(event) => handleRowClick(row, event)}
                     data-selected={isSelected}
                     data-row-id={rowId}
+                    data-mobile-card="true"
                   >
                     {/* Card Header: SN + Primary Field + Status */}
                     <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
@@ -793,7 +841,7 @@ export function useCustomTable<
               })}
 
               {/* Mobile Sentinel & Infinite Scroll Status */}
-              {hasNextPage && (
+              {hasMoreMobileRecords && (
                 <div ref={mobileSentinelRef} className="py-4 text-center">
                   <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-medium shadow-xs">
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
@@ -804,7 +852,7 @@ export function useCustomTable<
                 </div>
               )}
 
-              {!hasNextPage && mobileDisplayRows.length > 0 && (
+              {!hasMoreMobileRecords && mobileDisplayRows.length > 0 && (
                 <div className="py-4 text-center text-xs text-slate-400 font-medium">
                   Showing all {totalCount || mobileDisplayRows.length} records
                 </div>

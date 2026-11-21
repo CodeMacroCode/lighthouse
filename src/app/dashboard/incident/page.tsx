@@ -147,7 +147,7 @@ export default function IncidentPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: [
       "incidents",
       pagination.pageIndex,
@@ -817,7 +817,7 @@ export default function IncidentPage() {
     columns,
     pagination,
     totalCount: data?.total || 0,
-    loading: isLoading,
+    loading: isLoading || isFetching,
     onPaginationChange: handlePaginationChange,
     pageSizeOptions: [10, 20, 30, 50, 100, "All"],
     showSerialNumber: true,

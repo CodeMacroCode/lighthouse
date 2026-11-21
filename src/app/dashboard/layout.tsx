@@ -78,7 +78,7 @@ export default function DashboardLayout({
           </header>
 
           <main className="pt-2 md:pt-4 px-2 sm:px-3 md:px-4 overflow-x-clip overflow-y-auto flex-1 h-full w-full max-w-full">
-            <FCMHandler />
+            {/* <FCMHandler /> */}
             {children}
           </main>
         </SidebarInset>
