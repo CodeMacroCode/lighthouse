@@ -152,7 +152,7 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-4xl mx-auto">
         <main className="w-full bg-white text-foreground rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
           {/* Left Column: Crisp Art Window */}
-          <div className="relative min-h-[260px] md:min-h-[580px] w-full overflow-hidden bg-brand-cream">
+          <div className="relative h-36 sm:h-44 md:min-h-[580px] md:h-auto w-full overflow-hidden bg-brand-cream">
             <Image
               src="/lighthouse-minimalist.jpg"
               alt="Where Knowledge Comes Alive minimalist graphic lighthouse"
@@ -161,14 +161,25 @@ export default function LoginPage() {
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover object-[center_bottom] md:object-[20%_bottom] scale-[1.01]"
             />
+            {/* Mobile Prominent Lighthouse Logo Badge */}
+            <div className="absolute top-3.5 left-3.5 z-10 md:hidden bg-brand-navy/95 backdrop-blur-xs rounded-xl px-3 py-1.5 shadow-md flex items-center gap-2 border border-white/10">
+              <Image
+                src="/image.png"
+                alt="Lighthouse Learning"
+                width={110}
+                height={20}
+                className="h-5 w-auto object-contain"
+                priority
+              />
+            </div>
           </div>
 
           {/* Right Column: High-Contrast Editorial Sign-in Form */}
-          <div className="p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-6 bg-white">
+          <div className="p-5 sm:p-8 lg:p-10 flex flex-col justify-between space-y-4 sm:space-y-6 bg-white">
             <div>
-              {/* Header with Term Indicator (Back button removed) */}
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-semibold text-brand-orange uppercase tracking-wide">
+              {/* Header with Term Indicator */}
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <span className="text-[11px] sm:text-xs font-semibold text-brand-orange uppercase tracking-wide">
                   Staff &amp; Faculty Portal
                 </span>
               </div>
@@ -323,8 +334,8 @@ export default function LoginPage() {
               </Form>
             </div>
 
-            {/* Bottom Institutional Brand Footer with High-Contrast Navy Pill */}
-            <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
+            {/* Bottom Institutional Brand Footer with High-Contrast Navy Pill (Desktop) */}
+            <div className="hidden md:flex pt-4 border-t border-border items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="bg-brand-navy rounded-lg px-3 py-2 flex items-center shrink-0 shadow-xs">
                   <Image
