@@ -253,93 +253,168 @@ function Overview({
         </div>
       </div>
 
-      <div className="rounded-lg p-3 sm:p-4 overflow-x-auto scrollbar-thin" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+      <div className="rounded-lg p-3 sm:p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
         <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
           <div>
             <div className="text-sm font-semibold" style={{ color: INK }}>Month-wise Summary</div>
-            <div className="text-[11px] text-slate-400 font-normal sm:hidden mt-0.5">Scroll horizontally to view columns →</div>
+            <div className="text-[11px] text-slate-400 font-normal hidden sm:block mt-0.5">Filter analytics by selecting any month</div>
           </div>
           {activeMonth !== "All" && (
             <button
               onClick={() => onSelectMonth("All")}
-              className="text-xs font-semibold flex items-center gap-1 cursor-pointer bg-slate-100 px-2 py-1 rounded"
+              className="text-xs font-semibold flex items-center gap-1 cursor-pointer bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors"
               style={{ color: MUTED }}
             >
               <X size={12} /> Clear month filter
             </button>
           )}
         </div>
-        <table className="w-full min-w-[520px] text-xs sm:text-sm">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              {["Month", "Total", "Open", "Closed", "Closure Rate", "Severity Mix"].map((h) => (
-                <th key={h} className="text-left px-3 py-2 text-xs font-semibold whitespace-nowrap" style={{ color: MUTED }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {monthlySummary.map((m: any, idx: number) => {
+
+        {/* Desktop View: Full Data Table */}
+        <div className="hidden sm:block overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-[520px] text-xs sm:text-sm">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                {["Month", "Total", "Open", "Closed", "Closure Rate", "Severity Mix"].map((h) => (
+                  <th key={h} className="text-left px-3 py-2 text-xs font-semibold whitespace-nowrap" style={{ color: MUTED }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {monthlySummary.map((m: any, idx: number) => {
+                const rowKey = m.key || m.label || idx;
+                const closureRate = m.closureRate !== undefined ? m.closureRate : (m.total ? `${Math.round(((m.closed || 0) / m.total) * 100)}%` : "0%");
+                const isActive = activeMonth === m.key || activeMonth === m.label;
+                return (
+                  <tr
+                    key={rowKey}
+                    onClick={() => onSelectMonth(isActive ? "All" : (m.key || m.label))}
+                    className={`border-t border-slate-200 transition-colors cursor-pointer ${isActive ? "bg-amber-50/70 font-semibold" : "hover:bg-slate-50/60"}`}
+                  >
+                    <td className="px-3 py-2 font-semibold" style={{ color: INK }}>
+                      {m.label}
+                    </td>
+                    <td className="px-3 py-2 font-mono tabular-nums" style={{ color: INK }}>
+                      {m.total}
+                    </td>
+                    <td className="px-3 py-2 font-mono tabular-nums" style={{ color: STATUS_COLORS.Open }}>
+                      {m.open}
+                    </td>
+                    <td className="px-3 py-2 font-mono tabular-nums" style={{ color: STATUS_COLORS.Closed }}>
+                      {m.closed}
+                    </td>
+                    <td className="px-3 py-2 font-mono tabular-nums" style={{ color: MUTED }}>
+                      {String(closureRate).includes("%") ? closureRate : `${closureRate}%`}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1 flex-wrap">
+                        {SEVERITY_LEVELS.filter((s) => (m[s] || 0) > 0).map((s) => (
+                          <Badge
+                            key={s}
+                            text={`${s} ${m[s]}`}
+                            color={SEVERITY_COLORS[s as keyof typeof SEVERITY_COLORS]}
+                          />
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {monthlySummary.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-6" style={{ color: MUTED }}>
+                    No incidents logged yet for this view.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile View: Responsive Cards (No Horizontal Scroll Needed) */}
+        <div className="sm:hidden space-y-2.5">
+          {monthlySummary.length === 0 ? (
+            <div className="text-center py-6 text-xs text-slate-400">
+              No incidents logged yet for this view.
+            </div>
+          ) : (
+            monthlySummary.map((m: any, idx: number) => {
               const rowKey = m.key || m.label || idx;
               const closureRate = m.closureRate !== undefined ? m.closureRate : (m.total ? `${Math.round(((m.closed || 0) / m.total) * 100)}%` : "0%");
               const isActive = activeMonth === m.key || activeMonth === m.label;
               return (
-                <tr
+                <div
                   key={rowKey}
                   onClick={() => onSelectMonth(isActive ? "All" : (m.key || m.label))}
-                  className={`border-t border-slate-200 transition-colors cursor-pointer ${isActive ? "bg-amber-50/70 font-semibold" : "hover:bg-slate-50/60"}`}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-amber-50/90 border-amber-300 ring-1 ring-amber-300 shadow-xs"
+                      : "bg-white border-slate-200/90 shadow-2xs hover:border-slate-300"
+                  }`}
                 >
-                  <td className="px-3 py-2 font-semibold" style={{ color: INK }}>
-                    {m.label}
-                  </td>
-                  <td className="px-3 py-2 font-mono tabular-nums" style={{ color: INK }}>
-                    {m.total}
-                  </td>
-                  <td className="px-3 py-2 font-mono tabular-nums" style={{ color: STATUS_COLORS.Open }}>
-                    {m.open}
-                  </td>
-                  <td className="px-3 py-2 font-mono tabular-nums" style={{ color: STATUS_COLORS.Closed }}>
-                    {m.closed}
-                  </td>
-                  <td className="px-3 py-2 font-mono tabular-nums" style={{ color: MUTED }}>
-                    {String(closureRate).includes("%") ? closureRate : `${closureRate}%`}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex gap-1 flex-wrap">
-                      {SEVERITY_LEVELS.filter((s) => (m[s] || 0) > 0).map((s) => (
-                        <Badge
-                          key={s}
-                          text={`${s} ${m[s]}`}
-                          color={SEVERITY_COLORS[s as keyof typeof SEVERITY_COLORS]}
-                        />
-                      ))}
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-sm text-slate-900">{m.label}</span>
+                      {isActive && (
+                        <span className="text-[10px] bg-amber-200/80 text-amber-900 font-semibold px-1.5 py-0.5 rounded-full">
+                          Active Filter
+                        </span>
+                      )}
                     </div>
-                  </td>
-                </tr>
+                    <div className="text-[11px] text-slate-500 font-medium">
+                      Closure: <span className="font-bold text-slate-800 font-mono">{String(closureRate).includes("%") ? closureRate : `${closureRate}%`}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 py-2 text-center">
+                    <div className="bg-slate-50 rounded-lg p-1.5">
+                      <div className="text-[10px] uppercase font-semibold text-slate-400">Total</div>
+                      <div className="text-sm font-bold text-slate-900 font-mono mt-0.5">{m.total}</div>
+                    </div>
+                    <div className="bg-orange-50/80 rounded-lg p-1.5">
+                      <div className="text-[10px] uppercase font-semibold text-orange-600">Open</div>
+                      <div className="text-sm font-bold text-orange-600 font-mono mt-0.5">{m.open}</div>
+                    </div>
+                    <div className="bg-emerald-50/80 rounded-lg p-1.5">
+                      <div className="text-[10px] uppercase font-semibold text-emerald-600">Closed</div>
+                      <div className="text-sm font-bold text-emerald-600 font-mono mt-0.5">{m.closed}</div>
+                    </div>
+                  </div>
+
+                  {SEVERITY_LEVELS.some((s) => (m[s] || 0) > 0) && (
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-1 flex-wrap">
+                      <span className="text-[10px] text-slate-400 font-medium">Severity Mix:</span>
+                      <div className="flex gap-1 flex-wrap">
+                        {SEVERITY_LEVELS.filter((s) => (m[s] || 0) > 0).map((s) => (
+                          <Badge
+                            key={s}
+                            text={`${s} ${m[s]}`}
+                            color={SEVERITY_COLORS[s as keyof typeof SEVERITY_COLORS]}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               );
-            })}
-            {monthlySummary.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center py-6" style={{ color: MUTED }}>
-                  No incidents logged yet for this view.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            })
+          )}
+        </div>
       </div>
 
-      {/* Incident Type × Region Matrix Table (Using the existing table) */}
+      {/* Incident Type × Region Matrix Table */}
       <div className="bg-white rounded-lg border border-slate-200/90 shadow-sm overflow-hidden">
         <div className="p-4 sm:p-5 pb-2 sm:pb-3 flex items-center justify-between gap-2 flex-wrap">
           <h2 className="text-sm font-bold text-slate-800 tracking-wide">
             Incident Type × Region
           </h2>
-          <span className="text-[11px] text-slate-400 font-normal sm:hidden">Scroll to view all →</span>
+          <span className="text-[11px] text-slate-400 font-normal hidden sm:inline">Cross-regional breakdown</span>
         </div>
 
-        <div className="overflow-x-auto scrollbar-thin">
+        {/* Desktop View: Full Matrix Table */}
+        <div className="hidden sm:block overflow-x-auto scrollbar-thin">
           <table className="w-full min-w-[500px] text-xs text-left border-collapse">
             <thead>
               <tr className="bg-slate-900 text-white">
@@ -388,6 +463,70 @@ function Overview({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View: Responsive Incident Type Cards (No Horizontal Scroll Needed) */}
+        <div className="sm:hidden p-3 pt-0 space-y-2.5">
+          {matrixData.length === 0 ? (
+            <div className="text-center py-6 text-xs text-slate-400">
+              No incident matrix data found.
+            </div>
+          ) : (
+            matrixData.map((row) => (
+              <div
+                key={row.type}
+                className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-2"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-xs text-slate-900 leading-snug">
+                    {row.type}
+                  </span>
+                  <span className="shrink-0 font-mono font-bold text-xs bg-amber-50 text-amber-700 border border-amber-200/80 px-2 py-0.5 rounded-full">
+                    Total: {row.total}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5 text-center">
+                  {[
+                    { name: "North", val: row.north },
+                    { name: "South", val: row.south },
+                    { name: "East", val: row.east },
+                    { name: "West", val: row.west },
+                  ].map((reg) => {
+                    const isSelected = activeRegion === reg.name;
+                    const hasCount = reg.val > 0;
+                    return (
+                      <div
+                        key={reg.name}
+                        className={`py-1.5 px-1 rounded-lg border text-center transition-colors ${
+                          isSelected
+                            ? "bg-orange-50 border-orange-200 text-orange-950 font-bold shadow-2xs"
+                            : hasCount
+                            ? "bg-slate-50 border-slate-200/80 text-slate-800"
+                            : "bg-slate-50/50 border-transparent text-slate-300"
+                        }`}
+                      >
+                        <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
+                          {reg.name}
+                        </div>
+                        <div
+                          className={`text-xs font-mono font-semibold mt-0.5 ${
+                            hasCount
+                              ? isSelected
+                                ? "text-orange-900 font-bold"
+                                : "text-slate-900"
+                              : "text-slate-300 font-light"
+                          }`}
+                        >
+                          {reg.val}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -735,22 +874,31 @@ export default function AnalyticsDashboardPage() {
     <div className="min-h-full bg-slate-50 text-slate-800 -m-2 md:-m-4 overflow-x-clip">
       {/* 1. UNIFIED COMMAND BAR HEADER */}
       <div className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 sm:px-6 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs sticky top-0 z-20">
-        {/* Left: View Switcher */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-          <div className="inline-flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/60 gap-1 shrink-0">
+        {/* Left: View Switcher (Segmented Control on Mobile, Inline on Desktop) */}
+        <div className="w-full md:w-auto">
+          <div className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/60 gap-1">
             {(["National", "Zone Overview", "Escalation Matrix"] as TabType[]).map((tab) => {
               const isActive = activeTab === tab;
+              const shortLabel =
+                tab === "National"
+                  ? "National"
+                  : tab === "Zone Overview"
+                  ? "Zone"
+                  : "Escalation";
+              const fullLabel = tab === "National" ? "National Overview" : tab;
+
               return (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
+                  className={`px-2 sm:px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all cursor-pointer text-center flex items-center justify-center whitespace-nowrap active:scale-[0.98] ${
                     isActive
-                      ? "bg-white text-slate-950 shadow-xs border border-slate-200/80"
+                      ? "bg-white text-slate-950 shadow-xs border border-slate-200/80 font-bold"
                       : "text-slate-600 hover:text-slate-950 hover:bg-white/60"
                   }`}
                 >
-                  {tab === "National" ? "National Overview" : tab}
+                  <span className="sm:hidden">{shortLabel}</span>
+                  <span className="hidden sm:inline">{fullLabel}</span>
                 </button>
               );
             })}
@@ -758,9 +906,9 @@ export default function AnalyticsDashboardPage() {
         </div>
 
         {/* Right: Context Controls based on active tab */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-between md:justify-end">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-between md:justify-end w-full md:w-auto">
           {canAccessZoneFilter && activeTab === "National" && (
-            <div className="flex items-center gap-1 sm:gap-1.5 p-0.5 bg-slate-100/80 rounded-lg border border-slate-200/50">
+            <div className="flex items-center gap-1 sm:gap-1.5 p-0.5 bg-slate-100/80 rounded-lg border border-slate-200/50 overflow-x-auto max-w-full scrollbar-none">
               {["All Regions", ...(zonesList.length > 0 ? zonesList : ["North", "South", "East", "West"])].map((region) => {
                 const isActive = selectedRegion === region;
                 return (
@@ -781,8 +929,8 @@ export default function AnalyticsDashboardPage() {
           )}
 
           {canAccessZoneFilter && activeTab === "Zone Overview" && (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 p-0.5 bg-slate-100/80 rounded-lg border border-slate-200/50">
+            <div className="flex items-center gap-2 flex-wrap max-w-full">
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100/80 rounded-lg border border-slate-200/50 overflow-x-auto max-w-full scrollbar-none">
                 {["All", ...(zonesList.length > 0 ? zonesList : REGIONS)].map((r) => {
                   const isActive = activeZoneRegion === r;
                   return (
@@ -1151,10 +1299,11 @@ export default function AnalyticsDashboardPage() {
                 <h2 className="text-sm font-bold text-slate-900 tracking-tight">
                   Incident Type × Region
                 </h2>
-                <span className="text-[11px] text-slate-400 font-normal sm:hidden">Scroll to view all →</span>
+                <span className="text-[11px] text-slate-400 font-normal hidden sm:inline">Cross-regional breakdown</span>
               </div>
 
-              <div className="overflow-x-auto scrollbar-thin">
+              {/* Desktop View: Full Matrix Table */}
+              <div className="hidden sm:block overflow-x-auto scrollbar-thin">
                 <table className="w-full min-w-[500px] text-xs text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-900 text-white">
@@ -1203,6 +1352,70 @@ export default function AnalyticsDashboardPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile View: Responsive Incident Type Cards (No Horizontal Scroll Needed) */}
+              <div className="sm:hidden p-3 pt-0 space-y-2.5">
+                {matrixData.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-slate-400 font-medium">
+                    No incident matrix data found.
+                  </div>
+                ) : (
+                  matrixData.map((row, idx) => (
+                    <div
+                      key={`${row.type || idx}-${idx}`}
+                      className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-xs text-slate-900 leading-snug">
+                          {row.type}
+                        </span>
+                        <span className="shrink-0 font-mono font-bold text-xs bg-amber-50 text-amber-700 border border-amber-200/80 px-2 py-0.5 rounded-full">
+                          Total: {row.total ?? 0}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-1.5 text-center">
+                        {[
+                          { name: "North", val: row.north ?? 0 },
+                          { name: "South", val: row.south ?? 0 },
+                          { name: "East", val: row.east ?? 0 },
+                          { name: "West", val: row.west ?? 0 },
+                        ].map((reg) => {
+                          const isSelected = selectedRegion === reg.name;
+                          const hasCount = reg.val > 0;
+                          return (
+                            <div
+                              key={reg.name}
+                              className={`py-1.5 px-1 rounded-lg border text-center transition-colors ${
+                                isSelected
+                                  ? "bg-amber-50 border-amber-300 text-amber-950 font-bold shadow-2xs"
+                                  : hasCount
+                                  ? "bg-slate-50 border-slate-200/80 text-slate-800"
+                                  : "bg-slate-50/50 border-transparent text-slate-300"
+                              }`}
+                            >
+                              <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
+                                {reg.name}
+                              </div>
+                              <div
+                                className={`text-xs font-mono font-semibold mt-0.5 ${
+                                  hasCount
+                                    ? isSelected
+                                      ? "text-amber-950 font-bold"
+                                      : "text-slate-900"
+                                    : "text-slate-300 font-light"
+                                }`}
+                              >
+                                {reg.val}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
