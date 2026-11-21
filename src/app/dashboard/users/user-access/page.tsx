@@ -1224,7 +1224,7 @@ export default function UserAccessPage() {
                       type: "button",
                       label: isAct ? "Deactivate" : "Activate",
                       onClick: () => deactivateMutation.mutate(row),
-                      className: `text-xs font-semibold py-1 px-3 rounded-full cursor-pointer transition-colors ${
+                      className: `text-xs font-semibold py-1 px-3 rounded-md cursor-pointer transition-colors ${
                         isAct
                           ? "bg-amber-500 hover:bg-amber-600 text-white"
                           : "bg-emerald-500 hover:bg-emerald-600 text-white"

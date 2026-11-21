@@ -245,10 +245,11 @@ function UsersManagementTabs() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-64px)] bg-slate-50/60">
       {/* Top Tab Bar Header */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 pt-5 pb-0 sticky top-0 z-20 shadow-2xs">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 pt-3 pb-0 sticky top-0 z-20 shadow-2xs">
         {/* Tab Navigation List */}
         <nav
-          className="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar -mb-px"
+          role="tablist"
+          className="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar -mb-px scroll-smooth touch-pan-x"
           aria-label="User Management Roles"
         >
           {availableTabs.map((tab) => {
@@ -258,16 +259,26 @@ function UsersManagementTabs() {
             return (
               <button
                 key={tab.id}
+                role="tab"
+                aria-selected={isActive}
                 type="button"
-                onClick={() => handleTabChange(tab.id)}
+                onClick={(e) => {
+                  handleTabChange(tab.id);
+                  e.currentTarget.scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest",
+                    inline: "nearest",
+                  });
+                }}
                 className={`
-                  flex items-center gap-2 py-2.5 px-3 sm:px-4 text-xs sm:text-sm font-semibold border-b-2 transition-colors duration-150 cursor-pointer whitespace-nowrap select-none
+                  flex items-center gap-2 py-2.5 px-3 sm:px-4 text-xs sm:text-sm font-semibold border-b-2 transition-colors duration-150 cursor-pointer whitespace-nowrap select-none touch-manipulation outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1
                   ${
                     isActive
-                      ? "border-blue-600 text-blue-600 bg-blue-50/40 rounded-t-lg"
+                      ? "border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-lg"
                       : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300"
                   }
                 `}
+                style={{ WebkitTapHighlightColor: "transparent" }}
               >
                 <Icon
                   className={`h-4 w-4 shrink-0 transition-colors ${

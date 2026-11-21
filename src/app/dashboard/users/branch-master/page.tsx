@@ -1314,7 +1314,7 @@ export default function BranchMaster() {
                     {
                       type: "button",
                       label: isAct ? "Deactivate" : "Activate",
-                      className: `text-center text-xs font-semibold rounded-full py-1.5 px-3 whitespace-nowrap cursor-pointer ${
+                      className: `text-center text-xs font-semibold rounded-md py-1.5 px-3 whitespace-nowrap cursor-pointer transition-colors ${
                         isAct
                           ? "bg-amber-500 hover:bg-amber-600 text-white"
                           : "bg-emerald-500 hover:bg-emerald-600 text-white"

@@ -105,7 +105,7 @@ const PasswordCell = ({ password }: { password?: string }) => {
   const isSuperSupport = decodedToken?.username === "supersupport";
 
   return (
-    <div className="flex items-center justify-center gap-2 w-full">
+    <div className="flex items-center justify-end md:justify-center gap-2 w-full">
       <span className="font-mono text-xs">
         {show && !isSuperSupport ? password : "•".repeat(password?.length || 8)}
       </span>
@@ -1037,7 +1037,7 @@ export default function CoordinatorPage() {
                       type="button"
                       onClick={() => deactivateMutation.mutate(user)}
                       disabled={deactivateMutation.isPending}
-                      className={`text-xs font-semibold py-1 px-3 rounded-full cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 ${
+                      className={`text-xs font-semibold py-1 px-3 rounded-md cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 ${
                         isAct
                           ? "bg-amber-500 hover:bg-amber-600 text-white"
                           : "bg-emerald-500 hover:bg-emerald-600 text-white"

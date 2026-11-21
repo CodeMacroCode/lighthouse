@@ -645,11 +645,18 @@ export function useCustomTable<
                 );
                 const statusCell = cells.find((c) => {
                   const id = c.column.id.toLowerCase();
+                  const header =
+                    typeof c.column.columnDef.header === "string"
+                      ? c.column.columnDef.header.toLowerCase()
+                      : "";
                   return (
                     id.includes("status") ||
+                    id.includes("isactive") ||
+                    id.includes("active") ||
                     id.includes("result") ||
                     id.includes("severity") ||
-                    id.includes("access")
+                    id.includes("access") ||
+                    header === "status"
                   );
                 });
 
@@ -686,7 +693,7 @@ export function useCustomTable<
                     data-row-id={rowId}
                   >
                     {/* Card Header: SN + Primary Field + Status */}
-                    <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         {serialCell && (
                           <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-bold shrink-0">
@@ -694,7 +701,7 @@ export function useCustomTable<
                           </span>
                         )}
                         {primaryCell && (
-                          <div className="font-bold text-sm text-slate-900 truncate">
+                          <div className="font-bold text-sm text-slate-900 min-w-0 flex-1">
                             {flexRender(primaryCell.column.columnDef.cell as any, primaryCell.getContext())}
                           </div>
                         )}
@@ -761,12 +768,12 @@ export function useCustomTable<
                           return (
                             <div
                               key={cell.id}
-                              className="flex items-start justify-between gap-3 py-1 border-b border-slate-50 last:border-0"
+                              className="flex items-start justify-between gap-3 py-1.5 border-b border-slate-50 last:border-0"
                             >
-                              <span className="text-slate-500 font-medium text-[11px] shrink-0 pt-0.5">
+                              <span className="text-slate-500 font-medium text-[11px] shrink-0 pt-0.5 min-w-[70px]">
                                 {headerLabel}
                               </span>
-                              <div className="text-right font-medium text-slate-800 break-words max-w-[65%]">
+                              <div className="text-right font-medium text-slate-800 break-all sm:break-words max-w-[70%] [overflow-wrap:anywhere]">
                                 {flexRender(cell.column.columnDef.cell as any, cell.getContext())}
                               </div>
                             </div>
