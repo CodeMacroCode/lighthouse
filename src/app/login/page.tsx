@@ -171,9 +171,6 @@ export default function LoginPage() {
                 <span className="text-xs font-semibold text-brand-orange uppercase tracking-wide">
                   Staff &amp; Faculty Portal
                 </span>
-                <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full border border-border">
-                  AY 2026/2027
-                </span>
               </div>
 
               {/* Title */}
@@ -253,13 +250,6 @@ export default function LoginPage() {
                           <FormLabel className="text-xs font-semibold text-foreground">
                             Password
                           </FormLabel>
-                          <button
-                            type="button"
-                            onClick={() => setShowResetPassword(true)}
-                            className="text-xs font-semibold text-brand-orange hover:text-brand-orange-hover hover:underline transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-orange rounded-xs"
-                          >
-                            Forgot password?
-                          </button>
                         </div>
                         <FormControl>
                           <div className="bg-card rounded-xl px-3.5 py-1 border-2 border-border focus-within:border-brand-orange focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-orange/15 transition-colors duration-150 shadow-xs flex items-center justify-between">
