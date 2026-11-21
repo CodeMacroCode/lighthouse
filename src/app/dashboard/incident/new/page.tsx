@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,6 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   ChevronLeft,
   Loader2,
@@ -116,6 +125,16 @@ const STAKEHOLDERS_OPTIONS = [
   "Central Team",
 ];
 
+const getStakeholderForSeverity = (severity?: string): string => {
+  if (!severity) return "";
+  const key = severity.trim().toLowerCase();
+  if (key === "low") return "Area Operations Manager (AOM)";
+  if (key === "medium") return "Business Manager (BM)";
+  if (key === "high") return "Regional Safety Officer (RSO)";
+  if (key === "critical") return "Central Team";
+  return "";
+};
+
 const STATUS_OPTIONS = ["Open", "Closed"];
 const ESCALATION_OPTIONS = ["No", "Yes"];
 
@@ -168,6 +187,16 @@ export default function NewIncidentPage() {
     userRole === "central" ||
     userRole === "superadmin";
 
+  const [errorModal, setErrorModal] = React.useState<{
+    open: boolean;
+    title: string;
+    description: string;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+  });
+
   const incidentSchema = React.useMemo(
     () =>
       z
@@ -211,6 +240,17 @@ export default function NewIncidentPage() {
               path: ["otherIncidentType"],
             });
           }
+
+          if (
+            data.status === "Closed" &&
+            (!data.remarks || !data.remarks.trim())
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Closing remarks are mandatory when status is Closed",
+              path: ["remarks"],
+            });
+          }
         }),
     [userRole, prekRole],
   );
@@ -226,7 +266,7 @@ export default function NewIncidentPage() {
       otherIncidentType: "",
       subCategory: "",
       otherSubCategory: "",
-      date: "",
+      date: format(new Date(), "yyyy-MM-dd"),
       stakeholders: "",
       briefDescription: "",
       immediateActionTaken: "",
@@ -251,6 +291,40 @@ export default function NewIncidentPage() {
   const currentEscalation = selectedSeverity
     ? ESCALATION_MATRIX_DATA[selectedSeverity] || ESCALATION_MATRIX_DATA["High"]
     : null;
+
+  useEffect(() => {
+    if (selectedSeverity) {
+      const autoStakeholder = getStakeholderForSeverity(selectedSeverity);
+      if (autoStakeholder) {
+        form.setValue("stakeholders", autoStakeholder, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
+    }
+  }, [selectedSeverity, form]);
+
+  const canCloseCurrentIncident = React.useMemo(() => {
+    const sev = (selectedSeverity || "Low").toLowerCase();
+    const normRole = normalizePrekRole(user?.role);
+    const isUserAOM = normRole === PREK_ROLES.AOM || user?.role?.toLowerCase() === "aom";
+    const isUserBM = normRole === PREK_ROLES.BM || user?.role?.toLowerCase() === "bm";
+    const isUserRSO = normRole === PREK_ROLES.RSO || user?.role?.toLowerCase() === "rso";
+    const isUserNH = normRole === PREK_ROLES.NATIONAL_HEAD;
+    const isUserCentral = normRole === PREK_ROLES.CENTRAL || isCentral;
+
+    if (isUserCentral) return true;
+    if (sev === "critical") return false;
+    if (sev === "high") return isUserRSO || isUserNH;
+    if (sev === "medium") return isUserBM || isUserRSO || isUserNH;
+    return true;
+  }, [selectedSeverity, user?.role, isCentral]);
+
+  useEffect(() => {
+    if (!canCloseCurrentIncident && form.getValues("status") !== "Open") {
+      form.setValue("status", "Open", { shouldValidate: true, shouldDirty: true });
+    }
+  }, [canCloseCurrentIncident, form]);
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
@@ -372,9 +446,18 @@ export default function NewIncidentPage() {
       router.push("/dashboard/incident");
     },
     onError: (error: any) => {
-      toast.error(
-        error?.response?.data?.message || "Failed to report incident",
-      );
+      const msg =
+        error?.response?.data?.message || "Failed to report incident";
+      setErrorModal({
+        open: true,
+        title:
+          msg.toLowerCase().includes("permission") ||
+          msg.toLowerCase().includes("authorized") ||
+          msg.toLowerCase().includes("denied")
+            ? "Permission Denied"
+            : "Action Failed",
+        description: msg,
+      });
     },
   });
 
@@ -416,7 +499,9 @@ export default function NewIncidentPage() {
       briefDescription: values.briefDescription,
       immediateActionTaken: values.immediateActionTaken,
       pendingAction: values.pendingAction || "",
-      closureDate: values.closureDate
+      closureDate: values.status === "Closed" && !values.closureDate
+        ? new Date().toISOString().slice(0, 10)
+        : values.closureDate
         ? typeof values.closureDate === "string" && values.closureDate.includes("T")
           ? values.closureDate.split("T")[0]
           : values.closureDate
@@ -457,7 +542,81 @@ export default function NewIncidentPage() {
       payload.sla = rule.sla;
     }
 
+    // Role-based incident closure authorization enforcement
+    if (payload.status === "Closed") {
+      const sev = (payload.severity || "Low").toLowerCase();
+      const normRole = normalizePrekRole(user?.role);
+      const isUserAOM = normRole === PREK_ROLES.AOM || user?.role?.toLowerCase() === "aom";
+      const isUserBM = normRole === PREK_ROLES.BM || user?.role?.toLowerCase() === "bm";
+      const isUserRSO = normRole === PREK_ROLES.RSO || user?.role?.toLowerCase() === "rso";
+      const isUserNH = normRole === PREK_ROLES.NATIONAL_HEAD;
+
+      if (isUserAOM && sev !== "low") {
+        const targetOwner =
+          sev === "medium"
+            ? "Business Manager (BM)"
+            : sev === "high"
+            ? "Regional Safety Officer (RSO)"
+            : "Central Team";
+        setErrorModal({
+          open: true,
+          title: "Permission Denied",
+          description: `Permission denied: AOM is not authorized to close ${payload.severity}-severity incidents. ${payload.severity} incidents must be resolved by ${targetOwner}.`,
+        });
+        return;
+      }
+
+      if (isUserBM && (sev === "high" || sev === "critical")) {
+        const targetOwner =
+          sev === "high"
+            ? "Regional Safety Officer (RSO)"
+            : "Central Team";
+        setErrorModal({
+          open: true,
+          title: "Permission Denied",
+          description: `Permission denied: Business Manager (BM) is not authorized to close ${payload.severity}-severity incidents. ${payload.severity} incidents must be resolved by ${targetOwner}.`,
+        });
+        return;
+      }
+
+      if ((isUserRSO || isUserNH) && sev === "critical") {
+        setErrorModal({
+          open: true,
+          title: "Permission Denied",
+          description:
+            "Permission denied: Only Central (All-Activity Admin) holds sole authority to close Critical incidents.",
+        });
+        return;
+      }
+    }
+
     mutation.mutate(payload);
+  };
+
+  const onInvalid = (errors: any) => {
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      const firstKey = errorKeys[0];
+      const message =
+        errors[firstKey]?.message ||
+        "Please fill in all required fields marked in red.";
+      toast.error(message);
+
+      // Auto-scroll to first invalid element
+      setTimeout(() => {
+        const target =
+          document.querySelector(`[name="${firstKey}"]`) ||
+          document.querySelector(`[data-name="${firstKey}"]`) ||
+          document.querySelector(".text-destructive") ||
+          document.querySelector('[aria-invalid="true"]');
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+          if ("focus" in target && typeof (target as any).focus === "function") {
+            (target as any).focus();
+          }
+        }
+      }, 50);
+    }
   };
 
   return (
@@ -484,7 +643,7 @@ export default function NewIncidentPage() {
       </header>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
           <Card className="border-none shadow-md overflow-hidden">
             <CardContent className="p-6 space-y-8">
               {/* Section 1: Classification & Severity */}
@@ -521,10 +680,11 @@ export default function NewIncidentPage() {
                             form.setValue("subCategory", val);
                             const match = INCIDENT_TYPES.find((t) => t.name === val);
                             if (match?.defaultSeverity) {
-                              if (match.isMandatory) {
-                                form.setValue("severity", "Critical");
-                              } else {
-                                form.setValue("severity", match.defaultSeverity);
+                              const targetSev = match.isMandatory ? "Critical" : match.defaultSeverity;
+                              form.setValue("severity", targetSev, { shouldValidate: true });
+                              const autoStakeholder = getStakeholderForSeverity(targetSev);
+                              if (autoStakeholder) {
+                                form.setValue("stakeholders", autoStakeholder, { shouldValidate: true });
                               }
                             }
                           }}
@@ -630,6 +790,10 @@ export default function NewIncidentPage() {
                           onValueChange={(val) => {
                             if (!isMandatoryCritical) {
                               field.onChange(val);
+                              const autoStakeholder = getStakeholderForSeverity(val);
+                              if (autoStakeholder) {
+                                form.setValue("stakeholders", autoStakeholder, { shouldValidate: true });
+                              }
                             }
                           }}
                           placeholder="Select severity level"
@@ -646,7 +810,14 @@ export default function NewIncidentPage() {
                     name="stakeholders"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Stakeholders</FormLabel>
+                        <FormLabel className="flex items-center justify-between">
+                          <span>Stakeholders</span>
+                          {field.value && (
+                            <span className="text-[11px] text-muted-foreground font-normal">
+                              Auto-selected by severity
+                            </span>
+                          )}
+                        </FormLabel>
                         <Combobox
                           items={STAKEHOLDERS_OPTIONS.map((s) => ({
                             label: s,
@@ -831,19 +1002,47 @@ export default function NewIncidentPage() {
                     name="status"
                     render={({ field }) => (
                       <FormItem className="flex flex-col md:col-span-2">
-                        <FormLabel>Status</FormLabel>
+                        <FormLabel className="flex items-center justify-between">
+                          <span>Status</span>
+                          {!canCloseCurrentIncident && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md">
+                              <Lock className="h-3 w-3 text-amber-700" />
+                              Locked at Open
+                            </span>
+                          )}
+                        </FormLabel>
                         <FormControl>
                           <Combobox
-                            items={STATUS_OPTIONS.map((s) => ({
-                              label: s,
-                              value: s,
-                            }))}
+                            items={
+                              canCloseCurrentIncident
+                                ? STATUS_OPTIONS.map((s) => ({
+                                    label: s,
+                                    value: s,
+                                  }))
+                                : [
+                                    {
+                                      label: "Open (Locked - Closure Unauthorized)",
+                                      value: "Open",
+                                    },
+                                  ]
+                            }
                             value={field.value}
-                            onValueChange={field.onChange}
+                            onValueChange={(val) => {
+                              if (canCloseCurrentIncident) {
+                                field.onChange(val);
+                              }
+                            }}
                             placeholder="Select status"
                             width="w-full"
+                            disabled={!canCloseCurrentIncident}
                           />
                         </FormControl>
+                        {!canCloseCurrentIncident && (
+                          <p className="text-xs text-amber-700 mt-1 flex items-center gap-1 font-medium">
+                            <Lock className="h-3.5 w-3.5 shrink-0" />
+                            Closure restricted: {prekRole || user?.role?.toUpperCase()} is not authorized to close {selectedSeverity || "this"}-severity incidents. Requires {currentEscalation?.title || "higher authority"}.
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -852,35 +1051,61 @@ export default function NewIncidentPage() {
                   <FormField
                     control={form.control}
                     name="remarks"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Closing Remarks (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Any final notes or remarks..."
-                            className="min-h-[80px] resize-none"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const isClosed = form.watch("status") === "Closed";
+                      return (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel className="flex items-center justify-between">
+                            <span className="flex items-center gap-1">
+                              Closing Remarks{" "}
+                              {isClosed ? (
+                                <span className="text-destructive font-bold">*</span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground font-normal">
+                                  (Optional)
+                                </span>
+                              )}
+                            </span>
+                            {isClosed && (
+                              <span className="text-[11px] font-medium text-destructive">
+                                Mandatory when status is Closed
+                              </span>
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder={
+                                isClosed
+                                  ? "Enter mandatory closing remarks explaining the resolution..."
+                                  : "Any final notes or remarks..."
+                              }
+                              className={cn(
+                                "min-h-[80px] resize-none",
+                                isClosed && !field.value?.trim() && "border-destructive/40 focus-visible:ring-destructive/20"
+                              )}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
               </div>
 
-              <div className="pt-6 flex justify-end gap-3 border-t">
+              <div className="pt-6 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t">
                 <Button
                   variant="outline"
                   type="button"
                   asChild
-                  className="px-8 cursor-pointer"
+                  className="w-full sm:w-auto px-8 cursor-pointer active:scale-[0.99]"
                 >
                   <Link href="/dashboard/incident">Cancel</Link>
                 </Button>
                 <Button
                   type="submit"
-                  className="px-10 bg-primary hover:bg-primary/90 text-white font-semibold cursor-pointer shadow-xs"
+                  className="w-full sm:w-auto px-10 bg-primary hover:bg-primary/90 text-white font-semibold cursor-pointer shadow-xs active:scale-[0.99]"
                   disabled={mutation.isPending}
                 >
                   {mutation.isPending ? (
@@ -897,6 +1122,33 @@ export default function NewIncidentPage() {
           </Card>
         </form>
       </Form>
+
+      <AlertDialog
+        open={errorModal.open}
+        onOpenChange={(open) => setErrorModal((prev) => ({ ...prev, open }))}
+      >
+        <AlertDialogContent className="max-w-md p-6 rounded-2xl shadow-2xl border-destructive/20 bg-white">
+          <AlertDialogHeader className="space-y-3">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <AlertDialogTitle className="text-center text-lg font-bold text-foreground">
+              {errorModal.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-sm text-foreground/80 leading-relaxed font-normal">
+              {errorModal.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="pt-3 sm:justify-center">
+            <AlertDialogAction
+              onClick={() => setErrorModal({ open: false, title: "", description: "" })}
+              className="w-full sm:w-auto px-8 bg-destructive hover:bg-destructive/90 text-white font-semibold rounded-xl cursor-pointer shadow-sm active:scale-[0.98]"
+            >
+              Okay
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

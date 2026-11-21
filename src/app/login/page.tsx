@@ -179,6 +179,16 @@ export default function LoginPage() {
             <div>
               {/* Header with Term Indicator */}
               <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <div className="md:hidden flex items-center bg-brand-navy rounded-lg px-2.5 py-1 shadow-xs">
+                  <Image
+                    src="/image.png"
+                    alt="Lighthouse Learning"
+                    width={96}
+                    height={18}
+                    className="h-4 w-auto object-contain"
+                    priority
+                  />
+                </div>
                 <span className="text-[11px] sm:text-xs font-semibold text-brand-orange uppercase tracking-wide">
                   Staff &amp; Faculty Portal
                 </span>

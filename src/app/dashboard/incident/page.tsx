@@ -1,10 +1,18 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import { incidentService } from "@/services/api/incidentService";
 import { api } from "@/services/apiService";
-import { useCustomTable, PaginationState } from "@/components/ui/customTable(serverSidePagination)";
+import {
+  useCustomTable,
+  PaginationState,
+} from "@/components/ui/customTable(serverSidePagination)";
 import { Button } from "@/components/ui/button";
 import {
   RefreshCcw,
@@ -12,7 +20,17 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  ShieldAlert,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { getIncidentColumns } from "@/components/columns/columns";
 import ResponseLoader from "@/components/ResponseLoader";
 import Link from "next/link";
@@ -92,6 +110,16 @@ export default function IncidentPage() {
 
   const canAccessZoneDropdown = isCentral || isNationalHead;
 
+  const [errorModal, setErrorModal] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+  });
+
   // Dynamically fetch active zones from Zone Master API
   const { data: zonesData } = useQuery({
     queryKey: ["activeZones"],
@@ -121,7 +149,8 @@ export default function IncidentPage() {
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
-  const [currentUpdateStatus, setCurrentUpdateStatus] = useState<string>("Open");
+  const [currentUpdateStatus, setCurrentUpdateStatus] =
+    useState<string>("Open");
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(
     null,
   );
@@ -163,7 +192,9 @@ export default function IncidentPage() {
         region:
           canAccessZoneDropdown && selectedRegion !== "all"
             ? selectedRegion
-            : (isRSO && (user?.zone || user?.region) ? (user.zone || user.region) : undefined),
+            : isRSO && (user?.zone || user?.region)
+              ? user.zone || user.region
+              : undefined,
       }),
     placeholderData: keepPreviousData,
   });
@@ -198,7 +229,9 @@ export default function IncidentPage() {
         region:
           canAccessZoneDropdown && selectedRegion !== "all"
             ? selectedRegion
-            : (isRSO && (user?.zone || user?.region) ? (user.zone || user.region) : undefined),
+            : isRSO && (user?.zone || user?.region)
+              ? user.zone || user.region
+              : undefined,
       });
 
       let allRecords = res?.data || [];
@@ -312,21 +345,21 @@ export default function IncidentPage() {
           fillColor: [12, 35, 92],
         },
         columnStyles: {
-          0: { cellWidth: 8, halign: "center" },   // S.No
-          1: { cellWidth: 26, halign: "center" },  // Case ID
-          2: { cellWidth: 18, halign: "center" },  // Date & Time
-          3: { cellWidth: 14, halign: "center" },  // Region
-          4: { cellWidth: 24, halign: "left" },    // Centre / School
-          5: { cellWidth: 20, halign: "center" },  // Incident Type
-          6: { cellWidth: 18, halign: "center" },  // Reported By
-          7: { cellWidth: 12, halign: "center" },  // Role
-          8: { cellWidth: 14, halign: "center" },  // Severity
-          9: { cellWidth: 24, halign: "center" },  // Assigned To
+          0: { cellWidth: 8, halign: "center" }, // S.No
+          1: { cellWidth: 26, halign: "center" }, // Case ID
+          2: { cellWidth: 18, halign: "center" }, // Date & Time
+          3: { cellWidth: 14, halign: "center" }, // Region
+          4: { cellWidth: 24, halign: "left" }, // Centre / School
+          5: { cellWidth: 20, halign: "center" }, // Incident Type
+          6: { cellWidth: 18, halign: "center" }, // Reported By
+          7: { cellWidth: 12, halign: "center" }, // Role
+          8: { cellWidth: 14, halign: "center" }, // Severity
+          9: { cellWidth: 24, halign: "center" }, // Assigned To
           10: { cellWidth: 16, halign: "center" }, // SLA
           11: { cellWidth: 12, halign: "center" }, // Status
-          12: { cellWidth: 33, halign: "left" },   // Brief Description
-          13: { cellWidth: 28, halign: "left" },   // Immediate Action Taken
-          14: { cellWidth: 10, halign: "left" },   // Pending Action
+          12: { cellWidth: 33, halign: "left" }, // Brief Description
+          13: { cellWidth: 28, halign: "left" }, // Immediate Action Taken
+          14: { cellWidth: 10, halign: "left" }, // Pending Action
         },
         margin: { left: 10, right: 10 },
       };
@@ -499,9 +532,7 @@ export default function IncidentPage() {
     }
     try {
       const desc =
-        incident.briefDescription ||
-        incident.description ||
-        "Reassigned";
+        incident.briefDescription || incident.description || "Reassigned";
       const payload: any = {
         status: incident.status || "Open",
         briefDescription: desc,
@@ -537,14 +568,25 @@ export default function IncidentPage() {
   const columns = useMemo(() => {
     return getIncidentColumns(
       handleEdit,
-      isCentral || isNationalHead || isRSO || isAOM || isBM ? handleUpdateStatus : undefined,
+      isCentral || isNationalHead || isRSO || isAOM || isBM
+        ? handleUpdateStatus
+        : undefined,
       canEditRow,
       canUpdateStatusRow,
       undefined,
       isCentral || isNationalHead ? handleEscalate : undefined,
       userListData || [],
     );
-  }, [isCentral, isNationalHead, isRSO, isAOM, isBM, canEditRow, canUpdateStatusRow, userListData]);
+  }, [
+    isCentral,
+    isNationalHead,
+    isRSO,
+    isAOM,
+    isBM,
+    canEditRow,
+    canUpdateStatusRow,
+    userListData,
+  ]);
 
   const handlePaginationChange = (updater: any) => {
     setPagination((prev: PaginationState) => {
@@ -583,9 +625,18 @@ export default function IncidentPage() {
       setSelectedIncident(null);
     },
     onError: (error: any) => {
-      toast.error(
-        error?.response?.data?.message || "Failed to update incident status",
-      );
+      const msg =
+        error?.response?.data?.message || "Failed to update incident status";
+      setErrorModal({
+        open: true,
+        title:
+          msg.toLowerCase().includes("permission") ||
+          msg.toLowerCase().includes("authorized") ||
+          msg.toLowerCase().includes("denied")
+            ? "Permission Denied"
+            : "Action Failed",
+        description: msg,
+      });
     },
   });
 
@@ -595,26 +646,34 @@ export default function IncidentPage() {
     const sev = (severity || "Low").toLowerCase();
     const role = normalizePrekRole(user?.role);
 
+    const showPermError = (msg: string) => {
+      setErrorModal({
+        open: true,
+        title: "Permission Denied",
+        description: msg,
+      });
+    };
+
     // Frontline Area Operations Managers (AOM) can only resolve and close Low-severity cases
     if (isAOM && sev !== "low") {
-      toast.error(
-        "Permission Denied (FR-7.2): Area Operations Managers (AOM) can only update and close low-severity cases.",
+      showPermError(
+        "Permission Denied: Area Operations Managers (AOM) are only authorized to resolve and close Low-severity cases.",
       );
       return false;
     }
 
     // Business Managers (BM) can only resolve and close Low and Medium severity cases
     if (isBM && sev !== "low" && sev !== "medium") {
-      toast.error(
-        "Permission Denied (FR-7.2): Business Managers (BM) cannot close High or Critical incidents. Mandatory closure authority: RSO/Central.",
+      showPermError(
+        "Permission Denied: Business Managers (BM) cannot close High or Critical incidents. Mandatory closure authority: RSO/Central.",
       );
       return false;
     }
 
     // Regional Safety Officers (RSO) and National Head can resolve and close Low, Medium, and High cases. Critical is Central only.
     if ((isRSO || isNationalHead) && sev === "critical") {
-      toast.error(
-        "Permission Denied (FR-7.2): National Head and Regional Safety Officers (RSO) cannot close Critical incidents. Mandatory closure authority: Central.",
+      showPermError(
+        "Permission Denied: National Head and Regional Safety Officers (RSO) cannot close Critical incidents. Mandatory closure authority: Central.",
       );
       return false;
     }
@@ -622,22 +681,22 @@ export default function IncidentPage() {
     // FR-7.2: Role Permission Enforcement Closure Authority Rules
     if (sev === "critical") {
       if (role !== PREK_ROLES.CENTRAL && !isCentral) {
-        toast.error(
-          "Permission Denied (FR-7.2): Only Central (All-Activity Admin) holds sole authority to close Critical incidents.",
+        showPermError(
+          "Permission Denied: Only Central (All-Activity Admin) holds sole authority to close Critical incidents.",
         );
         return false;
       }
     } else if (sev === "high") {
       if (role === PREK_ROLES.AOM || role === PREK_ROLES.BM || isAOM || isBM) {
-        toast.error(
-          "Permission Denied (FR-7.2): Business Managers and AOMs cannot close High-severity cases. Only RSO, National Head, or Central can close High incidents.",
+        showPermError(
+          "Permission Denied: Business Managers and AOMs cannot close High-severity cases. Only RSO, National Head, or Central can close High incidents.",
         );
         return false;
       }
     } else if (sev === "medium") {
       if (role === PREK_ROLES.AOM || isAOM) {
-        toast.error(
-          "Permission Denied (FR-7.2): Frontline Area Operations Managers (AOM) can only resolve and close Low-severity cases.",
+        showPermError(
+          "Permission Denied: Area Operations Managers (AOM) are not authorized to close Medium-severity incidents. Medium incidents must be resolved by Business Manager (BM).",
         );
         return false;
       }
@@ -683,13 +742,12 @@ export default function IncidentPage() {
         "",
       pendingAction:
         formData.pendingAction ?? selectedIncident?.pendingAction ?? "",
-      escalatedTo:
-        formData.escalatedTo ?? selectedIncident?.escalatedTo ?? "",
+      escalatedTo: formData.escalatedTo ?? selectedIncident?.escalatedTo ?? "",
       escalationOwner:
         formData.escalatedTo ?? selectedIncident?.escalationOwner ?? "",
       escalationStatus: formData.escalatedTo
         ? "Yes"
-        : (selectedIncident?.escalationStatus || "No"),
+        : selectedIncident?.escalationStatus || "No",
     };
 
     if (selectedIncident?.region) {
@@ -788,29 +846,69 @@ export default function IncidentPage() {
     return fields;
   }, []);
 
-  const statusUpdateFields: FieldConfig[] = useMemo(() => [
-    {
-      key: "status",
-      label: "Status",
-      type: "select",
-      options: ["Open", "Closed"],
-      required: true,
-    },
-    {
-      key: "remarks",
-      label: "Closing Remarks",
-      type: "textarea",
-      placeholder: "Enter closing remarks (e.g., Investigation complete, child safe in school...)",
-      required: currentUpdateStatus === "Closed",
-      hidden: currentUpdateStatus !== "Closed",
-      validation: currentUpdateStatus === "Closed"
-        ? {
-            minLength: 5,
-            message: "Closing remarks must be at least 5 characters",
-          }
-        : undefined,
-    },
-  ], [currentUpdateStatus]);
+  const canCloseSelectedIncident = useMemo(() => {
+    if (!selectedIncident) return true;
+    const sev = (selectedIncident?.severity || "Low").toLowerCase();
+    const normRole = normalizePrekRole(user?.role);
+    const isUserAOM =
+      normRole === PREK_ROLES.AOM ||
+      user?.role?.toLowerCase() === "aom" ||
+      isAOM;
+    const isUserBM =
+      normRole === PREK_ROLES.BM || user?.role?.toLowerCase() === "bm" || isBM;
+    const isUserRSO =
+      normRole === PREK_ROLES.RSO ||
+      user?.role?.toLowerCase() === "rso" ||
+      isRSO;
+    const isUserNH = normRole === PREK_ROLES.NATIONAL_HEAD || isNationalHead;
+    const isUserCentral = normRole === PREK_ROLES.CENTRAL || isCentral;
+
+    if (isUserCentral) return true;
+    if (sev === "critical") return false;
+    if (sev === "high") return isUserRSO || isUserNH;
+    if (sev === "medium") return isUserBM || isUserRSO || isUserNH;
+    return true;
+  }, [
+    selectedIncident,
+    user?.role,
+    isAOM,
+    isBM,
+    isRSO,
+    isNationalHead,
+    isCentral,
+  ]);
+
+  const statusUpdateFields: FieldConfig[] = useMemo(
+    () => [
+      {
+        key: "status",
+        label: canCloseSelectedIncident
+          ? "Status"
+          : "Status (Locked at Open - Closure Unauthorized)",
+        type: "select",
+        options: canCloseSelectedIncident ? ["Open", "Closed"] : ["Open"],
+        disabled: !canCloseSelectedIncident,
+        required: true,
+      },
+      {
+        key: "remarks",
+        label: "Closing Remarks",
+        type: "textarea",
+        placeholder:
+          "Enter closing remarks (e.g., Investigation complete, child safe in school...)",
+        required: currentUpdateStatus === "Closed",
+        hidden: currentUpdateStatus !== "Closed",
+        validation:
+          currentUpdateStatus === "Closed"
+            ? {
+                minLength: 5,
+                message: "Closing remarks must be at least 5 characters",
+              }
+            : undefined,
+      },
+    ],
+    [currentUpdateStatus, canCloseSelectedIncident],
+  );
 
   const { tableElement } = useCustomTable({
     data: data?.data || [],
@@ -853,7 +951,10 @@ export default function IncidentPage() {
               value={selectedRegion}
               onValueChange={(value) => {
                 setSelectedRegion(value);
-                setPagination((prev: PaginationState) => ({ ...prev, pageIndex: 0 }));
+                setPagination((prev: PaginationState) => ({
+                  ...prev,
+                  pageIndex: 0,
+                }));
               }}
             >
               <SelectTrigger className="w-full sm:w-[160px] bg-white h-9">
@@ -874,7 +975,10 @@ export default function IncidentPage() {
             value={selectedStatus}
             onValueChange={(value) => {
               setSelectedStatus(value);
-              setPagination((prev: PaginationState) => ({ ...prev, pageIndex: 0 }));
+              setPagination((prev: PaginationState) => ({
+                ...prev,
+                pageIndex: 0,
+              }));
             }}
           >
             <SelectTrigger className="w-full sm:w-[150px] bg-white h-9">
@@ -883,8 +987,6 @@ export default function IncidentPage() {
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="Open">Open</SelectItem>
-              <SelectItem value="In-Progress">In-Progress</SelectItem>
-              <SelectItem value="Resolved">Resolved</SelectItem>
               <SelectItem value="Closed">Closed</SelectItem>
             </SelectContent>
           </Select>
@@ -963,6 +1065,35 @@ export default function IncidentPage() {
         title="Update Incident Status"
         description="Update the current incident status and case closure details."
       />
+
+      <AlertDialog
+        open={errorModal.open}
+        onOpenChange={(open) => setErrorModal((prev) => ({ ...prev, open }))}
+      >
+        <AlertDialogContent className="max-w-md p-6 rounded-2xl shadow-2xl border-destructive/20 bg-white">
+          <AlertDialogHeader className="space-y-3">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <AlertDialogTitle className="text-center text-lg font-bold text-foreground">
+              {errorModal.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-sm text-foreground/80 leading-relaxed font-normal">
+              {errorModal.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="pt-3 sm:justify-center">
+            <AlertDialogAction
+              onClick={() =>
+                setErrorModal({ open: false, title: "", description: "" })
+              }
+              className="w-full sm:w-auto px-8 bg-destructive hover:bg-destructive/90 text-white font-semibold rounded-xl cursor-pointer shadow-sm active:scale-[0.98]"
+            >
+              Okay
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
