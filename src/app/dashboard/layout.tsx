@@ -59,14 +59,15 @@ export default function DashboardLayout({
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      redirect("/login");
+      router.replace("/login");
+      return;
     }
     if (!hasConnected.current && !store.isConnected) {
       hasConnected.current = true;
       console.log("[Socket] Connecting once on app load");
       store.connect();
     }
-  }, []);
+  }, [router, store]);
   return (
     <TooltipProvider delayDuration={0}>
       <SidebarProvider defaultOpen={true}>
