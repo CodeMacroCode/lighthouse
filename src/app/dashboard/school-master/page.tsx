@@ -1393,17 +1393,17 @@ function SchoolMasterPageContent() {
         )}
       </div>
 
-      {/* Filter, Search & Actions Toolbar */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
+      {/* Filter, Search & Actions Toolbar (Hallmark Responsive Craft) */}
+      <div className="flex flex-col gap-3 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200/80 shadow-2xs">
+        {/* Row 1: Search */}
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
             type="text"
             placeholder="Search by centre name, code, zone, cluster, AOM..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-8 h-9 text-xs bg-slate-50/50 border-slate-200 focus:bg-white"
+            className="pl-9 pr-8 h-9 text-xs bg-slate-50/50 border-slate-200 focus:bg-white w-full rounded-lg"
           />
           {searchQuery && (
             <button
@@ -1417,13 +1417,14 @@ function SchoolMasterPageContent() {
           )}
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end">
+        {/* Row 2: Geographic Selectors (Zone, Cluster, State) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full">
           {/* Zone Selector */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-            <span className="font-semibold text-slate-500 text-[11px] uppercase tracking-wider">
-              Zone:
+          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 px-2.5 h-9 focus-within:bg-white focus-within:border-slate-300 transition-colors">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-14 shrink-0">
+              Zone
             </span>
+            <div className="h-3.5 w-px bg-slate-200 shrink-0 mr-1.5" />
             <Combobox
               items={zoneFilterItems}
               value={selectedZone}
@@ -1439,16 +1440,17 @@ function SchoolMasterPageContent() {
               emptyMessage={
                 isLoadingZones ? "Loading zones..." : "No zones found."
               }
-              width="w-[150px]"
-              className="h-8 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200"
+              width="w-full"
+              className="h-full border-0 bg-transparent hover:bg-transparent shadow-none text-xs font-medium text-slate-800 p-0 justify-between focus-visible:ring-0"
             />
           </div>
 
           {/* Cluster Selector */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-            <span className="font-semibold text-slate-500 text-[11px] uppercase tracking-wider">
-              Cluster:
+          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 px-2.5 h-9 focus-within:bg-white focus-within:border-slate-300 transition-colors">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-14 shrink-0">
+              Cluster
             </span>
+            <div className="h-3.5 w-px bg-slate-200 shrink-0 mr-1.5" />
             <Combobox
               items={clusterFilterItems}
               value={selectedCluster}
@@ -1461,16 +1463,17 @@ function SchoolMasterPageContent() {
               emptyMessage={
                 isLoadingClusters ? "Loading clusters..." : "No clusters found."
               }
-              width="w-[160px]"
-              className="h-8 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200"
+              width="w-full"
+              className="h-full border-0 bg-transparent hover:bg-transparent shadow-none text-xs font-medium text-slate-800 p-0 justify-between focus-visible:ring-0"
             />
           </div>
 
           {/* State Selector */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-            <span className="font-semibold text-slate-500 text-[11px] uppercase tracking-wider">
-              State:
+          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 px-2.5 h-9 focus-within:bg-white focus-within:border-slate-300 transition-colors">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-14 shrink-0">
+              State
             </span>
+            <div className="h-3.5 w-px bg-slate-200 shrink-0 mr-1.5" />
             <Combobox
               items={stateFilterItems}
               value={selectedState}
@@ -1478,83 +1481,91 @@ function SchoolMasterPageContent() {
               placeholder="All States"
               searchPlaceholder="Search state..."
               emptyMessage="No states found."
-              width="w-[140px]"
-              className="h-8 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200"
+              width="w-full"
+              className="h-full border-0 bg-transparent hover:bg-transparent shadow-none text-xs font-medium text-slate-800 p-0 justify-between focus-visible:ring-0"
             />
           </div>
+        </div>
 
-          {/* AOM Assignment Filter (Merged Segmented Control) */}
-          <div className="flex items-center rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-xs">
-            <button
-              type="button"
-              onClick={() =>
-                setAomFilter(aomFilter === "assigned" ? "all" : "assigned")
-              }
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-                aomFilter === "assigned"
-                  ? "bg-white text-purple-800 shadow-2xs font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <UserCheck
-                className={`w-3.5 h-3.5 ${
-                  aomFilter === "assigned" ? "text-purple-600" : "text-slate-500"
+        {/* Row 3: Status & Refinement Controls + Refresh */}
+        <div className="flex items-center justify-between gap-2.5 flex-wrap pt-2.5 border-t border-slate-100">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* AOM Assignment Filter */}
+            <div className="flex items-center rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-xs shadow-2xs">
+              <button
+                type="button"
+                onClick={() =>
+                  setAomFilter(aomFilter === "assigned" ? "all" : "assigned")
+                }
+                className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 text-xs ${
+                  aomFilter === "assigned"
+                    ? "bg-white text-purple-800 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
-              />
-              <span>Assigned AOM</span>
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setAomFilter(aomFilter === "unassigned" ? "all" : "unassigned")
-              }
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-                aomFilter === "unassigned"
-                  ? "bg-white text-amber-800 shadow-2xs font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <AlertCircle
-                className={`w-3.5 h-3.5 ${
-                  aomFilter === "unassigned" ? "text-amber-600" : "text-slate-500"
+              >
+                <UserCheck
+                  className={`w-3.5 h-3.5 ${
+                    aomFilter === "assigned" ? "text-purple-600" : "text-slate-500"
+                  }`}
+                />
+                <span>Assigned AOM</span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setAomFilter(aomFilter === "unassigned" ? "all" : "unassigned")
+                }
+                className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 text-xs ${
+                  aomFilter === "unassigned"
+                    ? "bg-white text-amber-800 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
-              />
-              <span>Unassigned AOM</span>
-            </button>
-          </div>
+              >
+                <AlertCircle
+                  className={`w-3.5 h-3.5 ${
+                    aomFilter === "unassigned" ? "text-amber-600" : "text-slate-500"
+                  }`}
+                />
+                <span>Unassigned AOM</span>
+              </button>
+            </div>
 
-          {/* Status Filter Tabs */}
-          <div className="flex items-center rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-xs">
-            <button
-              onClick={() => setStatusFilter("all")}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                statusFilter === "all"
-                  ? "bg-white text-slate-900 shadow-2xs font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setStatusFilter("active")}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                statusFilter === "active"
-                  ? "bg-white text-emerald-700 shadow-2xs font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Active
-            </button>
-            <button
-              onClick={() => setStatusFilter("inactive")}
-              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                statusFilter === "inactive"
-                  ? "bg-white text-slate-700 shadow-2xs font-semibold"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Inactive
-            </button>
+            {/* Status Filter Tabs */}
+            <div className="flex items-center rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-xs shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setStatusFilter("all")}
+                className={`px-3 py-1 rounded-md font-medium transition-colors cursor-pointer text-xs ${
+                  statusFilter === "all"
+                    ? "bg-white text-slate-900 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("active")}
+                className={`px-3 py-1 rounded-md font-medium transition-colors cursor-pointer text-xs ${
+                  statusFilter === "active"
+                    ? "bg-white text-emerald-700 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Active
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("inactive")}
+                className={`px-3 py-1 rounded-md font-medium transition-colors cursor-pointer text-xs ${
+                  statusFilter === "inactive"
+                    ? "bg-white text-slate-700 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Inactive
+              </button>
+            </div>
           </div>
 
           {/* Refresh Button */}
@@ -1563,7 +1574,7 @@ function SchoolMasterPageContent() {
             size="sm"
             onClick={() => fetchCentres(true)}
             disabled={isRefreshing || isLoading}
-            className="h-8 px-2.5 text-slate-600 bg-white hover:bg-slate-50 border-slate-200"
+            className="h-8 px-2.5 text-slate-600 bg-white hover:bg-slate-50 border-slate-200 rounded-lg shadow-2xs cursor-pointer flex items-center gap-1.5"
             title="Refresh schools"
           >
             <RefreshCw
@@ -1571,6 +1582,7 @@ function SchoolMasterPageContent() {
                 isRefreshing ? "animate-spin text-blue-600" : ""
               }`}
             />
+            <span className="text-xs font-medium hidden sm:inline">Refresh</span>
           </Button>
         </div>
       </div>

@@ -161,35 +161,29 @@ export default function LoginPage() {
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover object-[center_bottom] md:object-[20%_bottom] scale-[1.01]"
             />
-            {/* Mobile Prominent Lighthouse Logo Badge */}
-            <div className="absolute top-3.5 left-3.5 z-10 md:hidden bg-brand-navy/95 backdrop-blur-xs rounded-xl px-3 py-1.5 shadow-md flex items-center gap-2 border border-white/10">
-              <Image
-                src="/image.png"
-                alt="Lighthouse Learning"
-                width={110}
-                height={20}
-                className="h-5 w-auto object-contain"
-                priority
-              />
-            </div>
           </div>
 
           {/* Right Column: High-Contrast Editorial Sign-in Form */}
           <div className="p-5 sm:p-8 lg:p-10 flex flex-col justify-between space-y-4 sm:space-y-6 bg-white">
             <div>
-              {/* Header with Term Indicator */}
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <div className="md:hidden flex items-center bg-brand-navy rounded-lg px-2.5 py-1 shadow-xs">
+              {/* Header with Logo and Portal Indicator (Hallmark Editorial Craft) */}
+              <div className="flex items-center justify-between gap-2.5 pb-3.5 mb-4 sm:mb-5 border-b border-border/60">
+                <div className="md:hidden flex items-center bg-brand-navy rounded-lg px-2.5 py-1.5 shadow-xs shrink-0">
                   <Image
                     src="/image.png"
                     alt="Lighthouse Learning"
-                    width={96}
+                    width={92}
                     height={18}
                     className="h-4 w-auto object-contain"
                     priority
                   />
                 </div>
-                <span className="text-[11px] sm:text-xs font-semibold text-brand-orange uppercase tracking-wide">
+                <div className="hidden md:flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Lighthouse Learning
+                  </span>
+                </div>
+                <span className="inline-flex items-center text-[11px] sm:text-xs font-medium text-brand-orange bg-brand-orange/10 px-2.5 sm:px-3 py-1 rounded-full whitespace-nowrap border border-brand-orange/20 shadow-2xs">
                   Staff &amp; Faculty Portal
                 </span>
               </div>

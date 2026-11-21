@@ -88,6 +88,13 @@ export interface DataTableProps<T> {
 
 export const CustomTableServerSidePagination = useCustomTable;
 
+const defaultGetRowId = (row: any) =>
+  row?._id ||
+  row?.id ||
+  row?.caseId ||
+  row?.deviceId ||
+  row?.key;
+
 export function useCustomTable<
   T extends Record<string, unknown>
 >({
@@ -114,12 +121,7 @@ export function useCustomTable<
   defaultTextWrap = "nowrap",
   enableColumnWrapping = true,
   selectedRowId = null,
-  getRowId = (row: T) =>
-    (row as any)._id ||
-    (row as any).id ||
-    (row as any).caseId ||
-    (row as any).deviceId ||
-    (row as any).key,
+  getRowId = defaultGetRowId,
   enableMultiSelect = false,
   enableVirtualization = false,
   estimatedRowHeight = 50,
@@ -127,6 +129,8 @@ export function useCustomTable<
   getRowClassName,
 }: DataTableProps<T>) {
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const getRowIdRef = useRef(getRowId);
+  getRowIdRef.current = getRowId;
 
   const getWrapClasses = useCallback((wrapOption: TextWrapOption): string => {
     const baseClasses = "leading-relaxed";
@@ -214,7 +218,7 @@ export function useCustomTable<
     data,
     columns: tableColumns,
     getRowId: (row: any, relativeIndex: number) => {
-      const custom = getRowId ? getRowId(row) : undefined;
+      const custom = getRowIdRef.current ? getRowIdRef.current(row) : undefined;
       return custom != null && custom !== ""
         ? String(custom)
         : `row-p${pagination.pageIndex}-${relativeIndex}`;
@@ -280,7 +284,7 @@ export function useCustomTable<
   };
 
   const selectedRows = enableMultiSelect
-    ? table.getSelectedRowModel().rows.map((row) => getRowId(row.original as T))
+    ? table.getSelectedRowModel().rows.map((row: any) => (getRowIdRef.current ? getRowIdRef.current(row.original as T) : (row.original as any)?.id))
     : [];
 
   const rows = table.getRowModel().rows;
@@ -291,25 +295,44 @@ export function useCustomTable<
   const [accumulatedRows, setAccumulatedRows] = useState<typeof rows>([]);
   const lastLoadedPageRef = useRef<number>(0);
   const isFetchingNextPageRef = useRef<boolean>(false);
+  const page0RowsRef = useRef<typeof rows>([]);
 
-  // Synchronize accumulated rows when data loads or pagination changes
+  // Keep a reference to the latest page 0 rows whenever on page 0
+  if (pagination.pageIndex === 0) {
+    page0RowsRef.current = rows;
+  }
+
+  // When reset to page 0 (e.g., search/filter/sort changed), clear accumulated rows
+  useEffect(() => {
+    if (pagination.pageIndex === 0) {
+      if (accumulatedRows.length > 0) {
+        setAccumulatedRows([]);
+      }
+      lastLoadedPageRef.current = 0;
+      isFetchingNextPageRef.current = false;
+    }
+  }, [pagination.pageIndex, accumulatedRows.length]);
+
+  // Synchronize accumulated rows when subsequent pages load
   useEffect(() => {
     if (loading) return;
 
-    if (pagination.pageIndex === 0) {
-      setAccumulatedRows(rows);
-      lastLoadedPageRef.current = 0;
-      isFetchingNextPageRef.current = false;
-    } else if (pagination.pageIndex > lastLoadedPageRef.current && rows.length > 0) {
-      setAccumulatedRows((prevRows) => {
+    if (
+      pagination.pageIndex > 0 &&
+      pagination.pageIndex > lastLoadedPageRef.current &&
+      data.length > 0
+    ) {
+      const currentRows = table.getRowModel().rows;
+      setAccumulatedRows((prevRows: any[]) => {
+        const baseRows = prevRows.length > 0 ? prevRows : page0RowsRef.current;
         const seen = new Set(
-          prevRows.map((r: any, idx: number) => {
-            const id = getRowId ? getRowId(r.original as T) : undefined;
+          baseRows.map((r: any, idx: number) => {
+            const id = getRowIdRef.current ? getRowIdRef.current(r.original as T) : undefined;
             return id != null && id !== "" ? String(id) : r.id || String(idx);
           })
         );
-        const newRows = rows.filter((r: any, idx: number) => {
-          const id = getRowId ? getRowId(r.original as T) : undefined;
+        const newRows = currentRows.filter((r: any, idx: number) => {
+          const id = getRowIdRef.current ? getRowIdRef.current(r.original as T) : undefined;
           const key = id != null && id !== "" ? String(id) : r.id || String(idx);
           return !seen.has(key);
         });
@@ -318,15 +341,17 @@ export function useCustomTable<
         if (newRows.length > 0) {
           lastLoadedPageRef.current = pagination.pageIndex;
           isFetchingNextPageRef.current = false;
-          return [...prevRows, ...newRows];
+          return [...baseRows, ...newRows];
         }
 
-        return prevRows;
+        return prevRows.length > 0 ? prevRows : baseRows;
       });
-    } else {
+      lastLoadedPageRef.current = pagination.pageIndex;
+      isFetchingNextPageRef.current = false;
+    } else if (pagination.pageIndex === lastLoadedPageRef.current) {
       isFetchingNextPageRef.current = false;
     }
-  }, [loading, pagination.pageIndex, rows, getRowId]);
+  }, [loading, pagination.pageIndex, data]);
 
   useEffect(() => {
     if (!loading) {
@@ -338,7 +363,10 @@ export function useCustomTable<
     if (pagination.pageIndex === 0) {
       return rows;
     }
-    return accumulatedRows.length > 0 ? accumulatedRows : rows;
+    if (accumulatedRows.length > 0) {
+      return accumulatedRows;
+    }
+    return page0RowsRef.current.length > 0 ? page0RowsRef.current : rows;
   }, [pagination.pageIndex, rows, accumulatedRows]);
 
   const hasMoreMobileRecords =
@@ -566,7 +594,7 @@ export function useCustomTable<
                         );
                       }
 
-                      const rowId = getRowId(rowData);
+                      const rowId = getRowIdRef.current ? getRowIdRef.current(rowData) : undefined;
                       const isSelected =
                         selectedRowId !== null && rowId === selectedRowId;
 
@@ -682,7 +710,7 @@ export function useCustomTable<
             <>
               {mobileDisplayRows.map((row, index) => {
                 const rowData = row.original as T;
-                const rowId = getRowId(rowData);
+                const rowId = getRowIdRef.current ? getRowIdRef.current(rowData) : undefined;
                 const isSelected = selectedRowId !== null && rowId === selectedRowId;
                 const cells = row.getVisibleCells();
 
