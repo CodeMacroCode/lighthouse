@@ -386,6 +386,60 @@ export default function CoordinatorPage() {
   const clustersLoadedRef = useRef(false);
   const centresLoadedRef = useRef(false);
 
+  // Dynamically fetch active zones from Zone Master API for filter dropdowns & dialogs
+  const { data: zonesData } = useQuery({
+    queryKey: ["activeZones"],
+    queryFn: async () => {
+      try {
+        const res = await zoneService.getZones({ isActive: true });
+        return res?.data && Array.isArray(res.data) ? res.data : [];
+      } catch (err) {
+        console.warn("Could not load zones for AOM:", err);
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Dynamically fetch active clusters from Cluster Master API for filter dropdowns & dialogs
+  const { data: clustersData } = useQuery({
+    queryKey: ["activeClusters"],
+    queryFn: async () => {
+      try {
+        const res = await clusterService.getClusters({ isActive: true });
+        return res?.data && Array.isArray(res.data) ? res.data : [];
+      } catch (err) {
+        console.warn("Could not load clusters for AOM:", err);
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const masterZones: ZoneItem[] = useMemo(() => {
+    if (zonesData && zonesData.length > 0) return zonesData;
+    return availableZones;
+  }, [zonesData, availableZones]);
+
+  const masterClusters: ClusterItem[] = useMemo(() => {
+    if (clustersData && clustersData.length > 0) return clustersData;
+    return availableClusters;
+  }, [clustersData, availableClusters]);
+
+  useEffect(() => {
+    if (zonesData && zonesData.length > 0 && availableZones.length === 0) {
+      setAvailableZones(zonesData);
+      zonesLoadedRef.current = true;
+    }
+  }, [zonesData, availableZones.length]);
+
+  useEffect(() => {
+    if (clustersData && clustersData.length > 0 && availableClusters.length === 0) {
+      setAvailableClusters(clustersData);
+      clustersLoadedRef.current = true;
+    }
+  }, [clustersData, availableClusters.length]);
+
   const fetchZonesOnDemand = useCallback(async () => {
     if (zonesLoadedRef.current || isLoadingZones) return;
     setIsLoadingZones(true);
@@ -503,29 +557,88 @@ export default function CoordinatorPage() {
     return aomList.length;
   }, [aomResponse, aomList.length]);
 
-  // Unique options for filters
+  // Unique options for filters (always retaining all master options so options do not shrink upon filtering)
   const zoneOptions = useMemo(() => {
-    const zones = new Set<string>();
-    aomList.forEach((u) => {
-      if (u.zone) zones.add(u.zone);
+    const map = new Map<string, string>();
+    masterZones.forEach((z) => {
+      if (z.name) map.set(z.name.toLowerCase(), z.name);
     });
-    return Array.from(zones).map((z) => ({ label: z, value: z }));
-  }, [aomList]);
+    aomList.forEach((u) => {
+      if (u.zone && !map.has(u.zone.toLowerCase())) {
+        map.set(u.zone.toLowerCase(), u.zone);
+      }
+    });
+    if (filterZone && !map.has(filterZone.toLowerCase())) {
+      map.set(filterZone.toLowerCase(), filterZone);
+    }
+    return Array.from(map.values())
+      .sort((a, b) => a.localeCompare(b))
+      .map((z) => ({ label: z, value: z }));
+  }, [masterZones, aomList, filterZone]);
 
   const clusterOptions = useMemo(() => {
-    const clusters = new Set<string>();
-    aomList.forEach((u) => {
-      if (u.cluster) clusters.add(u.cluster);
+    const map = new Map<string, string>();
+    masterClusters.forEach((c) => {
+      if (c.name) {
+        if (
+          filterZone &&
+          c.zone &&
+          c.zone.toLowerCase() !== filterZone.toLowerCase()
+        ) {
+          return;
+        }
+        map.set(c.name.toLowerCase(), c.name);
+      }
     });
-    return Array.from(clusters).map((c) => ({ label: c, value: c }));
-  }, [aomList]);
+    aomList.forEach((u) => {
+      if (u.cluster) {
+        if (
+          filterZone &&
+          u.zone &&
+          u.zone.toLowerCase() !== filterZone.toLowerCase()
+        ) {
+          return;
+        }
+        if (!map.has(u.cluster.toLowerCase())) {
+          map.set(u.cluster.toLowerCase(), u.cluster);
+        }
+      }
+    });
+    if (filterCluster && !map.has(filterCluster.toLowerCase())) {
+      map.set(filterCluster.toLowerCase(), filterCluster);
+    }
+    return Array.from(map.values())
+      .sort((a, b) => a.localeCompare(b))
+      .map((c) => ({ label: c, value: c }));
+  }, [masterClusters, aomList, filterZone, filterCluster]);
+
+  const handleZoneFilterChange = (val?: string) => {
+    const nextZone = val || undefined;
+    setFilterZone(nextZone);
+    if (nextZone && filterCluster) {
+      const matched = masterClusters.find(
+        (c) => c.name.toLowerCase() === filterCluster.toLowerCase()
+      );
+      if (matched?.zone && matched.zone.toLowerCase() !== nextZone.toLowerCase()) {
+        setFilterCluster(undefined);
+      }
+    }
+  };
+
+  const hasActiveFilters = Boolean(filterZone || filterCluster || searchInput);
+
+  const handleClearAllFilters = () => {
+    setFilterZone(undefined);
+    setFilterCluster(undefined);
+    setSearchInput("");
+  };
 
   const formZoneItems = useMemo(() => {
-    return availableZones.map((z) => ({
+    return masterZones.map((z) => ({
       value: z.name,
       label: `${z.name} ${z.code ? `(${z.code})` : ""}`.trim(),
     }));
-  }, [availableZones]);
+  }, [masterZones]);
 
   const addZoneItems = useMemo(() => {
     const list = [...formZoneItems];
@@ -551,7 +664,7 @@ export default function CoordinatorPage() {
 
   const allUniqueClusters = useMemo(() => {
     const map = new Map<string, { name: string; code?: string; zone?: string }>();
-    availableClusters.forEach((c) => {
+    masterClusters.forEach((c) => {
       if (c.name) {
         map.set(c.name.toLowerCase(), {
           name: c.name,
@@ -569,7 +682,7 @@ export default function CoordinatorPage() {
       }
     });
     return Array.from(map.values());
-  }, [availableClusters, aomList]);
+  }, [masterClusters, aomList]);
 
   const addClusterItems = useMemo(() => {
     let list = allUniqueClusters;
@@ -1184,29 +1297,44 @@ export default function CoordinatorPage() {
           />
 
           {/* Zone Filter */}
-          {zoneOptions.length > 0 && (
-            <Combobox
-              items={zoneOptions}
-              value={filterZone}
-              onValueChange={(val) => setFilterZone(val || undefined)}
-              placeholder="Filter Zone"
-              searchPlaceholder="Search Zone..."
-              width="w-full sm:w-[160px]"
-              emptyMessage="No zones found"
-            />
-          )}
+          <Combobox
+            items={zoneOptions}
+            value={filterZone}
+            onValueChange={handleZoneFilterChange}
+            placeholder="Filter Zone"
+            searchPlaceholder="Search Zone..."
+            width="w-full sm:w-[160px]"
+            emptyMessage="No zones found"
+            allowDeselect={true}
+            clearable={true}
+          />
 
           {/* Cluster Filter */}
-          {clusterOptions.length > 0 && (
-            <Combobox
-              items={clusterOptions}
-              value={filterCluster}
-              onValueChange={(val) => setFilterCluster(val || undefined)}
-              placeholder="Filter Cluster"
-              searchPlaceholder="Search Cluster..."
-              width="w-full sm:w-[180px]"
-              emptyMessage="No clusters found"
-            />
+          <Combobox
+            items={clusterOptions}
+            value={filterCluster}
+            onValueChange={(val) => setFilterCluster(val || undefined)}
+            placeholder="Filter Cluster"
+            searchPlaceholder="Search Cluster..."
+            width="w-full sm:w-[180px]"
+            emptyMessage="No clusters found"
+            allowDeselect={true}
+            clearable={true}
+          />
+
+          {/* Clear Filters Button */}
+          {hasActiveFilters && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClearAllFilters}
+              className="h-9 px-2.5 text-xs text-slate-600 dark:text-slate-300 hover:text-red-600 hover:border-red-200 hover:bg-red-50/50 flex items-center gap-1.5 cursor-pointer transition-colors"
+              title="Clear all filters"
+            >
+              <X className="h-3.5 w-3.5" />
+              <span>Clear Filters</span>
+            </Button>
           )}
         </div>
 

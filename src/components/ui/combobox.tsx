@@ -30,6 +30,7 @@ interface ComboboxProps {
   value?: string;
   onValueChange?: (value?: string) => void;
   allowDeselect?: boolean;
+  clearable?: boolean;
 
   // Multi-select props
   multiple?: boolean;
@@ -65,6 +66,7 @@ export function Combobox({
   value: controlledValue,
   onValueChange,
   allowDeselect = false,
+  clearable,
 
   // Multi-select
   multiple = false,
@@ -379,6 +381,10 @@ export function Combobox({
   );
 
   const displayText = getDisplayText();
+  const hasSingleValue =
+    !multiple && value !== undefined && value !== null && value !== "";
+  const showClearButton =
+    (clearable ?? allowDeselect) && hasSingleValue && !disabled;
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={true}>
@@ -440,7 +446,34 @@ export function Combobox({
               <span className="truncate">{displayText}</span>
             )}
           </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <div className="flex items-center gap-1 shrink-0 ml-1">
+            {showClearButton && (
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label="Clear selection"
+                className="p-0.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setValue(undefined);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setValue(undefined);
+                  }
+                }}
+              >
+                <X className="h-3.5 w-3.5" />
+              </span>
+            )}
+            <ChevronsUpDown className="h-4 w-4 opacity-50" />
+          </div>
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -460,6 +493,7 @@ export function Combobox({
       >
         <Command
           filter={(value, search) => {
+            if (value === "__clear_selection__") return 1;
             const item = items.find((item) => item.value.toLowerCase() === value.toLowerCase());
             if (!item) return 0;
 
@@ -483,6 +517,26 @@ export function Combobox({
           >
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
+              {/* Clear Option for Single Select */}
+              {!multiple && showClearButton && (
+                <>
+                  <CommandItem
+                    value="__clear_selection__"
+                    onSelect={() => {
+                      setValue(undefined);
+                      if (shouldCloseOnSelect) {
+                        setOpen(false);
+                      }
+                    }}
+                    className="cursor-pointer text-xs text-muted-foreground hover:text-red-600 dark:hover:text-red-400 flex items-center gap-2 py-1.5"
+                  >
+                    <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Clear selection</span>
+                  </CommandItem>
+                  <Separator className="my-1" />
+                </>
+              )}
+
               {/* Select All Option */}
               {multiple && showSelectAll && items.length > 0 && (
                 <>
