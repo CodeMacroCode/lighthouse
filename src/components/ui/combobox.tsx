@@ -444,7 +444,12 @@ export function Combobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className={cn(width, "p-0 z-9999")}
+        className={cn(
+          width === "w-full"
+            ? "w-[var(--radix-popover-trigger-width)] min-w-[200px]"
+            : width,
+          "p-0 z-9999"
+        )}
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         side="bottom"

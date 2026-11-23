@@ -46,7 +46,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { CustomTable } from "@/components/ui/CustomTable";
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@/components/ui/customTable(serverSidePagination)";
 import {
   Dialog,
   DialogContent,
@@ -350,33 +350,36 @@ function SchoolMasterPageContent() {
       value: z.name,
       label: `${z.name} ${z.code ? `(${z.code})` : ""}`.trim(),
     }));
+    const currentZone = editForm.zone;
     if (
-      editForm.zone &&
-      !list.some((i) => i.value.toLowerCase() === editForm.zone.toLowerCase())
+      currentZone &&
+      !list.some((i) => i.value.toLowerCase() === currentZone.toLowerCase())
     ) {
-      list.unshift({ value: editForm.zone, label: editForm.zone });
+      list.unshift({ value: currentZone, label: currentZone });
     }
     return list;
   }, [availableZones, editForm.zone]);
 
   const editClusterItems = useMemo(() => {
     let list = availableClusters;
-    if (editForm.zone) {
+    const currentZone = editForm.zone;
+    if (currentZone) {
       list = list.filter(
-        (c) => c.zone.toLowerCase() === editForm.zone.toLowerCase()
+        (c) => c.zone.toLowerCase() === currentZone.toLowerCase()
       );
     }
     const mapped = list.map((c) => ({
       value: c.name,
       label: `${c.name} ${c.code ? `(${c.code})` : ""}`.trim(),
     }));
+    const currentCluster = editForm.cluster;
     if (
-      editForm.cluster &&
+      currentCluster &&
       !mapped.some(
-        (i) => i.value.toLowerCase() === editForm.cluster.toLowerCase()
+        (i) => i.value.toLowerCase() === currentCluster.toLowerCase()
       )
     ) {
-      mapped.unshift({ value: editForm.cluster, label: editForm.cluster });
+      mapped.unshift({ value: currentCluster, label: currentCluster });
     }
     return mapped;
   }, [availableClusters, editForm.zone, editForm.cluster]);
@@ -394,12 +397,13 @@ function SchoolMasterPageContent() {
   }, [availableZones, createForm.zone]);
 
   const editSelectedZoneObj = useMemo(() => {
-    if (!editForm.zone) return null;
+    const currentZone = editForm.zone;
+    if (!currentZone) return null;
     return (
       availableZones.find(
         (z) =>
-          z.name.toLowerCase() === editForm.zone.toLowerCase() ||
-          (z.code && z.code.toLowerCase() === editForm.zone.toLowerCase())
+          z.name.toLowerCase() === currentZone.toLowerCase() ||
+          (z.code && z.code.toLowerCase() === currentZone.toLowerCase())
       ) || null
     );
   }, [availableZones, editForm.zone]);
@@ -1420,70 +1424,103 @@ function SchoolMasterPageContent() {
         {/* Row 2: Geographic Selectors (Zone, Cluster, State) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full">
           {/* Zone Selector */}
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 px-2.5 h-9 focus-within:bg-white focus-within:border-slate-300 transition-colors">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-14 shrink-0">
+          <div
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              if (!target.closest('button[role="combobox"]')) {
+                const btn = e.currentTarget.querySelector('button[role="combobox"]') as HTMLButtonElement;
+                btn?.click();
+              }
+            }}
+            className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 px-3 h-9 focus-within:bg-white focus-within:border-slate-300 transition-colors cursor-pointer"
+          >
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider shrink-0 select-none">
               Zone
             </span>
-            <div className="h-3.5 w-px bg-slate-200 shrink-0 mr-1.5" />
-            <Combobox
-              items={zoneFilterItems}
-              value={selectedZone}
-              onValueChange={(val) => {
-                setSelectedZone(val || "all");
-                setSelectedCluster("all");
-              }}
-              onOpenChange={(isOpen) => {
-                if (isOpen) fetchZonesOnDemand();
-              }}
-              placeholder={isLoadingZones ? "Loading..." : "All Zones"}
-              searchPlaceholder="Search zone..."
-              emptyMessage={
-                isLoadingZones ? "Loading zones..." : "No zones found."
-              }
-              width="w-full"
-              className="h-full border-0 bg-transparent hover:bg-transparent shadow-none text-xs font-medium text-slate-800 p-0 justify-between focus-visible:ring-0"
-            />
+            <div className="h-3.5 w-px bg-slate-200 shrink-0 mx-2" />
+            <div className="flex-1 min-w-0 h-full">
+              <Combobox
+                items={zoneFilterItems}
+                value={selectedZone}
+                onValueChange={(val) => {
+                  setSelectedZone(val || "all");
+                  setSelectedCluster("all");
+                }}
+                onOpenChange={(isOpen) => {
+                  if (isOpen) fetchZonesOnDemand();
+                }}
+                placeholder={isLoadingZones ? "Loading..." : "All Zones"}
+                searchPlaceholder="Search zone..."
+                emptyMessage={
+                  isLoadingZones ? "Loading zones..." : "No zones found."
+                }
+                width="w-full"
+                className="h-full border-0 bg-transparent hover:bg-transparent shadow-none text-xs font-medium text-slate-800 p-0 justify-between focus-visible:ring-0 cursor-pointer"
+              />
+            </div>
           </div>
 
           {/* Cluster Selector */}
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 px-2.5 h-9 focus-within:bg-white focus-within:border-slate-300 transition-colors">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-14 shrink-0">
+          <div
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              if (!target.closest('button[role="combobox"]')) {
+                const btn = e.currentTarget.querySelector('button[role="combobox"]') as HTMLButtonElement;
+                btn?.click();
+              }
+            }}
+            className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 px-3 h-9 focus-within:bg-white focus-within:border-slate-300 transition-colors cursor-pointer"
+          >
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider shrink-0 select-none">
               Cluster
             </span>
-            <div className="h-3.5 w-px bg-slate-200 shrink-0 mr-1.5" />
-            <Combobox
-              items={clusterFilterItems}
-              value={selectedCluster}
-              onValueChange={(val) => setSelectedCluster(val || "all")}
-              onOpenChange={(isOpen) => {
-                if (isOpen) fetchClustersOnDemand();
-              }}
-              placeholder={isLoadingClusters ? "Loading..." : "All Clusters"}
-              searchPlaceholder="Search cluster..."
-              emptyMessage={
-                isLoadingClusters ? "Loading clusters..." : "No clusters found."
-              }
-              width="w-full"
-              className="h-full border-0 bg-transparent hover:bg-transparent shadow-none text-xs font-medium text-slate-800 p-0 justify-between focus-visible:ring-0"
-            />
+            <div className="h-3.5 w-px bg-slate-200 shrink-0 mx-2" />
+            <div className="flex-1 min-w-0 h-full">
+              <Combobox
+                items={clusterFilterItems}
+                value={selectedCluster}
+                onValueChange={(val) => setSelectedCluster(val || "all")}
+                onOpenChange={(isOpen) => {
+                  if (isOpen) fetchClustersOnDemand();
+                }}
+                placeholder={isLoadingClusters ? "Loading..." : "All Clusters"}
+                searchPlaceholder="Search cluster..."
+                emptyMessage={
+                  isLoadingClusters ? "Loading clusters..." : "No clusters found."
+                }
+                width="w-full"
+                className="h-full border-0 bg-transparent hover:bg-transparent shadow-none text-xs font-medium text-slate-800 p-0 justify-between focus-visible:ring-0 cursor-pointer"
+              />
+            </div>
           </div>
 
           {/* State Selector */}
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 px-2.5 h-9 focus-within:bg-white focus-within:border-slate-300 transition-colors">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-14 shrink-0">
+          <div
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              if (!target.closest('button[role="combobox"]')) {
+                const btn = e.currentTarget.querySelector('button[role="combobox"]') as HTMLButtonElement;
+                btn?.click();
+              }
+            }}
+            className="flex items-center rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/60 px-3 h-9 focus-within:bg-white focus-within:border-slate-300 transition-colors cursor-pointer"
+          >
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider shrink-0 select-none">
               State
             </span>
-            <div className="h-3.5 w-px bg-slate-200 shrink-0 mr-1.5" />
-            <Combobox
-              items={stateFilterItems}
-              value={selectedState}
-              onValueChange={(val) => setSelectedState(val || "all")}
-              placeholder="All States"
-              searchPlaceholder="Search state..."
-              emptyMessage="No states found."
-              width="w-full"
-              className="h-full border-0 bg-transparent hover:bg-transparent shadow-none text-xs font-medium text-slate-800 p-0 justify-between focus-visible:ring-0"
-            />
+            <div className="h-3.5 w-px bg-slate-200 shrink-0 mx-2" />
+            <div className="flex-1 min-w-0 h-full">
+              <Combobox
+                items={stateFilterItems}
+                value={selectedState}
+                onValueChange={(val) => setSelectedState(val || "all")}
+                placeholder="All States"
+                searchPlaceholder="Search state..."
+                emptyMessage="No states found."
+                width="w-full"
+                className="h-full border-0 bg-transparent hover:bg-transparent shadow-none text-xs font-medium text-slate-800 p-0 justify-between focus-visible:ring-0 cursor-pointer"
+              />
+            </div>
           </div>
         </div>
 
@@ -1568,22 +1605,50 @@ function SchoolMasterPageContent() {
             </div>
           </div>
 
-          {/* Refresh Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchCentres(true)}
-            disabled={isRefreshing || isLoading}
-            className="h-8 px-2.5 text-slate-600 bg-white hover:bg-slate-50 border-slate-200 rounded-lg shadow-2xs cursor-pointer flex items-center gap-1.5"
-            title="Refresh schools"
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${
-                isRefreshing ? "animate-spin text-blue-600" : ""
-              }`}
-            />
-            <span className="text-xs font-medium hidden sm:inline">Refresh</span>
-          </Button>
+          {/* Action Buttons: Reset & Refresh */}
+          <div className="flex items-center gap-2">
+            {(Boolean(searchQuery) ||
+              selectedZone !== "all" ||
+              selectedCluster !== "all" ||
+              selectedState !== "all" ||
+              aomFilter !== "all" ||
+              statusFilter !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedZone("all");
+                  setSelectedCluster("all");
+                  setSelectedState("all");
+                  setAomFilter("all");
+                  setStatusFilter("all");
+                }}
+                className="h-8 px-2 text-xs text-slate-500 hover:text-slate-800 cursor-pointer flex items-center gap-1.5"
+                title="Reset all filters"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Reset Filters</span>
+              </Button>
+            )}
+
+            {/* Refresh Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchCentres(true)}
+              disabled={isRefreshing || isLoading}
+              className="h-8 px-2.5 text-slate-600 bg-white hover:bg-slate-50 border-slate-200 rounded-lg shadow-2xs cursor-pointer flex items-center gap-1.5"
+              title="Refresh schools"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${
+                  isRefreshing ? "animate-spin text-blue-600" : ""
+                }`}
+              />
+              <span className="text-xs font-medium hidden sm:inline">Refresh</span>
+            </Button>
+          </div>
         </div>
       </div>
 
