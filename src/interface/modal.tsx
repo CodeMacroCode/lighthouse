@@ -714,8 +714,11 @@ export interface Incident {
   schoolName?: string;
   branchName?: string;
   date?: string;
-  reporterName?: string;
+  time?: string;
+  incidentTime?: string;
   reportedBy?: string;
+  reportedByRole?: string;
+  reporterName?: string;
   reporterRole?: string;
   description?: string;
   briefDescription?: string;

@@ -5,8 +5,9 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { incidentService } from "@/services/api/incidentService";
+import { centreService, CentreItem } from "@/services/api/centreService";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,12 +45,31 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PREK_ROLES, normalizePrekRole } from "@/constants/roles";
 
 const CATEGORIES = ["Hazard & Risk", "Incident", "Near Miss"];
 const SEVERITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
 
 const INCIDENT_TYPES = [
+  {
+    name: "Corporal Punishment",
+    defaultSeverity: "Critical",
+    isMandatory: true,
+    description: "MANDATORY CRITICAL: Non-downgradable by any role.",
+  },
+  {
+    name: "Child Abuse",
+    defaultSeverity: "Critical",
+    isMandatory: true,
+    description: "MANDATORY CRITICAL: Strict statutory child protection protocol.",
+  },
   {
     name: "POCSO",
     defaultSeverity: "Critical",
@@ -58,17 +78,46 @@ const INCIDENT_TYPES = [
       "MANDATORY CRITICAL (FR-5.2): Non-downgradable by any role.",
   },
   {
-    name: "Corporal Punishment",
-    defaultSeverity: "Critical",
-    isMandatory: true,
-    description:
-      "MANDATORY CRITICAL (FR-5.2): Non-downgradable by any role.",
-  },
-  {
-    name: "Unsubstantiated Claims",
+    name: "Neglect of Child",
     defaultSeverity: "High",
     isMandatory: false,
-    description: "User-editable according to verified investigation.",
+    description: "High priority child care infraction.",
+  },
+  {
+    name: "Misconduct",
+    defaultSeverity: "Medium",
+    isMandatory: false,
+    description: "User-editable based on nature of infraction.",
+  },
+  {
+    name: "Medical Emergency",
+    defaultSeverity: "High",
+    isMandatory: false,
+    description: "Immediate medical response required.",
+  },
+  {
+    name: "Transport",
+    defaultSeverity: "Medium",
+    isMandatory: false,
+    description: "Transport / vehicle-related incident.",
+  },
+  {
+    name: "First Aid",
+    defaultSeverity: "Low",
+    isMandatory: false,
+    description: "Minor injury requiring on-site first aid.",
+  },
+  {
+    name: "Fall of Child",
+    defaultSeverity: "Medium",
+    isMandatory: false,
+    description: "Physical fall or slip involving a student.",
+  },
+  {
+    name: "Near Miss",
+    defaultSeverity: "Low",
+    isMandatory: false,
+    description: "Unplanned event that did not result in injury or damage.",
   },
   {
     name: "Accident",
@@ -83,25 +132,13 @@ const INCIDENT_TYPES = [
     description: "User-editable based on medical attention required.",
   },
   {
-    name: "Misconduct",
-    defaultSeverity: "Medium",
+    name: "Unsubstantiated Claims",
+    defaultSeverity: "High",
     isMandatory: false,
-    description: "User-editable based on nature of infraction.",
-  },
-  {
-    name: "Other",
-    defaultSeverity: "Medium",
-    isMandatory: false,
-    description: "User-editable.",
+    description: "User-editable according to verified investigation.",
   },
   {
     name: "Behavioural Issue",
-    defaultSeverity: "Low",
-    isMandatory: false,
-    description: "User-editable.",
-  },
-  {
-    name: "Near Miss",
     defaultSeverity: "Low",
     isMandatory: false,
     description: "User-editable.",
@@ -112,6 +149,20 @@ const INCIDENT_TYPES = [
     isMandatory: false,
     description: "User-editable.",
   },
+  {
+    name: "Other",
+    defaultSeverity: "Medium",
+    isMandatory: false,
+    description: "User-editable custom incident category.",
+  },
+];
+
+const REPORTED_BY_OPTIONS = [
+  "RSO",
+  "BM",
+  "AOM",
+  "Feedback Team",
+  "Others",
 ];
 
 const SUB_CATEGORIES = INCIDENT_TYPES.map((t) => t.name);
@@ -187,6 +238,15 @@ export default function NewIncidentPage() {
     userRole === "central" ||
     userRole === "superadmin";
 
+  const isNationalHead =
+    prekRole === PREK_ROLES.NATIONAL_HEAD ||
+    user?.role === "nationalHead" ||
+    user?.role === "National Head" ||
+    userRole === "national head" ||
+    userRole === "nationalhead";
+
+  const canSelectLocation = isCentral || isNationalHead;
+
   const [errorModal, setErrorModal] = React.useState<{
     open: boolean;
     title: string;
@@ -209,7 +269,18 @@ export default function NewIncidentPage() {
           otherIncidentType: z.string().optional(),
           subCategory: z.string().optional(),
           otherSubCategory: z.string().optional(),
-          date: z.string().min(1, "Date of incident is required"),
+          date: z
+            .string()
+            .min(1, "Date and time of incident is required")
+            .refine(
+              (val) => {
+                if (!val) return true;
+                const d = new Date(val);
+                return !isNaN(d.getTime()) && d <= new Date();
+              },
+              { message: "Incident date and time cannot be in the future" }
+            ),
+          reportedBy: z.string().optional(),
           stakeholders: z.string().min(1, "Stakeholder is required"),
           briefDescription: z
             .string()
@@ -266,7 +337,8 @@ export default function NewIncidentPage() {
       otherIncidentType: "",
       subCategory: "",
       otherSubCategory: "",
-      date: format(new Date(), "yyyy-MM-dd"),
+      date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      reportedBy: "",
       stakeholders: "",
       briefDescription: "",
       immediateActionTaken: "",
@@ -281,7 +353,6 @@ export default function NewIncidentPage() {
     },
   });
 
-  const selectedRegion = form.watch("region");
   const selectedIncidentType =
     form.watch("incidentType") || form.watch("subCategory");
   const selectedSeverity = form.watch("severity");
@@ -291,6 +362,35 @@ export default function NewIncidentPage() {
   const currentEscalation = selectedSeverity
     ? ESCALATION_MATRIX_DATA[selectedSeverity] || ESCALATION_MATRIX_DATA["High"]
     : null;
+
+  // Fetch all active centres / schools for Central / National Head selection
+  const { data: centresData, isLoading: isLoadingCentres } = useQuery({
+    queryKey: ["allActiveCentres"],
+    queryFn: async () => {
+      try {
+        const res = await centreService.getCentres({ isActive: true });
+        return Array.isArray(res?.data) ? res.data : [];
+      } catch (err) {
+        console.warn("Could not fetch centres:", err);
+        return [];
+      }
+    },
+    enabled: canSelectLocation,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const centreOptions = React.useMemo(() => {
+    const list = Array.isArray(centresData) ? centresData : [];
+    return list.map((c: CentreItem) => ({
+      label: `${c.name} ${c.code ? `(${c.code})` : ""}${c.zone ? ` - ${c.zone}` : ""}`.trim(),
+      value: c._id || (c as any).id,
+      name: c.name,
+      zone: c.zone,
+      cluster: c.cluster,
+      city: c.city,
+      state: c.state,
+    }));
+  }, [centresData]);
 
   useEffect(() => {
     if (selectedSeverity) {
@@ -491,8 +591,9 @@ export default function NewIncidentPage() {
       subCategory: finalIncidentType,
       incidentType: finalIncidentType,
       type: finalIncidentType,
-      date: values.date || new Date().toISOString().slice(0, 10),
-      incidentDate: values.date || new Date().toISOString().slice(0, 10),
+      date: values.date || new Date().toISOString(),
+      incidentDate: values.date || new Date().toISOString(),
+      reportedBy: values.reportedBy || "",
       stakeholders: Array.isArray(values.stakeholders)
         ? values.stakeholders
         : [values.stakeholders],
@@ -519,11 +620,14 @@ export default function NewIncidentPage() {
     payload.type = finalIncidentType;
     payload.description = values.briefDescription;
 
-    // Optional school association if selected
+    // Optional school / centre association if selected
     if (values.branchId) {
       payload.branchId = values.branchId;
+      payload.centreId = values.branchId;
       if (values.branchName) {
         payload.branchName = values.branchName;
+        payload.centreName = values.branchName;
+        payload.schoolName = values.branchName;
       }
     }
 
@@ -646,6 +750,63 @@ export default function NewIncidentPage() {
         <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
           <Card className="border-none shadow-md overflow-hidden">
             <CardContent className="p-6 space-y-8">
+              {/* Admin Scope: Centre Selection (Central & National Head) */}
+              {canSelectLocation && (
+                <div className="space-y-4 rounded-xl border border-blue-200/70 bg-blue-50/40 p-4">
+                  <div className="flex items-center gap-2 pb-1 border-b border-blue-200/50">
+                    <div className="h-2 w-2 rounded-full bg-blue-600" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-blue-900">
+                      Centre Assignment ({isCentral ? "Central Admin" : "National Head"})
+                    </h3>
+                  </div>
+
+                  <div>
+                    <FormField
+                      control={form.control}
+                      name="branchId"
+                      render={({ field }) => {
+                        const selectedCentre = centreOptions.find((c) => c.value === field.value);
+                        return (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="flex items-center justify-between text-xs font-medium text-slate-800">
+                              <span>Select Centre / School</span>
+                              {isLoadingCentres && (
+                                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                  <Loader2 className="h-3 w-3 animate-spin" /> Loading centres...
+                                </span>
+                              )}
+                            </FormLabel>
+                            <Combobox
+                              items={centreOptions}
+                              value={field.value}
+                              onValueChange={(val) => {
+                                field.onChange(val);
+                                const selected = centreOptions.find((c) => c.value === val);
+                                if (selected) {
+                                  form.setValue("branchName", selected.name);
+                                  if (selected.zone) {
+                                    form.setValue("region", selected.zone);
+                                  }
+                                }
+                              }}
+                              placeholder="Select centre / school (zone will be auto-derived)..."
+                              width="w-full"
+                            />
+                            {selectedCentre?.zone && (
+                              <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1 font-medium">
+                                <span className="text-blue-700">Auto-detected Zone:</span> {selectedCentre.zone}
+                                {selectedCentre.cluster && ` (${selectedCentre.cluster})`}
+                              </p>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Section 1: Classification & Severity */}
               <div className="space-y-6">
                 <div className="flex items-center gap-2 pb-2 border-b">
@@ -700,49 +861,197 @@ export default function NewIncidentPage() {
                     control={form.control}
                     name="date"
                     render={({ field }) => {
-                      const selectedDate = field.value
+                      const rawValue = field.value || "";
+                      const [datePart, timePart = ""] = rawValue.includes("T")
+                        ? rawValue.split("T")
+                        : [rawValue, ""];
+
+                      const selectedDate = datePart
                         ? (() => {
-                            const [y, m, d] = field.value.split("-").map(Number);
-                            return y && m && d ? new Date(y, m - 1, d) : new Date(field.value);
+                            const [y, m, d] = datePart.split("-").map(Number);
+                            return y && m && d ? new Date(y, m - 1, d) : undefined;
                           })()
                         : undefined;
 
+                      const isToday =
+                        selectedDate &&
+                        format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+
+                      // Current time breakdown
+                      const currentTimeStr = timePart || format(new Date(), "HH:mm");
+                      const [rawH = "12", rawM = "00"] = currentTimeStr.split(":");
+                      const currentHour24 = parseInt(rawH, 10);
+                      const currentMinute = parseInt(rawM, 10);
+
+                      const isPM = currentHour24 >= 12;
+                      const hour12 = currentHour24 % 12 === 0 ? 12 : currentHour24 % 12;
+                      const hour12Str = hour12 < 10 ? `0${hour12}` : `${hour12}`;
+                      const minuteStr = currentMinute < 10 ? `0${currentMinute}` : `${currentMinute}`;
+                      const periodStr = isPM ? "PM" : "AM";
+
+                      const now = new Date();
+                      const nowHour24 = now.getHours();
+                      const nowMinute = now.getMinutes();
+
+                      const updateTime = (h12: number, m: number, period: "AM" | "PM") => {
+                        let h24 = h12 % 12;
+                        if (period === "PM") h24 += 12;
+
+                        // Clamp if today and in future
+                        if (isToday) {
+                          if (h24 > nowHour24 || (h24 === nowHour24 && m > nowMinute)) {
+                            h24 = nowHour24;
+                            m = nowMinute;
+                          }
+                        }
+
+                        const finalHStr = h24 < 10 ? `0${h24}` : `${h24}`;
+                        const finalMStr = m < 10 ? `0${m}` : `${m}`;
+                        const currentDate = datePart || format(new Date(), "yyyy-MM-dd");
+                        field.onChange(`${currentDate}T${finalHStr}:${finalMStr}`);
+                      };
+
+                      const handleDateSelect = (d?: Date) => {
+                        if (!d) return;
+                        const newDateStr = format(d, "yyyy-MM-dd");
+                        let h24 = currentHour24;
+                        let m = currentMinute;
+                        if (newDateStr === format(new Date(), "yyyy-MM-dd")) {
+                          if (h24 > nowHour24 || (h24 === nowHour24 && m > nowMinute)) {
+                            h24 = nowHour24;
+                            m = nowMinute;
+                          }
+                        }
+                        const finalHStr = h24 < 10 ? `0${h24}` : `${h24}`;
+                        const finalMStr = m < 10 ? `0${m}` : `${m}`;
+                        field.onChange(`${newDateStr}T${finalHStr}:${finalMStr}`);
+                      };
+
+                      const formattedDisplay = selectedDate && !isNaN(selectedDate.getTime())
+                        ? `${format(selectedDate, "PPP")} at ${hour12Str}:${minuteStr} ${periodStr}`
+                        : "Pick date & time";
+
                       return (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Date of Incident</FormLabel>
+                          <FormLabel className="flex items-center justify-between">
+                            <span>Date & Time of Incident</span>
+                            <span className="text-[11px] text-muted-foreground font-normal">
+                              Combined Timestamp
+                            </span>
+                          </FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
                                   variant={"outline"}
                                   className={cn(
-                                    "w-full pl-3 text-left font-normal h-10 justify-between",
+                                    "w-full pl-3 text-left font-normal h-10 justify-between border-input hover:bg-accent/50",
                                     !field.value && "text-muted-foreground"
                                   )}
                                 >
-                                  {selectedDate && !isNaN(selectedDate.getTime()) ? (
-                                    format(selectedDate, "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="h-4 w-4 opacity-50" />
+                                  <span className="truncate">{formattedDisplay}</span>
+                                  <div className="flex items-center gap-1.5 opacity-60 shrink-0 ml-2">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    <CalendarIcon className="h-4 w-4" />
+                                  </div>
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={(d) => {
-                                  if (d) {
-                                    field.onChange(format(d, "yyyy-MM-dd"));
+                            <PopoverContent className="w-auto p-3" align="start">
+                              <div className="space-y-3">
+                                <Calendar
+                                  mode="single"
+                                  selected={selectedDate}
+                                  onSelect={handleDateSelect}
+                                  disabled={(d) =>
+                                    d > new Date() || d < new Date("1900-01-01")
                                   }
-                                }}
-                                disabled={(d) =>
-                                  d > new Date() || d < new Date("1900-01-01")
-                                }
-                                initialFocus
-                              />
+                                  initialFocus
+                                />
+                                <div className="border-t pt-3 flex items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground shrink-0">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    <span>Time:</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {/* Hour Picker */}
+                                    <Select
+                                      value={hour12Str}
+                                      onValueChange={(val) => {
+                                        updateTime(parseInt(val, 10), currentMinute, periodStr as "AM" | "PM");
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-8 w-[60px] text-xs px-2 font-mono">
+                                        <SelectValue placeholder="HH" />
+                                      </SelectTrigger>
+                                      <SelectContent className="max-h-48">
+                                        {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => {
+                                          const hStr = h < 10 ? `0${h}` : `${h}`;
+                                          let h24 = h % 12;
+                                          if (periodStr === "PM") h24 += 12;
+                                          const disabled = isToday && h24 > nowHour24;
+                                          return (
+                                            <SelectItem key={h} value={hStr} disabled={disabled} className="text-xs">
+                                              {hStr}
+                                            </SelectItem>
+                                          );
+                                        })}
+                                      </SelectContent>
+                                    </Select>
+
+                                    <span className="text-xs font-bold text-muted-foreground">:</span>
+
+                                    {/* Minute Picker */}
+                                    <Select
+                                      value={minuteStr}
+                                      onValueChange={(val) => {
+                                        updateTime(hour12, parseInt(val, 10), periodStr as "AM" | "PM");
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-8 w-[60px] text-xs px-2 font-mono">
+                                        <SelectValue placeholder="MM" />
+                                      </SelectTrigger>
+                                      <SelectContent className="max-h-48">
+                                        {Array.from({ length: 60 }, (_, i) => i).map((m) => {
+                                          const mStr = m < 10 ? `0${m}` : `${m}`;
+                                          let h24 = hour12 % 12;
+                                          if (periodStr === "PM") h24 += 12;
+                                          const disabled = isToday && (h24 > nowHour24 || (h24 === nowHour24 && m > nowMinute));
+                                          return (
+                                            <SelectItem key={m} value={mStr} disabled={disabled} className="text-xs">
+                                              {mStr}
+                                            </SelectItem>
+                                          );
+                                        })}
+                                      </SelectContent>
+                                    </Select>
+
+                                    {/* AM/PM Picker */}
+                                    <Select
+                                      value={periodStr}
+                                      onValueChange={(val) => {
+                                        updateTime(hour12, currentMinute, val as "AM" | "PM");
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-8 w-[62px] text-xs px-2 font-semibold">
+                                        <SelectValue placeholder="AM/PM" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="AM" className="text-xs">
+                                          AM
+                                        </SelectItem>
+                                        <SelectItem
+                                          value="PM"
+                                          disabled={isToday && nowHour24 < 12}
+                                          className="text-xs"
+                                        >
+                                          PM
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                              </div>
                             </PopoverContent>
                           </Popover>
                           <FormMessage />
@@ -799,6 +1108,32 @@ export default function NewIncidentPage() {
                           placeholder="Select severity level"
                           width="w-full"
                           disabled={isMandatoryCritical}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="reportedBy"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="flex items-center justify-between">
+                          <span>Reported By</span>
+                          <span className="text-[11px] text-muted-foreground font-normal">
+                            (FR-03)
+                          </span>
+                        </FormLabel>
+                        <Combobox
+                          items={REPORTED_BY_OPTIONS.map((r) => ({
+                            label: r,
+                            value: r,
+                          }))}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder="Select reporter source (e.g. RSO, Feedback Team)"
+                          width="w-full"
                         />
                         <FormMessage />
                       </FormItem>
